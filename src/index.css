@@ -1,0 +1,173 @@
+/* 폰트 불러오기 */
+@import "@fontsource/gowun-batang/400.css";
+@import "pretendard/dist/web/variable/pretendardvariable.css";
+
+:root {
+  /* 폰트 */
+  /* 폰트 */
+  --font-display: "Gowun Batang", serif;
+  --font-body: "Pretendard Variable", "Pretendard", sans-serif;
+
+  /* 색상 */
+  /* 메인 — 토마토 오렌지 */
+  --brand-primary: rgba(242, 107, 58, 1);
+
+  /* 메인 진하게 — 버튼 hover */
+  --brand-primary-dark: rgba(217, 79, 39, 1);
+
+  /* 크림 — 섹션 배경, 칩 기본, 히어로 영역 */
+  --brand-cream: rgba(255, 248, 238, 1);
+
+  /* 베이지 — 태그, 빈 별점, hover 배경 */
+  --brand-beige: rgba(243, 233, 215, 1);
+
+  /* 브라운 — 제목, 본문 기본 글자색 */
+  --brand-brown: rgba(64, 41, 31, 1);
+
+  /* 허브 그린 — 식단 완료 상태, 요리 팁 */
+  --brand-green: rgba(111, 143, 91, 1);
+
+  /* AI 강조 — 라벤더 */
+  --brand-ai: rgba(183, 156, 237, 1);
+
+  /* 회색 — 보조 텍스트 */
+  --brand-gray: rgba(118, 118, 118, 1);
+
+  /* 라이트 그레이 — muted 배경 */
+  --brand-light-gray: rgba(245, 245, 243, 1);
+
+  /* 아이보리 — 페이지 전체 배경 */
+  --background: rgba(255, 253, 249, 1);
+
+  /* 아이보리 투명도 85 — 헤더 배경 */
+  --background: rgba(255, 253, 249, 0.85);
+
+  /* 브라운 투명도 12 — 구분선 */
+  --brand-brown: rgba(64, 41, 31, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--background);
+}
+
+/* 컨테이너 */
+.container {
+  width: 100%;
+  max-width: 375px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+/* 태블릿 */
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+    padding-inline: 24px;
+  }
+}
+/* 데스크톱 */
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+    padding-inline: 24px;
+  }
+}
+
+/* 타이포그래피 */
+/* 고운바탕 적용 */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+/* 아래 고운바탕 클래스(dtext)는 위의 적용 클래스와 같이 사용 필수 */
+/* 고운바탕 48px / 120% */
+.dtext-5xl {
+  font-size: 3rem; /* 48px */
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* 고운바탕 36px / 120% */
+.dtext-4xl {
+  font-size: 2.25rem; /* 36px */
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* 고운바탕 24px / 130% */
+.dtext-2xl {
+  font-size: 1.5rem; /* 24px */
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+/* 고운바탕 18px / 150% */
+.dtext-xl {
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* 고운바탕 16px / 160% */
+.dtext-l {
+  font-family: var(--font-display);
+  font-size: 1rem; /* 16px */
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+/* 고운바탕 14px / 100% */
+.dtext-m {
+  font-size: 0.875rem; /* 14px */
+  line-height: 1; /* 100% */
+}
+
+/* Pretendard 18px / 150% */
+.text-lg {
+  font-family: var(--font-body);
+  font-size: 1.125rem; /* 18px */
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* Pretendard 16px / 160% */
+.text-m {
+  font-family: var(--font-body);
+  font-size: 1rem; /* 16px */
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+/* Pretendard 14px / 150% */
+.text-sm {
+  font-family: var(--font-body);
+  font-size: 0.875rem; /* 14px */
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* Pretendard 12px / 160% */
+.text-s {
+  font-family: var(--font-body);
+  font-size: 0.75rem; /* 12px */
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+/* 버튼 16px / 100% */
+.text-button {
+  font-family: var(--font-body);
+  font-size: 1rem; /* 16px */
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
