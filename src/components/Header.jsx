@@ -1,15 +1,20 @@
-import React, { useState } from "react";
-import "./Header.css";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
+import './Header.css';
 
-export default function Header({ activeMenu = "커뮤니티" }) {
+export default function Header({ activeMenu = '커뮤니티' }) {
   const [active, setActive] = useState(activeMenu);
+  const navigate = useNavigate();
 
   const menuItems = [
-    { id: "home", label: "홈" },
-    { id: "explore", label: "레시피 둘러보기" },
-    { id: "ai", label: "AI 레시피" },
-    { id: "community", label: "커뮤니티" },
+    { id: 'home', label: '홈' },
+    { id: 'explore', label: '레시피 둘러보기' },
+    { id: 'ai', label: 'AI 레시피' },
+    { id: 'community', label: '커뮤니티' },
   ];
+
+  /**추가: id를 통한 라우팅 함수 */
+  const handleNavigation = (id) => navigate(id);
 
   return (
     <header className="header">
@@ -40,10 +45,11 @@ export default function Header({ activeMenu = "커뮤니티" }) {
               <a
                 key={item.id}
                 href={`#${item.id}`}
-                className={active === item.label ? "active" : ""}
+                className={active === item.label ? 'active' : ''}
                 onClick={(e) => {
                   e.preventDefault();
                   setActive(item.label);
+                  handleNavigation(item.id);
                 }}
               >
                 {item.label}
