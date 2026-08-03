@@ -7,14 +7,14 @@ export default function Header({ activeMenu = '커뮤니티' }) {
   const navigate = useNavigate();
 
   const menuItems = [
-    { id: 'home', label: '홈' },
-    { id: 'explore', label: '레시피 둘러보기' },
-    { id: 'ai', label: 'AI 레시피' },
-    { id: 'community', label: '커뮤니티' },
+    { id: 'home', label: '홈', path: '/' },
+    { id: 'explore', label: '레시피 둘러보기', path: '/explore' },
+    { id: 'ai', label: 'AI 레시피', path: '/ai' },
+    { id: 'community', label: '커뮤니티', path: '/community' },
   ];
 
   /**추가: id를 통한 라우팅 함수 */
-  const handleNavigation = (id) => navigate(id);
+  const handleNavigation = (path) => navigate(path);
 
   return (
     <header className="header">
@@ -49,7 +49,7 @@ export default function Header({ activeMenu = '커뮤니티' }) {
                 onClick={(e) => {
                   e.preventDefault();
                   setActive(item.label);
-                  handleNavigation(item.id);
+                  handleNavigation(item.path)
                 }}
               >
                 {item.label}
