@@ -40,10 +40,10 @@
   --background: rgba(255, 253, 249, 1);
 
   /* 아이보리 투명도 85 — 헤더 배경 */
-  --background: rgba(255, 253, 249, 0.85);
+  --background-header: rgba(255, 255, 255, 0.95);
 
   /* 브라운 투명도 12 — 구분선 */
-  --brand-brown: rgba(64, 41, 31, 0.12);
+  --brand-divider: rgba(64, 41, 31, 0.12);
 }
 
 * {
