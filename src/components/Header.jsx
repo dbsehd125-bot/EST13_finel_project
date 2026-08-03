@@ -49,7 +49,7 @@ export default function Header({ activeMenu = '커뮤니티' }) {
                 onClick={(e) => {
                   e.preventDefault();
                   setActive(item.label);
-                  handleNavigation(item.path)
+                  handleNavigation(item.path);
                 }}
               >
                 {item.label}
@@ -92,11 +92,18 @@ export default function Header({ activeMenu = '커뮤니티' }) {
             <span className="alarm-dot">1</span>
           </button>
 
-          <a href="#register" className="btn-create">
+          <a href="/register" className="btn-create">
             + 레시피 등록하기
           </a>
 
-          <a href="#profile" className="user-profile">
+          <a
+            href="#profile"
+            className="user-profile"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavigation('/register');
+            }}
+          >
             <div className="avatar">
               <svg
                 width="18"

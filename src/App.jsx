@@ -1,7 +1,8 @@
 import React from 'react';
 import { Routes, Route } from 'react-router';
-import { Layout } from "./components";
+import { Layout } from './components';
 import CreateAIRecipe from './pages/CreateAIRecipe';
+import RegisterRecipe from './pages/RegistRecipe';
 import './App.css';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
 
       {/* 라우팅 페이지 목록 */}
       <Route path="/ai" element={<CreateAIRecipe />} />
+      <Route path="/register" element={<RegisterRecipe />} />
     </Routes>
   );
 }
