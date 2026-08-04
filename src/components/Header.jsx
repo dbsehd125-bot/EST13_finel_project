@@ -103,24 +103,36 @@ export default function Header({ activeMenu = "홈" }) {
               e.preventDefault();
               handleNavigation("/register");
             }}
+          />
+          <div
+            className="avatar"
+            style={{ cursor: "pointer" }}
+            onClick={() => {
+              handleNavigation("/mypage");
+            }}
           >
-            <div className="avatar">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8E8E93"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
-            <span>로그인</span>
-          </a>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#8E8E93"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <span
+            style={{ cursor: "pointer" }}
+            onClick={() => {
+              handleNavigation("/login");
+            }}
+          >
+            로그인
+          </span>
         </div>
       </div>
     </header>
