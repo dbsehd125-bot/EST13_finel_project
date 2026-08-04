@@ -1,0 +1,268 @@
+/* 상단 헤더 영역 */
+.headerArea {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* 6단계 상단 인디케이터 바 */
+.stepNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.stepPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background-color: var(--brand-cream);
+  color: var(--brand-brown);
+  border: 1px solid transparent;
+  border-radius: 24px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.activeStepPill {
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(240, 90, 36, 0.25);
+}
+
+/* 메인 폼 카드 (피그마 디자인 기준) */
+.formCard {
+  background-color: #ffffff;
+  border: 1px solid var(--brand-divider);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 4px 16px rgba(64, 41, 31, 0.05);
+  margin-bottom: 20px;
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.placeholderStepContent {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* 폼 입력 레이아웃 */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inputLabel {
+  font-size: 0.85rem;
+  color: var(--brand-gray);
+  font-weight: 500;
+}
+
+.textInput,
+.textareaInput,
+.selectBox {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--brand-cream);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--brand-brown);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.textInput:focus,
+.textareaInput:focus,
+.selectBox:focus {
+  border-color: var(--brand-primary);
+}
+
+.textareaInput {
+  resize: none;
+  line-height: 1.6;
+}
+
+.selectBox {
+  cursor: pointer;
+}
+
+/* 4컬럼 그리드 */
+.fourColGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .fourColGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 900px) {
+  .fourColGrid {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+}
+
+.selectField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 태그 칩 리스트 */
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background-color: var(--brand-cream);
+  border: 1px solid var(--brand-beige);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  color: var(--brand-brown);
+  font-weight: 500;
+}
+
+.tagDeleteBtn {
+  border: none;
+  background: transparent;
+  color: var(--brand-gray);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.addTagBtn {
+  padding: 6px 14px;
+  background-color: #ffffff;
+  border: 1px dashed var(--brand-primary);
+  color: var(--brand-primary);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.addTagInputWrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.addTagInput {
+  width: 90px;
+  padding: 4px 10px;
+  border: 1px solid var(--brand-primary);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.addTagConfirmBtn {
+  padding: 4px 8px;
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* 하단 액션 버튼 바 */
+.bottomActionBar {
+  background-color: #ffffff;
+  border: 1px solid var(--brand-divider);
+  border-radius: 20px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(64, 41, 31, 0.04);
+}
+
+.leftActions,
+.rightActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background-color: var(--brand-cream);
+  color: var(--brand-brown);
+  border: 1px solid var(--brand-divider);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.navBtn {
+  padding: 10px 20px;
+  background-color: var(--brand-cream);
+  color: var(--brand-brown);
+  border: 1px solid var(--brand-divider);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.disabledBtn {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nextBtn {
+  padding: 10px 24px;
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(240, 90, 36, 0.3);
+  transition: opacity 0.2s ease;
+}
+
+.nextBtn:hover {
+  opacity: 0.92;
+}
