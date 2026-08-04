@@ -1,3 +1,7 @@
+/* =========================
+   헤더
+========================= */
+
 .header {
   position: sticky;
   top: 0;
@@ -5,7 +9,7 @@
 
   width: 100%;
 
-  background-color: var(--background-header);
+  background: var(--background-header);
   border-bottom: 1px solid var(--brand-divider);
 }
 
@@ -17,8 +21,8 @@
   align-items: center;
   justify-content: space-between;
 
-  margin: 0 auto;
-  padding: 0 24px;
+  margin-inline: auto;
+  padding-inline: 24px;
 }
 
 /* =========================
@@ -31,8 +35,11 @@
   gap: 36px;
 }
 
+/* 로고 */
+
 .logo {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 10px;
 
@@ -44,26 +51,23 @@
   display: flex;
   width: 38px;
   height: 38px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
 
   color: #fff;
-  background-color: var(--brand-primary);
+  background: var(--brand-primary);
   border-radius: 50%;
   box-shadow: 0 2px 6px rgba(242, 107, 58, 0.25);
 }
 
 .logo-title {
   color: var(--brand-brown);
-
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 /* =========================
-   내비게이션
+   데스크톱 내비게이션
 ========================= */
 
 .nav {
@@ -76,27 +80,25 @@
   padding: 8px 18px;
 
   color: var(--brand-brown);
-  border-radius: 9999px;
+  border-radius: 999px;
 
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
 
   transition:
-    color 0.2s,
-    background-color 0.2s;
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .nav a:hover {
   color: var(--brand-primary);
-  background-color: var(--brand-cream);
+  background: var(--brand-cream);
 }
 
 .nav a.active {
   color: var(--brand-primary);
-  background-color: var(--brand-cream);
-  font-weight: 600;
+  background: var(--brand-cream);
+  font-weight: 500;
 }
 
 /* =========================
@@ -105,11 +107,13 @@
 
 .header-right {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 16px;
 }
 
-/* 검색, 알림 버튼 */
+/* 검색 및 알림 */
+
 .icon-btn {
   display: flex;
   align-items: center;
@@ -118,24 +122,21 @@
   padding: 8px;
 
   color: var(--brand-brown);
-  background: none;
-  border: none;
+  background: transparent;
+  border: 0;
   border-radius: 50%;
 
   cursor: pointer;
+
   transition:
-    color 0.2s,
-    background-color 0.2s;
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .icon-btn:hover {
   color: var(--brand-primary);
-  background-color: var(--brand-light-gray);
+  background: var(--brand-light-gray);
 }
-
-/* =========================
-   알림
-========================= */
 
 .alarm-btn {
   position: relative;
@@ -143,46 +144,50 @@
 
 .alarm-dot {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 3px;
+  right: 2px;
 
   display: flex;
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   align-items: center;
   justify-content: center;
 
   color: #fff;
-  background-color: var(--brand-primary);
+  background: var(--brand-primary);
   border: 1.5px solid #fff;
   border-radius: 50%;
 
+  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 700;
+  line-height: 1;
 }
 
 /* =========================
-   레시피 등록 버튼
+   레시피 등록
 ========================= */
 
 .btn-create {
-  padding: 9px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 11px 20px;
 
   color: #fff;
-  background-color: var(--brand-primary);
-  border-radius: 9999px;
+  background: var(--brand-primary);
+  border-radius: 999px;
   box-shadow: 0 2px 6px rgba(242, 107, 58, 0.25);
 
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
 
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
 .btn-create:hover {
-  background-color: var(--brand-primary-dark);
+  background: var(--brand-primary-dark);
 }
 
 /* =========================
@@ -191,42 +196,40 @@
 
 .avatar {
   display: flex;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
 
-  background-color: var(--background);
-  border: 1.5px solid var(--brand-divider);
+  color: var(--brand-gray);
+  background: var(--background);
+  border: 2px solid var(--brand-beige);
   border-radius: 50%;
 
   text-decoration: none;
   cursor: pointer;
 
   transition:
-    border-color 0.2s,
-    background-color 0.2s;
+    border-color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .avatar:hover {
-  background-color: var(--brand-cream);
+  background: var(--brand-cream);
   border-color: var(--brand-primary);
 }
 
 /* =========================
-   로그인 링크
+   로그인
 ========================= */
 
 .login-link {
   color: var(--brand-gray);
-
-  font-family: var(--font-body);
-  font-size: 14px;
   text-decoration: none;
+  white-space: nowrap;
 
-  cursor: pointer;
-  transition: color 0.2s;
+  transition: color 0.2s ease;
 }
 
 .login-link:hover {
@@ -234,44 +237,228 @@
 }
 
 /* =========================
-   태블릿
+   햄버거 버튼
 ========================= */
 
-@media (max-width: 1023px) {
+.menu-btn {
+  display: none;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  padding: 0;
+
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+
+  cursor: pointer;
+
+  transition: background-color 0.2s ease;
+}
+
+.menu-btn:hover {
+  background: var(--brand-cream);
+}
+
+.menu-btn span {
+  display: block;
+  width: 24px;
+  height: 2px;
+
+  background: var(--brand-brown);
+  border-radius: 999px;
+
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+/* 메뉴가 열리면 X */
+
+.menu-btn.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menu-btn.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-btn.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* =========================
+   펼침 메뉴 기본
+========================= */
+
+.mobile-menu {
+  display: none;
+}
+
+/* =========================
+   태블릿: 768px ~ 1279px
+========================= */
+
+@media (max-width: 1279px) {
   .header-inner {
-    height: 64px;
+    height: 72px;
+    padding-inline: 24px;
   }
 
   .nav {
     display: none;
   }
 
-  .logo-title {
-    font-size: 18px;
-  }
-
-  .header-right {
-    gap: 10px;
-  }
-
-  .btn-create {
-    padding: 9px 16px;
-    font-size: 14px;
-  }
-
   .login-link {
     display: none;
+  }
+
+  .menu-btn {
+    display: flex;
+  }
+
+  /* 본문 위에 겹쳐서 열리는 메뉴 */
+  .mobile-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 110;
+
+    display: block;
+    width: 100%;
+    max-height: 0;
+    overflow: hidden;
+
+    /* 기존 64px에서 줄임 */
+    padding-inline: 40px;
+
+    background: #fff;
+    border-bottom: 1px solid transparent;
+    box-shadow: 0 12px 24px rgba(64, 41, 31, 0.12);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition:
+      max-height 0.3s ease,
+      padding-block 0.3s ease,
+      opacity 0.2s ease,
+      visibility 0.2s ease;
+  }
+
+  .mobile-menu.open {
+    max-height: 520px;
+
+    /* 위아래 여백도 조금 줄임 */
+    padding-block: 14px 24px;
+
+    border-bottom-color: var(--brand-divider);
+
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .mobile-nav {
+    display: flex;
+    width: 100%;
+    max-width: 1280px;
+    flex-direction: column;
+
+    /* 메뉴 사이 간격 추가 */
+    gap: 10px;
+
+    margin-inline: auto;
+  }
+
+  .mobile-nav a {
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+
+    /* 기존 24px보다 살짝 줄임 */
+    padding-inline: 18px;
+
+    color: var(--brand-brown);
+    border-radius: 999px;
+
+    text-decoration: none;
+
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .mobile-nav a:hover,
+  .mobile-nav a.active {
+    color: var(--brand-primary);
+    background: var(--brand-cream);
+  }
+
+  .mobile-menu-actions {
+    display: grid;
+    width: 100%;
+    max-width: 1280px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+
+    margin: 22px auto 0;
+    padding-inline: 8px;
+  }
+
+  .mobile-create,
+  .mobile-login {
+    display: flex;
+    height: 50px;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+    text-decoration: none;
+
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .mobile-create {
+    color: #fff;
+    background: var(--brand-primary);
+  }
+
+  .mobile-create:hover {
+    background: var(--brand-primary-dark);
+  }
+
+  .mobile-login {
+    min-width: 120px;
+    padding-inline: 22px;
+
+    color: var(--brand-brown);
+    background: #fff;
+    border: 1px solid var(--brand-divider);
+  }
+
+  .mobile-login:hover {
+    color: var(--brand-primary);
+    background: var(--brand-cream);
+    border-color: var(--brand-primary);
   }
 }
 
 /* =========================
-   모바일
+   모바일: 375px
 ========================= */
 
 @media (max-width: 599px) {
   .header-inner {
     height: 56px;
-    padding: 0 16px;
+    padding-inline: 16px;
   }
 
   .header-left {
@@ -300,17 +487,61 @@
     gap: 4px;
   }
 
-  .icon-btn {
-    padding: 6px;
-  }
-
+  /* 모바일 상단에서 숨김 */
+  .search-btn,
+  .alarm-btn,
   .btn-create {
-    padding: 8px 12px;
-    font-size: 12px;
+    display: none;
   }
 
   .avatar {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .menu-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .menu-btn span {
+    width: 22px;
+  }
+
+  .mobile-menu {
+    /* 기존 32px에서 줄임 */
+    padding-inline: 20px;
+  }
+
+  .mobile-menu.open {
+    padding-block: 12px 22px;
+  }
+
+  .mobile-nav {
+    /* 모바일 메뉴 사이 간격 */
+    gap: 8px;
+  }
+
+  .mobile-nav a {
+    min-height: 52px;
+    padding-inline: 14px;
+  }
+
+  .mobile-menu-actions {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+
+    margin-top: 20px;
+    padding-inline: 4px;
+  }
+
+  .mobile-create,
+  .mobile-login {
+    height: 48px;
+  }
+
+  .mobile-login {
+    min-width: 96px;
+    padding-inline: 18px;
   }
 }
