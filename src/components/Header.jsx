@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Header.css";
 
-export default function Header({ activeMenu = "커뮤니티" }) {
+export default function Header({ activeMenu = "홈" }) {
   const [active, setActive] = useState(activeMenu);
 
   const menuItems = [
@@ -36,12 +36,12 @@ export default function Header({ activeMenu = "커뮤니티" }) {
           </a>
 
           <nav className="nav">
-            {menuItems.map((item) => (
+            {menuItems.map(item => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
                 className={active === item.label ? "active" : ""}
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   setActive(item.label);
                 }}
