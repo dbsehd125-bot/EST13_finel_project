@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Layout } from '../components';
 import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart } from 'lucide-react';
-import './MyPage.css';
+import styles from './MyPage.module.css';
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState('내가 작성한 레시피');
@@ -23,57 +23,57 @@ export default function MyPage() {
 
   return (
     <Layout activeMenu="커뮤니티">
-      <div className="mypage-container">
+      <div className={styles['mypage-container']}>
         {/* Profile Section */}
-        <div className="profile-section">
-          <div className="profile-info">
-            <div className="profile-avatar" style={{ backgroundColor: 'var(--brand-light-gray)' }}>
+        <div className={styles['profile-section']}>
+          <div className={styles['profile-info']}>
+            <div className={styles['profile-avatar']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
             </div>
-            <div className="profile-details">
-              <h2 className="font-display dtext-2xl profile-name">정서윤</h2>
-              <p className="text-m profile-handle">@SarahCooks</p>
-              <div className="profile-actions">
-                <button className="text-button btn-edit-profile">
+            <div className={styles['profile-details']}>
+              <h2 className={`font-display dtext-2xl ${styles['profile-name']}`}>정서윤</h2>
+              <p className={`text-m ${styles['profile-handle']}`}>@SarahCooks</p>
+              <div className={styles['profile-actions']}>
+                <button className={`text-button ${styles['btn-edit-profile']}`}>
                   <Pencil size={14} /> 프로필 수정
                 </button>
-                <button className="text-button btn-follow">팔로우</button>
-                <button className="btn-message">
+                <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
+                <button className={styles['btn-message']}>
                   <MessageCircle size={16} />
                 </button>
               </div>
             </div>
           </div>
           
-          <div className="profile-stats">
-            <div className="stat-item">
-              <span className="stat-icon" style={{color: 'var(--brand-primary)'}}>🍴</span>
-              <span className="text-lg stat-value">148</span>
-              <span className="text-sm stat-label">레시피</span>
+          <div className={styles['profile-stats']}>
+            <div className={styles['stat-item']}>
+              <span className={styles['stat-icon']} style={{color: 'var(--brand-primary)'}}>🍴</span>
+              <span className={`text-lg ${styles['stat-value']}`}>148</span>
+              <span className={`text-sm ${styles['stat-label']}`}>레시피</span>
             </div>
-            <div className="stat-item">
-              <span className="stat-icon" style={{color: 'var(--brand-primary)'}}>👥</span>
-              <span className="text-lg stat-value">2.1k</span>
-              <span className="text-sm stat-label">팔로워</span>
+            <div className={styles['stat-item']}>
+              <span className={styles['stat-icon']} style={{color: 'var(--brand-primary)'}}>👥</span>
+              <span className={`text-lg ${styles['stat-value']}`}>2.1k</span>
+              <span className={`text-sm ${styles['stat-label']}`}>팔로워</span>
             </div>
-            <div className="stat-item">
-              <span className="stat-icon" style={{color: 'var(--brand-primary)'}}>👤+</span>
-              <span className="text-lg stat-value">695</span>
-              <span className="text-sm stat-label">팔로잉</span>
+            <div className={styles['stat-item']}>
+              <span className={styles['stat-icon']} style={{color: 'var(--brand-primary)'}}>👤+</span>
+              <span className={`text-lg ${styles['stat-value']}`}>695</span>
+              <span className={`text-sm ${styles['stat-label']}`}>팔로잉</span>
             </div>
-            <div className="stat-item">
-              <span className="stat-icon" style={{color: 'var(--brand-primary)'}}>❤️</span>
-              <span className="text-lg stat-value">9.4k</span>
-              <span className="text-sm stat-label">좋아요</span>
+            <div className={styles['stat-item']}>
+              <span className={styles['stat-icon']} style={{color: 'var(--brand-primary)'}}>❤️</span>
+              <span className={`text-lg ${styles['stat-value']}`}>9.4k</span>
+              <span className={`text-sm ${styles['stat-label']}`}>좋아요</span>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="tabs-container">
+        <div className={styles['tabs-container']}>
           {tabs.map(tab => (
             <button 
               key={tab} 
-              className={`text-button tab-item ${activeTab === tab ? 'active' : ''}`}
+              className={`text-button ${styles['tab-item']} ${activeTab === tab ? styles['active'] : ''}`}
               onClick={() => setActiveTab(tab)}
             >
               {tab}
@@ -82,37 +82,37 @@ export default function MyPage() {
         </div>
 
         {/* Search and Sort */}
-        <div className="toolbar">
-          <div className="search-bar">
-            <Search size={18} className="search-icon" />
+        <div className={styles['toolbar']}>
+          <div className={styles['search-bar']}>
+            <Search size={18} className={styles['search-icon']} />
             <input type="text" className="text-m" placeholder="내 레시피 검색" />
           </div>
-          <div className="toolbar-right">
-            <button className="text-button sort-btn">
+          <div className={styles['toolbar-right']}>
+            <button className={`text-button ${styles['sort-btn']}`}>
               최신순 <ChevronDown size={16} />
             </button>
-            <button className="text-button btn-new-recipe">+ 새 레시피 작성</button>
+            <button className={`text-button ${styles['btn-new-recipe']}`}>+ 새 레시피 작성</button>
           </div>
         </div>
 
         {/* Recipe Grid */}
-        <div className="recipe-grid">
+        <div className={styles['recipe-grid']}>
           {recipes.map(recipe => (
-            <div key={recipe.id} className="recipe-card">
-              <div className="recipe-image-container" style={{ backgroundColor: 'var(--brand-light-gray)' }}>
-                <span className={`text-s privacy-badge ${recipe.isPublic ? 'public' : 'private'}`}>
+            <div key={recipe.id} className={styles['recipe-card']}>
+              <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
+                <span className={`text-s ${styles['privacy-badge']} ${recipe.isPublic ? styles['public'] : styles['private']}`}>
                   {recipe.isPublic ? '공개' : '비공개'}
                 </span>
               </div>
-              <div className="recipe-content">
-                <h3 className="text-lg recipe-title">{recipe.title}</h3>
-                <div className="text-sm recipe-meta">
+              <div className={styles['recipe-content']}>
+                <h3 className={`text-lg ${styles['recipe-title']}`}>{recipe.title}</h3>
+                <div className={`text-sm ${styles['recipe-meta']}`}>
                   <span><Eye size={14} /> {recipe.views}</span>
                   <span><Heart size={14} /> {recipe.likes}</span>
                 </div>
-                <div className="recipe-actions">
-                  <button className="text-button btn-card-action"><Pencil size={14} /> 수정</button>
-                  <button className="text-button btn-card-action">🗑 삭제</button>
+                <div className={styles['recipe-actions']}>
+                  <button className={`text-button ${styles['btn-card-action']}`}><Pencil size={14} /> 수정</button>
+                  <button className={`text-button ${styles['btn-card-action']}`}>🗑 삭제</button>
                 </div>
               </div>
             </div>

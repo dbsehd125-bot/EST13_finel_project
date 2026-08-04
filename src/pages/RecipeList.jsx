@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Layout } from '../components';
 import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import './RecipeList.css';
+import styles from './RecipeList.module.css';
 
 export default function RecipeList() {
   const [activeFilters, setActiveFilters] = useState(['한식', '30분 이하', '쉬움']);
@@ -19,90 +19,90 @@ export default function RecipeList() {
 
   return (
     <Layout activeMenu="레시피 둘러보기">
-      <div className="recipe-list-page">
+      <div className={styles['recipe-list-page']}>
         {/* Top Search Area */}
-        <div className="search-section">
-          <div className="main-search-bar">
-            <Search size={20} className="search-icon" />
+        <div className={styles['search-section']}>
+          <div className={styles['main-search-bar']}>
+            <Search size={20} className={styles['search-icon']} />
             <input type="text" className="text-m" placeholder="요리명, 재료, 작성자를 검색해보세요." />
           </div>
-          <div className="active-filters">
+          <div className={styles['active-filters']}>
             {activeFilters.map(filter => (
-              <span key={filter} className="filter-chip text-button">
-                {filter} <button className="remove-filter"><X size={14} /></button>
+              <span key={filter} className={`${styles['filter-chip']} text-button`}>
+                {filter} <button className={styles['remove-filter']}><X size={14} /></button>
               </span>
             ))}
-            <button className="clear-filters text-button" onClick={() => setActiveFilters([])}>모두 지우기</button>
+            <button className={`${styles['clear-filters']} text-button`} onClick={() => setActiveFilters([])}>모두 지우기</button>
           </div>
         </div>
 
-        <div className="content-area">
+        <div className={styles['content-area']}>
           {/* Left Sidebar */}
-          <aside className="sidebar">
-            <div className="filter-group">
-              <div className="filter-header font-display dtext-xl">필터</div>
+          <aside className={styles['sidebar']}>
+            <div className={styles['filter-group']}>
+              <div className={`${styles['filter-header']} font-display dtext-xl`}>필터</div>
               
-              <div className="filter-category">
-                <div className="filter-title text-button">음식 종류 <ChevronDown size={16} /></div>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 에피타이저</label>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 메인 요리</label>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 샐러드</label>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 수프</label>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 디저트</label>
+              <div className={styles['filter-category']}>
+                <div className={`${styles['filter-title']} text-button`}>음식 종류 <ChevronDown size={16} /></div>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 에피타이저</label>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 메인 요리</label>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 샐러드</label>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 수프</label>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 디저트</label>
               </div>
 
-              <div className="filter-category border-top">
-                <div className="filter-title text-button">식단 <ChevronDown size={16} /></div>
+              <div className={`${styles['filter-category']} ${styles['border-top']}`}>
+                <div className={`${styles['filter-title']} text-button`}>식단 <ChevronDown size={16} /></div>
               </div>
 
-              <div className="filter-category border-top">
-                <div className="filter-title text-button">난이도 <ChevronDown size={16} /></div>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 쉬움</label>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 보통</label>
-                <label className="checkbox-label text-sm"><input type="checkbox" /> 어려움</label>
+              <div className={`${styles['filter-category']} ${styles['border-top']}`}>
+                <div className={`${styles['filter-title']} text-button`}>난이도 <ChevronDown size={16} /></div>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 쉬움</label>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 보통</label>
+                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 어려움</label>
               </div>
 
-              <div className="filter-category border-top">
-                <div className="filter-title text-button">정렬 <ChevronDown size={16} /></div>
-                <label className="radio-label text-sm"><input type="radio" name="sort" /> 최신순</label>
-                <label className="radio-label text-sm"><input type="radio" name="sort" defaultChecked /> 인기순</label>
-                <label className="radio-label text-sm"><input type="radio" name="sort" /> 평점순</label>
+              <div className={`${styles['filter-category']} ${styles['border-top']}`}>
+                <div className={`${styles['filter-title']} text-button`}>정렬 <ChevronDown size={16} /></div>
+                <label className={`${styles['radio-label']} text-sm`}><input type="radio" name="sort" /> 최신순</label>
+                <label className={`${styles['radio-label']} text-sm`}><input type="radio" name="sort" defaultChecked /> 인기순</label>
+                <label className={`${styles['radio-label']} text-sm`}><input type="radio" name="sort" /> 평점순</label>
               </div>
             </div>
           </aside>
 
           {/* Main Recipe Grid */}
-          <main className="recipe-main">
-            <div className="results-header">
-              <span className="results-count text-sm">총 1,284개의 레시피</span>
-              <div className="view-toggles">
-                <button className="view-btn"><List size={18} /></button>
-                <button className="view-btn"><LayoutGrid size={18} /></button>
-                <button className="view-btn active"><Grid size={18} /></button>
+          <main className={styles['recipe-main']}>
+            <div className={styles['results-header']}>
+              <span className={`${styles['results-count']} text-sm`}>총 1,284개의 레시피</span>
+              <div className={styles['view-toggles']}>
+                <button className={styles['view-btn']}><List size={18} /></button>
+                <button className={styles['view-btn']}><LayoutGrid size={18} /></button>
+                <button className={`${styles['view-btn']} ${styles['active']}`}><Grid size={18} /></button>
               </div>
             </div>
 
-            <div className="recipe-grid-3col">
+            <div className={styles['recipe-grid-3col']}>
               {recipes.map(recipe => (
-                <div key={recipe.id} className="recipe-card">
-                  <div className="recipe-image-container" style={{ backgroundColor: 'var(--brand-light-gray)' }}>
-                    <span className="category-badge text-s">{recipe.category}</span>
-                    <button className="like-btn"><Heart size={18} /></button>
+                <div key={recipe.id} className={styles['recipe-card']}>
+                  <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
+                    <span className={`${styles['category-badge']} text-s`}>{recipe.category}</span>
+                    <button className={styles['like-btn']}><Heart size={18} /></button>
                   </div>
-                  <div className="recipe-content">
-                    <h3 className="recipe-title text-lg">{recipe.title}</h3>
-                    <div className="recipe-author text-sm">
-                      <div className="author-avatar" style={{ backgroundColor: 'var(--brand-light-gray)' }}></div>
+                  <div className={styles['recipe-content']}>
+                    <h3 className={`${styles['recipe-title']} text-lg`}>{recipe.title}</h3>
+                    <div className={`${styles['recipe-author']} text-sm`}>
+                      <div className={styles['author-avatar']} style={{ backgroundColor: 'var(--brand-light-gray)' }}></div>
                       <span>{recipe.author}</span>
                     </div>
-                    <div className="recipe-meta-info text-s">
+                    <div className={`${styles['recipe-meta-info']} text-s`}>
                       <span><Clock size={14} /> {recipe.time}</span>
                       <span>{recipe.difficulty}</span>
                     </div>
-                    <div className="recipe-stats text-s">
-                      <span className="rating"><Star size={14} fill="currentColor" /> {recipe.rating}</span>
-                      <span className="views"><Heart size={14} /> {recipe.views}</span>
-                      <span className="comments"><MessageCircle size={14} /> {recipe.comments}</span>
+                    <div className={`${styles['recipe-stats']} text-s`}>
+                      <span className={styles['rating']}><Star size={14} fill="currentColor" /> {recipe.rating}</span>
+                      <span className={styles['views']}><Heart size={14} /> {recipe.views}</span>
+                      <span className={styles['comments']}><MessageCircle size={14} /> {recipe.comments}</span>
                     </div>
                   </div>
                 </div>
@@ -110,14 +110,14 @@ export default function RecipeList() {
             </div>
 
             {/* Pagination */}
-            <div className="pagination">
-              <button className="page-btn nav-btn"><ChevronLeft size={16} /></button>
-              <button className="page-btn active text-button">1</button>
-              <button className="page-btn text-button">2</button>
-              <button className="page-btn text-button">3</button>
-              <button className="page-btn text-button">4</button>
-              <button className="page-btn text-button">5</button>
-              <button className="page-btn nav-btn"><ChevronRight size={16} /></button>
+            <div className={styles['pagination']}>
+              <button className={`${styles['page-btn']} ${styles['nav-btn']}`}><ChevronLeft size={16} /></button>
+              <button className={`${styles['page-btn']} ${styles['active']} text-button`}>1</button>
+              <button className={`${styles['page-btn']} text-button`}>2</button>
+              <button className={`${styles['page-btn']} text-button`}>3</button>
+              <button className={`${styles['page-btn']} text-button`}>4</button>
+              <button className={`${styles['page-btn']} text-button`}>5</button>
+              <button className={`${styles['page-btn']} ${styles['nav-btn']}`}><ChevronRight size={16} /></button>
             </div>
           </main>
         </div>
