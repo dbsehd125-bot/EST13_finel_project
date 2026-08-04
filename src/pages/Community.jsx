@@ -14,6 +14,7 @@ import { Button, Checkbox, Dialog, IconButton } from "@mui/material";
 import Masonry from "@mui/lab/Masonry";
 
 import styles from "./Community.module.css";
+import Layout from "../components/Layout";
 
 export default function Community() {
   const [selectedCategory, setSelectedCategory] = useState("인기");
@@ -30,7 +31,7 @@ export default function Community() {
   };
 
   return (
-    <>
+    <Layout activeMenu="커뮤니티">
       <section>
         <div className="title">
           <h1 className={`font-display dtext-5xl ${styles.title_h1}`}>커뮤니티</h1>
@@ -430,6 +431,6 @@ export default function Community() {
           </div>
         </div>
       </Dialog>
-    </>
+    </Layout>
   );
 }

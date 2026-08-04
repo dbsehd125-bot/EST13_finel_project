@@ -1,0 +1,853 @@
+.page {
+  width: 100%;
+  padding: 32px 0 80px;
+  color: var(--brand-brown);
+  background: #fffdf9;
+}
+
+.container {
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+/* =========================
+   대표 이미지
+========================= */
+
+.hero {
+  width: 100%;
+  height: 420px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--brand-light-gray);
+}
+
+.hero img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* =========================
+   기본 정보
+========================= */
+
+.intro {
+  margin-top: 28px;
+}
+
+.category {
+  margin: 0 0 8px;
+  color: var(--brand-primary);
+  font-size: 14px;
+}
+
+.title {
+  margin: 0;
+  color: var(--brand-brown);
+  font-size: 38px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.description {
+  margin: 10px 0 20px;
+  color: var(--brand-gray);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.authorRow {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.authorImage {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--brand-light-gray);
+}
+
+.authorName,
+.date {
+  margin: 0;
+}
+
+.authorName {
+  color: var(--brand-brown);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.date {
+  margin-top: 4px;
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stars,
+.reviewStars {
+  display: flex;
+  align-items: center;
+  color: var(--brand-primary);
+}
+
+/* =========================
+   요약 정보
+========================= */
+
+.recipeInfo {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 24px;
+  padding: 18px 24px;
+  border: 1px solid var(--brand-divider);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--brand-primary);
+}
+
+.infoItem:not(:last-child) {
+  border-right: 1px solid var(--brand-divider);
+}
+
+.infoItem > svg {
+  font-size: 22px;
+}
+
+.infoItem div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.infoItem span {
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+.infoItem strong {
+  color: var(--brand-brown);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* =========================
+   액션 버튼
+========================= */
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.actions button,
+.outlineButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  color: var(--brand-brown);
+  background: #fff;
+  border: 1px solid var(--brand-divider);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.actions button:hover,
+.outlineButton:hover {
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.actions svg {
+  font-size: 18px;
+}
+
+/* =========================
+   AI 요약
+========================= */
+
+.aiSummary {
+  margin-top: 16px;
+  padding: 24px;
+  border: 1px solid #eadfff;
+  border-radius: 16px;
+  background: #f8f4ff;
+}
+
+.aiSummary h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.aiSummary ol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aiSummary li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--brand-brown);
+  font-size: 14px;
+}
+
+.aiSummary li span {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: #b896f2;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+/* =========================
+   공통 섹션 제목
+========================= */
+
+.processSection,
+.reviewSection,
+.commentSection,
+.relatedSection {
+  margin-top: 48px;
+}
+
+.sectionTitle {
+  margin: 0 0 24px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* =========================
+   조리 과정
+========================= */
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.stepReverse {
+  grid-template-columns: minmax(0, 1fr) 240px;
+}
+
+.stepReverse .stepImage {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.stepReverse .stepContent {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.stepImage {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.stepContent {
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.stepTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepTitle > span {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--brand-primary);
+  border-radius: 50%;
+  font-size: 14px;
+}
+
+.stepTitle h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.stepTime {
+  color: var(--brand-gray);
+  font-size: 13px;
+}
+
+.stepDescription {
+  margin: 12px 0;
+  color: var(--brand-brown);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.stepTip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  color: var(--brand-brown);
+  background: var(--brand-cream);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.stepTip svg {
+  flex-shrink: 0;
+  color: #d99d36;
+}
+
+/* =========================
+   작성자 팁
+========================= */
+
+.writerTip {
+  margin-top: 48px;
+  padding: 24px;
+  border: 1px solid #d9ddc7;
+  border-radius: 16px;
+  background: #f6f7ef;
+}
+
+.writerTip h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.writerTip p {
+  margin: 0;
+  color: var(--brand-brown);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* =========================
+   완성 후기
+========================= */
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.sectionHeader .sectionTitle {
+  margin-bottom: 24px;
+}
+
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.review {
+  padding: 24px;
+  border: 1px solid var(--brand-divider);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.reviewHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.reviewName {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.reviewHeader time {
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+.review > p {
+  margin: 14px 0;
+  font-size: 14px;
+}
+
+.review > img {
+  display: block;
+  width: 140px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.reviewLike {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+/* =========================
+   댓글 입력
+========================= */
+
+.commentForm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.commentForm input {
+  min-width: 0;
+  flex: 1;
+  padding: 14px 18px;
+  color: var(--brand-brown);
+  background: var(--brand-cream);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  outline: none;
+}
+
+.commentForm input:focus {
+  border-color: var(--brand-primary);
+}
+
+.commentForm button {
+  flex-shrink: 0;
+  padding: 12px 22px;
+  color: #fff;
+  background: var(--brand-primary);
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.commentForm button:hover {
+  background: var(--brand-primary-dark);
+}
+
+/* =========================
+   연관 레시피
+========================= */
+
+.relatedTitle {
+  margin: 0 0 24px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.relatedList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.relatedCard {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--brand-divider);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.relatedImageArea {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
+}
+
+.relatedImageArea > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.relatedTag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 5px 10px;
+  color: #fff;
+  background: rgba(63, 42, 32, 0.76);
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.cardFavorite {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-brown);
+  background: rgba(255, 255, 255, 0.9);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.relatedContent {
+  padding: 16px;
+}
+
+.relatedContent h3 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--brand-brown);
+  font-size: 17px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relatedContent > p {
+  margin: 8px 0 14px;
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+.relatedMeta,
+.relatedStats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+.relatedMeta span,
+.relatedStats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.relatedStats {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--brand-divider);
+}
+
+.relatedRating {
+  color: var(--brand-primary);
+}
+
+/* =========================
+   태블릿 768px
+========================= */
+
+@media (max-width: 1023px) {
+  .page {
+    padding-top: 24px;
+  }
+
+  .container {
+    width: min(100% - 32px, 768px);
+  }
+
+  .hero {
+    height: 320px;
+  }
+
+  .title {
+    font-size: 32px;
+  }
+
+  .recipeInfo {
+    padding: 18px 12px;
+  }
+
+  .step,
+  .stepReverse {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .stepReverse .stepImage {
+    grid-column: 2;
+  }
+
+  .stepReverse .stepContent {
+    grid-column: 1;
+  }
+
+  .stepImage {
+    height: 170px;
+  }
+
+  .relatedList {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .relatedList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .relatedCard {
+    width: 250px;
+    flex: 0 0 250px;
+    scroll-snap-align: start;
+  }
+}
+
+/* =========================
+   모바일 375px
+========================= */
+
+@media (max-width: 599px) {
+  .page {
+    padding: 16px 0 48px;
+  }
+
+  .container {
+    width: calc(100% - 32px);
+  }
+
+  .hero {
+    height: 300px;
+    border-radius: 18px;
+  }
+
+  .intro {
+    margin-top: 18px;
+  }
+
+  .title {
+    font-size: 26px;
+  }
+
+  .description {
+    font-size: 14px;
+  }
+
+  .authorRow {
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .authorImage {
+    display: none;
+  }
+
+  .recipeInfo {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px 0;
+    padding: 18px 12px;
+  }
+
+  .infoItem {
+    justify-content: flex-start;
+    padding-left: 10px;
+  }
+
+  .infoItem:not(:last-child) {
+    border-right: 0;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .actions button {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  .aiSummary {
+    padding: 18px 16px;
+  }
+
+  .aiSummary h2 {
+    font-size: 17px;
+  }
+
+  .aiSummary li {
+    align-items: flex-start;
+    font-size: 13px;
+  }
+
+  .processSection,
+  .reviewSection,
+  .commentSection,
+  .relatedSection {
+    margin-top: 40px;
+  }
+
+  .sectionTitle {
+    margin-bottom: 18px;
+    font-size: 21px;
+  }
+
+  .steps {
+    gap: 28px;
+  }
+
+  .step,
+  .stepReverse {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stepImage,
+  .stepReverse .stepImage {
+    order: 0;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+
+  .stepContent,
+  .stepReverse .stepContent {
+    order: 1;
+    width: 100%;
+  }
+
+  .stepTitle h3 {
+    font-size: 17px;
+  }
+
+  .stepDescription {
+    margin: 8px 0;
+    font-size: 13px;
+  }
+
+  .stepTip {
+    align-items: flex-start;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+
+  .writerTip {
+    margin-top: 36px;
+    padding: 20px 16px;
+  }
+
+  .writerTip h2 {
+    font-size: 19px;
+  }
+
+  .writerTip p {
+    font-size: 13px;
+  }
+
+  .sectionHeader {
+    align-items: center;
+  }
+
+  .outlineButton {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .review {
+    padding: 16px;
+  }
+
+  .review > img {
+    width: 110px;
+    height: 90px;
+  }
+
+  .commentForm {
+    gap: 8px;
+  }
+
+  .commentForm input {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  .commentForm button {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+
+  .relatedTitle {
+    font-size: 23px;
+  }
+
+  .relatedCard {
+    width: 230px;
+    flex-basis: 230px;
+  }
+
+  .relatedImageArea {
+    height: 170px;
+  }
+}

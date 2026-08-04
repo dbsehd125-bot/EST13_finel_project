@@ -5,6 +5,8 @@ import CreateAIRecipe from "./pages/CreateAIRecipe";
 import RegisterRecipe from "./pages/RegistRecipe";
 import MyPage from "./pages/MyPage";
 import RecipeList from "./pages/RecipeList";
+import Community from "./pages/Community";
+import RecipeDetail from "./pages/RecipeDetail";
 import "./App.css";
 
 export default function App() {
@@ -32,6 +34,8 @@ export default function App() {
       <Route path="/register" element={<RegisterRecipe />} />
       <Route path="/mypage" element={<MyPage />} />
       <Route path="/recipes" element={<RecipeList />} />
+      <Route path="/recipes/:id" element={<RecipeDetail />} />
+      <Route path="/community" element={<Community />} />
     </Routes>
   );
 }
