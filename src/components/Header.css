@@ -1,21 +1,29 @@
 .header {
-  width: 100%;
-  background-color: #ffffff;
-  border-bottom: 1px solid rgba(64, 41, 31, 0.12);
   position: sticky;
   top: 0;
   z-index: 100;
+
+  width: 100%;
+
+  background-color: var(--background-header);
+  border-bottom: 1px solid var(--brand-divider);
 }
 
 .header-inner {
+  display: flex;
+  width: 100%;
   max-width: 1280px;
   height: 72px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
   align-items: center;
   justify-content: space-between;
+
+  margin: 0 auto;
+  padding: 0 24px;
 }
+
+/* =========================
+   왼쪽 영역
+========================= */
 
 .header-left {
   display: flex;
@@ -27,28 +35,36 @@
   display: flex;
   align-items: center;
   gap: 10px;
+
+  color: inherit;
   text-decoration: none;
 }
 
 .logo-badge {
+  display: flex;
   width: 38px;
   height: 38px;
-  background-color: #f26b3a;
-  border-radius: 50%;
-  display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+
+  color: #fff;
+  background-color: var(--brand-primary);
+  border-radius: 50%;
   box-shadow: 0 2px 6px rgba(242, 107, 58, 0.25);
 }
 
 .logo-title {
-  font-family: var(--font-display, "Gowun Batang", serif);
+  color: var(--brand-brown);
+
+  font-family: var(--font-display);
   font-size: 20px;
-  font-weight: 700;
-  color: #2b2b2b;
+  font-weight: 400;
   letter-spacing: -0.02em;
 }
+
+/* =========================
+   내비게이션
+========================= */
 
 .nav {
   display: flex;
@@ -58,25 +74,34 @@
 
 .nav a {
   padding: 8px 18px;
-  font-family: var(--font-body, "Pretendard Variable", sans-serif);
+
+  color: var(--brand-brown);
+  border-radius: 9999px;
+
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 500;
-  color: #333333;
   text-decoration: none;
-  border-radius: 9999px;
-  transition: background-color 0.2s, color 0.2s;
+
+  transition:
+    color 0.2s,
+    background-color 0.2s;
 }
 
 .nav a:hover {
-  color: #f26b3a;
-  background-color: rgba(242, 107, 58, 0.06);
+  color: var(--brand-primary);
+  background-color: var(--brand-cream);
 }
 
 .nav a.active {
-  color: #f26b3a;
-  background-color: #fff5ee;
+  color: var(--brand-primary);
+  background-color: var(--brand-cream);
   font-weight: 600;
 }
+
+/* =========================
+   오른쪽 영역
+========================= */
 
 .header-right {
   display: flex;
@@ -84,23 +109,33 @@
   gap: 16px;
 }
 
+/* 검색, 알림 버튼 */
 .icon-btn {
-  background: none;
-  border: none;
-  padding: 8px;
-  cursor: pointer;
-  color: #333333;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+
+  padding: 8px;
+
+  color: var(--brand-brown);
+  background: none;
+  border: none;
+  border-radius: 50%;
+
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
 }
 
 .icon-btn:hover {
-  background-color: #f5f5f3;
-  color: #f26b3a;
+  color: var(--brand-primary);
+  background-color: var(--brand-light-gray);
 }
+
+/* =========================
+   알림
+========================= */
 
 .alarm-btn {
   position: relative;
@@ -110,62 +145,172 @@
   position: absolute;
   top: 4px;
   right: 4px;
+
+  display: flex;
   width: 15px;
   height: 15px;
-  background-color: #f26b3a;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: bold;
-  border-radius: 50%;
-  display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #ffffff;
+
+  color: #fff;
+  background-color: var(--brand-primary);
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+
+  font-size: 10px;
+  font-weight: 700;
 }
 
+/* =========================
+   레시피 등록 버튼
+========================= */
+
 .btn-create {
-  background-color: #f26b3a;
-  color: #ffffff;
   padding: 9px 20px;
+
+  color: #fff;
+  background-color: var(--brand-primary);
   border-radius: 9999px;
-  font-family: var(--font-body, "Pretendard Variable", sans-serif);
+  box-shadow: 0 2px 6px rgba(242, 107, 58, 0.25);
+
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 2px 6px rgba(242, 107, 58, 0.25);
+
   transition: background-color 0.2s;
 }
 
 .btn-create:hover {
-  background-color: #d94f27;
+  background-color: var(--brand-primary-dark);
 }
 
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  font-family: var(--font-body, "Pretendard Variable", sans-serif);
-  font-size: 15px;
-  color: #4a4a4a;
-  margin-left: 4px;
-}
-
-.user-profile:hover {
-  color: #f26b3a;
-}
+/* =========================
+   프로필
+========================= */
 
 .avatar {
+  display: flex;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  border: 1.5px solid #eae5de;
-  background-color: #fcfbf9;
-  display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
+
+  background-color: var(--background);
+  border: 1.5px solid var(--brand-divider);
+  border-radius: 50%;
+
+  text-decoration: none;
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
 }
 
-.user-profile:hover .avatar {
-  border-color: #f26b3a;
+.avatar:hover {
+  background-color: var(--brand-cream);
+  border-color: var(--brand-primary);
+}
+
+/* =========================
+   로그인 링크
+========================= */
+
+.login-link {
+  color: var(--brand-gray);
+
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-decoration: none;
+
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.login-link:hover {
+  color: var(--brand-primary);
+}
+
+/* =========================
+   태블릿
+========================= */
+
+@media (max-width: 1023px) {
+  .header-inner {
+    height: 64px;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .logo-title {
+    font-size: 18px;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+
+  .btn-create {
+    padding: 9px 16px;
+    font-size: 14px;
+  }
+
+  .login-link {
+    display: none;
+  }
+}
+
+/* =========================
+   모바일
+========================= */
+
+@media (max-width: 599px) {
+  .header-inner {
+    height: 56px;
+    padding: 0 16px;
+  }
+
+  .header-left {
+    gap: 0;
+  }
+
+  .logo {
+    gap: 8px;
+  }
+
+  .logo-badge {
+    width: 30px;
+    height: 30px;
+  }
+
+  .logo-badge svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .logo-title {
+    font-size: 16px;
+  }
+
+  .header-right {
+    gap: 4px;
+  }
+
+  .icon-btn {
+    padding: 6px;
+  }
+
+  .btn-create {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
 }
