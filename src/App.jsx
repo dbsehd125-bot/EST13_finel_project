@@ -3,6 +3,8 @@ import { Routes, Route } from 'react-router';
 import { Layout } from './components';
 import CreateAIRecipe from './pages/CreateAIRecipe';
 import RegisterRecipe from './pages/RegistRecipe';
+import MyPage from './pages/MyPage';
+import RecipeList from './pages/RecipeList';
 import './App.css';
 
 export default function App() {
@@ -28,6 +30,8 @@ export default function App() {
       {/* 라우팅 페이지 목록 */}
       <Route path="/ai" element={<CreateAIRecipe />} />
       <Route path="/register" element={<RegisterRecipe />} />
+      <Route path="/mypage" element={<MyPage />} />
+      <Route path="/recipes" element={<RecipeList />} />
     </Routes>
   );
 }
