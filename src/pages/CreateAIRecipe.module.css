@@ -1,8 +1,9 @@
 /* 상단 타이틀 영역 */
 .headerArea {
   text-align: center;
-  margin-bottom: 36px;
+  margin-bottom: 80px;
 }
+
 .badge {
   display: inline-block;
   padding: 6px 16px;
@@ -12,23 +13,29 @@
   font-weight: 600;
   border-radius: 20px;
   border: 1px solid rgba(183, 156, 237, 0.3);
-} /* 메인 2컬럼 그리드 레이아웃 */
+}
+
+/* 메인 2컬럼 그리드 레이아웃 */
 .mainGrid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
   align-items: start;
 }
+
 @media (min-width: 900px) {
   .mainGrid {
     grid-template-columns: 1fr 1fr;
   }
-} /* 왼쪽 폼 섹션 */
+}
+
+/* 왼쪽 폼 섹션 */
 .formSection {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
+
 .stepCard {
   background-color: #ffffff;
   border: 1px solid var(--brand-divider);
@@ -36,12 +43,14 @@
   padding: 20px;
   box-shadow: 0 2px 8px rgba(64, 41, 31, 0.03);
 }
+
 .stepTitleRow {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
 }
+
 .stepBadge {
   display: flex;
   align-items: center;
@@ -53,7 +62,9 @@
   font-size: 0.85rem;
   font-weight: 700;
   border-radius: 50%;
-} /* Step 1: 요청 텍스트영역 */
+}
+
+/* Step 1: 프롬프트 입력창 */
 .promptInput {
   width: 100%;
   padding: 12px 14px;
@@ -66,13 +77,16 @@
   outline: none;
   resize: none;
   line-height: 1.5;
-} /* Step 2: 보유 재료 태그 리스트 */
+}
+
+/* Step 2: 보유 재료 태그 리스트 */
 .tagList {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
+
 .tagChip {
   display: inline-flex;
   align-items: center;
@@ -84,6 +98,7 @@
   font-size: 0.875rem;
   color: var(--brand-brown);
 }
+
 .tagDeleteBtn {
   border: none;
   background: transparent;
@@ -94,6 +109,7 @@
   display: flex;
   align-items: center;
 }
+
 .addTagBtn {
   padding: 6px 14px;
   background-color: #ffffff;
@@ -104,11 +120,13 @@
   font-weight: 500;
   cursor: pointer;
 }
+
 .addTagInputWrapper {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
+
 .addTagInput {
   width: 80px;
   padding: 4px 8px;
@@ -117,6 +135,7 @@
   font-size: 0.85rem;
   outline: none;
 }
+
 .addTagConfirmBtn {
   padding: 4px 8px;
   background-color: var(--brand-primary);
@@ -125,17 +144,32 @@
   border-radius: 12px;
   font-size: 0.75rem;
   cursor: pointer;
-} /* Step 3: 조건 선택 2열 그리드 */
+}
+
+/* Step 3: 조건 선택 */
 .selectGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+
 .selectField {
   display: flex;
   flex-direction: column;
 }
+
+.selectField > div {
+  position: relative;
+}
+
+.inputLabel {
+  font-size: 0.85rem;
+  color: var(--brand-gray);
+  margin-bottom: 4px;
+}
+
 .selectBox {
+  position: relative;
   width: 100%;
   padding: 10px 12px;
   background-color: var(--brand-cream);
@@ -146,12 +180,37 @@
   color: var(--brand-brown);
   outline: none;
   cursor: pointer;
-} /* Step 4: 결과 생성 옵션 체크박스 그리드 */
+
+  /* 브라우저 기본 화살표 숨기기 */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.selectArrow {
+  position: absolute;
+  right: 16px;
+  bottom: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+  color: var(--brand-brown);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selectArrowOpen {
+  transform: scale(-1);
+  top: 0;
+}
+
+/* Step 4: 결과 생성 옵션 */
 .optionsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+
 .checkboxItem {
   display: flex;
   align-items: center;
@@ -164,12 +223,19 @@
   cursor: pointer;
   user-select: none;
 }
+
 .checkboxItem input[type='checkbox'] {
   accent-color: var(--brand-primary);
   width: 16px;
   height: 16px;
   cursor: pointer;
-} /* 하단 생성 버튼 (라벤더) */
+}
+
+.checkboxItem:hover {
+  font-weight: bold;
+}
+
+/* 라벤더 메인 생성 버튼 */
 .submitBtn {
   width: 100%;
   padding: 16px;
@@ -186,29 +252,35 @@
     transform 0.1s ease;
   margin-top: 8px;
 }
+
 .submitBtn:hover:not(:disabled) {
   opacity: 0.92;
   transform: translateY(-1px);
 }
+
 .submitBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-} /* 오른쪽 미리보기 / 결과 영역 */
+}
+
+/* 오른쪽 미리보기 / 결과 카드 */
 .resultCard {
   background-color: #ffffff;
   border: 1px solid var(--brand-divider);
-  border-radius: 16px;
+  border-radius: 24px;
   min-height: 520px;
-  padding: 32px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(64, 41, 31, 0.05);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(64, 41, 31, 0.03);
-} /* 빈 상태 (Empty View) */
+}
+
+/* 빈 상태 */
 .emptyView {
+  margin: auto;
   text-align: center;
 }
+
 .emptyIconBadge {
   width: 64px;
   height: 64px;
@@ -218,10 +290,14 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px auto;
-} /* 로딩 상태 */
+}
+
+/* 로딩 상태 */
 .loadingContainer {
+  margin: auto;
   text-align: center;
 }
+
 .spinner {
   width: 40px;
   height: 40px;
@@ -231,6 +307,7 @@
   margin: 0 auto;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -238,39 +315,172 @@
   100% {
     transform: rotate(360deg);
   }
-} /* 결과 생성 완료 뷰 */
+}
+
+/* 결과 카드 뷰 */
 .resultView {
   width: 100%;
-  text-align: left;
-}
-.resultBadge {
-  display: inline-block;
-  padding: 4px 12px;
-  background-color: var(--brand-cream);
-  color: var(--brand-green);
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 12px;
-}
-.metaRow {
   display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 20px;
 }
-.metaChip {
-  padding: 6px 12px;
-  background-color: var(--brand-cream);
-  border-radius: 8px;
-  font-size: 0.85rem;
+
+.resultTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--brand-brown);
 }
-.stepsContainer {
-  background-color: var(--background);
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid var(--brand-divider);
+
+.sparkleIcon {
+  font-size: 1.5rem;
+  color: #a078e6;
 }
-.stepList {
+
+.recipeImageWrapper {
+  width: 100%;
+  height: 220px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.recipeImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 크림색 배경 마크다운 카드 박스 */
+.markdownCardBox {
+  background-color: var(--brand-cream);
+  border: 1px solid var(--brand-beige);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.markdownContent {
+  color: var(--brand-brown);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.markdownContent p {
+  margin-bottom: 12px;
+}
+
+.markdownContent ul,
+.markdownContent ol {
   padding-left: 20px;
-  margin: 0;
+  margin-bottom: 14px;
+}
+
+.markdownContent li {
+  margin-bottom: 6px;
+}
+
+.markdownContent strong {
+  color: var(--brand-brown);
+  font-weight: 700;
+}
+
+.cardDivider {
+  height: 1px;
+  background-color: var(--brand-beige);
+  margin: 16px 0;
+}
+
+/* 하단 아이콘 / 게시하기 버튼 행 */
+.resultActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leftIcons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconCircleBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid var(--brand-beige);
+  color: var(--brand-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.iconCircleBtn:hover {
+  background-color: var(--brand-cream);
+  color: var(--brand-brown);
+}
+
+.publishBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(240, 90, 36, 0.3);
+  transition: opacity 0.2s ease;
+}
+
+.publishBtn:hover {
+  background-color: #d94f27;
+}
+
+/* 결과 하단 추가 수정 프롬프트 입력창 */
+.refineInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--brand-cream);
+  border: 1px solid var(--brand-beige);
+  border-radius: 24px;
+  padding: 6px 6px 6px 16px;
+}
+
+.refineInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--brand-brown);
+  outline: none;
+}
+
+.refineSendBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.refineSendBtn:hover {
+  background-color: #d94f27;
 }
