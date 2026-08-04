@@ -1,15 +1,20 @@
-import React, { useState } from "react";
-import "./Header.css";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
+import './Header.css';
 
-export default function Header({ activeMenu = "커뮤니티" }) {
+export default function Header({ activeMenu = '커뮤니티' }) {
   const [active, setActive] = useState(activeMenu);
+  const navigate = useNavigate();
 
   const menuItems = [
-    { id: "home", label: "홈" },
-    { id: "explore", label: "레시피 둘러보기" },
-    { id: "ai", label: "AI 레시피" },
-    { id: "community", label: "커뮤니티" },
+    { id: 'home', label: '홈', path: '/' },
+    { id: 'explore', label: '레시피 둘러보기', path: '/explore' },
+    { id: 'ai', label: 'AI 레시피', path: '/ai' },
+    { id: 'community', label: '커뮤니티', path: '/community' },
   ];
+
+  /**추가: id를 통한 라우팅 함수 */
+  const handleNavigation = (path) => navigate(path);
 
   return (
     <header className="header">
@@ -40,10 +45,11 @@ export default function Header({ activeMenu = "커뮤니티" }) {
               <a
                 key={item.id}
                 href={`#${item.id}`}
-                className={active === item.label ? "active" : ""}
+                className={active === item.label ? 'active' : ''}
                 onClick={(e) => {
                   e.preventDefault();
                   setActive(item.label);
+                  handleNavigation(item.path);
                 }}
               >
                 {item.label}
@@ -86,11 +92,18 @@ export default function Header({ activeMenu = "커뮤니티" }) {
             <span className="alarm-dot">1</span>
           </button>
 
-          <a href="#register" className="btn-create">
+          <a href="/register" className="btn-create">
             + 레시피 등록하기
           </a>
 
-          <a href="#profile" className="user-profile">
+          <a
+            href="#profile"
+            className="user-profile"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavigation('/register');
+            }}
+          >
             <div className="avatar">
               <svg
                 width="18"
