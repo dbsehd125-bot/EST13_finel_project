@@ -79,6 +79,10 @@
   line-height: 1.5;
 }
 
+.promptInput:focus {
+  border: 1px solid var(--brand-primary);
+}
+
 /* Step 2: 보유 재료 태그 리스트 */
 .tagList {
   display: flex;
@@ -187,6 +191,10 @@
   -moz-appearance: none;
 }
 
+.selectBox:focus {
+  border: 1px solid var(--brand-primary);
+}
+
 .selectArrow {
   position: absolute;
   right: 16px;
@@ -217,6 +225,7 @@
   gap: 8px;
   padding: 10px 12px;
   background-color: var(--brand-cream);
+  border: 1px solid transparent;
   border-radius: 10px;
   font-size: 0.875rem;
   color: var(--brand-brown);
@@ -232,7 +241,11 @@
 }
 
 .checkboxItem:hover {
-  font-weight: bold;
+  color: var(--font-body)
+}
+
+.checkboxItem:has(input:checked) {
+  border-color: var(--brand-primary);
 }
 
 /* 라벤더 메인 생성 버튼 */
