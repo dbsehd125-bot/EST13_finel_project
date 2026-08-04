@@ -7,6 +7,8 @@ import MyPage from "./pages/MyPage";
 import RecipeList from "./pages/RecipeList";
 import Community from "./pages/Community";
 import RecipeDetail from "./pages/RecipeDetail";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import "./App.css";
 
 export default function App() {
@@ -36,6 +38,8 @@ export default function App() {
       <Route path="/recipes" element={<RecipeList />} />
       <Route path="/recipes/:id" element={<RecipeDetail />} />
       <Route path="/community" element={<Community />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
     </Routes>
   );
 }
