@@ -1,6 +1,7 @@
-import { supabase } from "../../lib/supabaseClient";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 
-import { Link } from "react-router";
+import { supabase } from "../../lib/supabaseClient";
 import Layout from "../../components/Layout";
 import styles from "./Auth.module.css";
 import authBack from "../../images/authback.png";
@@ -19,17 +20,143 @@ const foodCategories = [
 ];
 
 export default function SignUp() {
-  async function handleSocialLogin(provider) {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
+  const navigate = useNavigate();
 
-    if (error) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const isProcessing = loading || Boolean(socialLoading);
+
+  function handleCategoryToggle(category) {
+    setSelectedCategories(previousCategories => {
+      if (previousCategories.includes(category)) {
+        return previousCategories.filter(item => item !== category);
+      }
+
+      return [...previousCategories, category];
+    });
+  }
+
+  function validateForm() {
+    if (!email.trim()) {
+      return "이메일을 입력해주세요.";
+    }
+
+    if (!password) {
+      return "비밀번호를 입력해주세요.";
+    }
+
+    if (password.length < 6) {
+      return "비밀번호는 6자 이상 입력해주세요.";
+    }
+
+    if (!passwordConfirm) {
+      return "비밀번호 확인을 입력해주세요.";
+    }
+
+    if (password !== passwordConfirm) {
+      return "비밀번호가 일치하지 않습니다.";
+    }
+
+    if (!nickname.trim()) {
+      return "닉네임을 입력해주세요.";
+    }
+
+    if (selectedCategories.length === 0) {
+      return "좋아하는 음식 종류를 하나 이상 선택해주세요.";
+    }
+
+    return "";
+  }
+
+  async function handleEmailSignUp(event) {
+    event.preventDefault();
+    setErrorMessage("");
+
+    const validationMessage = validateForm();
+
+    if (validationMessage) {
+      setErrorMessage(validationMessage);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            nickname: nickname.trim(),
+            food_categories: selectedCategories,
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      /*
+       * Confirm email을 OFF로 설정하면
+       * 회원가입과 동시에 로그인 세션이 생성된다.
+       */
+      if (!data.session) {
+        throw new Error(
+          "로그인 세션이 생성되지 않았습니다. Supabase에서 Confirm email 설정을 꺼주세요.",
+        );
+      }
+
+      alert("회원가입이 완료되었습니다.");
+      navigate("/");
+    } catch (error) {
+      console.error("이메일 회원가입 오류:", error);
+
+      const message = error.message?.toLowerCase() ?? "";
+
+      if (
+        message.includes("already registered") ||
+        message.includes("already been registered") ||
+        message.includes("user already registered")
+      ) {
+        setErrorMessage("이미 가입된 이메일입니다.");
+      } else if (message.includes("password")) {
+        setErrorMessage("비밀번호는 6자 이상 입력해주세요.");
+      } else {
+        setErrorMessage(error.message || "회원가입에 실패했습니다.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSocialLogin(provider) {
+    try {
+      setErrorMessage("");
+      setSocialLoading(provider);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
       console.error(`${provider} 로그인 오류:`, error);
-      alert("소셜 로그인에 실패했습니다.");
+      setErrorMessage("소셜 로그인에 실패했습니다.");
+      setSocialLoading("");
     }
   }
 
@@ -52,12 +179,14 @@ export default function SignUp() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    aria-hidden="true"
                   >
                     <path d="M12 2v3M8 3v2M16 3v2" />
                     <path d="M4 11h16v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6z" />
                     <path d="M3 11h18" />
                   </svg>
                 </div>
+
                 <span className="font-display dtext-xl">깃깔나는 레시피</span>
               </div>
 
@@ -72,46 +201,108 @@ export default function SignUp() {
           <div className={styles.formArea}>
             <div className={styles.formHeader}>
               <h1 className="font-display dtext-2xl">회원가입</h1>
+
               <p className={`text-sm ${styles.description}`}>
                 몇 가지만 입력하면 시작할 수 있어요.
               </p>
             </div>
 
-            <form className={styles.form} onSubmit={event => event.preventDefault()}>
+            <form className={styles.form} onSubmit={handleEmailSignUp}>
               <label className={styles.field}>
                 <span className="text-sm">이메일</span>
-                <input className="text-sm" type="email" placeholder="you@example.com" />
+
+                <input
+                  className="text-sm"
+                  type="email"
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  disabled={isProcessing}
+                />
               </label>
 
               <label className={styles.field}>
                 <span className="text-sm">비밀번호</span>
-                <input className="text-sm" type="password" placeholder="••••••••" />
+
+                <input
+                  className="text-sm"
+                  type="password"
+                  value={password}
+                  onChange={event => setPassword(event.target.value)}
+                  placeholder="6자 이상 입력해주세요"
+                  autoComplete="new-password"
+                  disabled={isProcessing}
+                />
               </label>
 
               <label className={styles.field}>
                 <span className="text-sm">비밀번호 확인</span>
-                <input className="text-sm" type="password" placeholder="••••••••" />
+
+                <input
+                  className="text-sm"
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={event => setPasswordConfirm(event.target.value)}
+                  placeholder="비밀번호를 다시 입력해주세요"
+                  autoComplete="new-password"
+                  disabled={isProcessing}
+                />
               </label>
 
               <label className={styles.field}>
                 <span className="text-sm">닉네임</span>
-                <input className="text-sm" type="text" placeholder="달콤한 아침" />
+
+                <input
+                  className="text-sm"
+                  type="text"
+                  value={nickname}
+                  onChange={event => setNickname(event.target.value)}
+                  placeholder="달콤한 아침"
+                  autoComplete="nickname"
+                  maxLength={20}
+                  disabled={isProcessing}
+                />
               </label>
 
-              <fieldset className={styles.preferenceField}>
+              <fieldset className={styles.preferenceField} disabled={isProcessing}>
                 <legend className="text-sm">좋아하는 음식 종류를 선택해주세요.</legend>
 
                 <div className={styles.chips}>
-                  {foodCategories.map(category => (
-                    <button key={category} type="button" className={`text-sm ${styles.chip}`}>
-                      {category}
-                    </button>
-                  ))}
+                  {foodCategories.map(category => {
+                    const isSelected = selectedCategories.includes(category);
+
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        className={`text-sm ${styles.chip} ${
+                          isSelected ? styles.selectedChip : ""
+                        }`}
+                        onClick={() => handleCategoryToggle(category)}
+                        aria-pressed={isSelected}
+                      >
+                        {category}
+                      </button>
+                    );
+                  })}
                 </div>
               </fieldset>
 
-              <button type="submit" className={`text-button ${styles.primaryButton}`}>
-                회원가입
+              <div
+                className={`${styles.errorSlot} ${errorMessage ? styles.errorVisible : ""}`}
+                role="alert"
+                aria-live="polite"
+              >
+                {errorMessage || "\u00A0"}
+              </div>
+
+              <button
+                type="submit"
+                className={`text-button ${styles.primaryButton}`}
+                disabled={isProcessing}
+              >
+                {loading ? "가입 중..." : "회원가입"}
               </button>
             </form>
 
@@ -126,24 +317,34 @@ export default function SignUp() {
                 type="button"
                 className={`text-sm ${styles.socialButton}`}
                 onClick={() => handleSocialLogin("google")}
+                disabled={isProcessing}
               >
-                <img className={styles.icon} src={googleIcon} alt="Google" />
+                <img className={styles.icon} src={googleIcon} alt="" aria-hidden="true" />
 
-                <span className={styles.desktopSocialText}>Google로 계속하기</span>
+                <span className={styles.desktopSocialText}>
+                  {socialLoading === "google" ? "Google 연결 중..." : "Google로 계속하기"}
+                </span>
 
-                <span className={styles.mobileSocialText}>Google</span>
+                <span className={styles.mobileSocialText}>
+                  {socialLoading === "google" ? "연결 중..." : "Google"}
+                </span>
               </button>
 
               <button
                 type="button"
                 className={`text-sm ${styles.socialButton} ${styles.kakaoButton}`}
                 onClick={() => handleSocialLogin("kakao")}
+                disabled={isProcessing}
               >
-                <img className={styles.icon} src={kakaoIcon} alt="Kakao" />
+                <img className={styles.icon} src={kakaoIcon} alt="" aria-hidden="true" />
 
-                <span className={styles.desktopSocialText}>Kakao로 계속하기</span>
+                <span className={styles.desktopSocialText}>
+                  {socialLoading === "kakao" ? "Kakao 연결 중..." : "Kakao로 계속하기"}
+                </span>
 
-                <span className={styles.mobileSocialText}>Kakao</span>
+                <span className={styles.mobileSocialText}>
+                  {socialLoading === "kakao" ? "연결 중..." : "Kakao"}
+                </span>
               </button>
             </div>
 
