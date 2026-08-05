@@ -1,14 +1,14 @@
 import React from "react";
 import { Routes, Route } from "react-router";
 import { Layout } from "./components";
-import CreateAIRecipe from "./pages/CreateAIRecipe";
-import RegisterRecipe from "./pages/RegistRecipe";
-import MyPage from "./pages/MyPage";
-import RecipeList from "./pages/RecipeList";
-import Community from "./pages/Community";
-import RecipeDetail from "./pages/RecipeDetail";
-import Login from "./pages/Login";
-import SignUp from "./pages/SignUp";
+import CreateAIRecipe from "./pages/CreateAIRecipe/CreateAIRecipe";
+import RegisterRecipe from "./pages/RegistRecipe/RegistRecipe";
+import MyPage from "./pages/MyPage/MyPage";
+import RecipeList from "./pages/RecipeList/RecipeList";
+import Community from "./pages/Community/Community";
+import RecipeDetail from "./pages/RecipeDetail/RecipeDetail";
+import Login from "./pages/Auth/Login";
+import SignUp from "./pages/Auth/SignUp";
 import "./App.css";
 
 export default function App() {

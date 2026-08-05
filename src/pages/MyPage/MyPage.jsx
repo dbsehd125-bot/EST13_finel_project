@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '../components';
+import { Layout } from '../../components';
 import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart } from 'lucide-react';
 import styles from './MyPage.module.css';
 

@@ -1,26 +1,15 @@
 import { Link } from "react-router";
-import Layout from "../components/Layout";
+import Layout from "../../components/Layout";
 import styles from "./Auth.module.css";
-import authBack from "../images/authback.png";
-import googleIcon from "../images/google.png";
-import kakaoIcon from "../images/kakao.png";
+import authBack from "../../images/authback.png";
+import googleIcon from "../../images/google.png";
+import kakaoIcon from "../../images/kakao.png";
 
-const foodCategories = [
-  "한식",
-  "매운 음식",
-  "양식",
-  "간편식",
-  "중식",
-  "일식",
-  "디저트",
-  "다이어트",
-];
-
-export default function SignUp() {
+export default function Login() {
   return (
     <Layout>
       <main className={styles.authPage}>
-        <section className={`${styles.authCard} ${styles.signupCard}`}>
+        <section className={styles.authCard}>
           <div className={styles.visual}>
             <img src={authBack} alt="" />
 
@@ -55,10 +44,8 @@ export default function SignUp() {
 
           <div className={styles.formArea}>
             <div className={styles.formHeader}>
-              <h1 className="font-display dtext-2xl">회원가입</h1>
-              <p className={`text-sm ${styles.description}`}>
-                몇 가지만 입력하면 시작할 수 있어요.
-              </p>
+              <h1 className="font-display dtext-2xl">로그인</h1>
+              <p className={`text-sm ${styles.description}`}>다시 만나서 반가워요!</p>
             </div>
 
             <form className={styles.form} onSubmit={event => event.preventDefault()}>
@@ -68,34 +55,19 @@ export default function SignUp() {
               </label>
 
               <label className={styles.field}>
-                <span className="text-sm">비밀번호</span>
-                <input className="text-sm" type="password" placeholder="••••••••" />
-              </label>
+                <div className={styles.labelRow}>
+                  <span className="text-sm">비밀번호</span>
 
-              <label className={styles.field}>
-                <span className="text-sm">비밀번호 확인</span>
-                <input className="text-sm" type="password" placeholder="••••••••" />
-              </label>
-
-              <label className={styles.field}>
-                <span className="text-sm">닉네임</span>
-                <input className="text-sm" type="text" placeholder="달콤한 아침" />
-              </label>
-
-              <fieldset className={styles.preferenceField}>
-                <legend className="text-sm">좋아하는 음식 종류를 선택해주세요.</legend>
-
-                <div className={styles.chips}>
-                  {foodCategories.map(category => (
-                    <button key={category} type="button" className={`text-sm ${styles.chip}`}>
-                      {category}
-                    </button>
-                  ))}
+                  <button type="button" className={`text-s ${styles.textLink}`}>
+                    비밀번호를 잊으셨나요?
+                  </button>
                 </div>
-              </fieldset>
+
+                <input className="text-sm" type="password" placeholder="••••••••" />
+              </label>
 
               <button type="submit" className={`text-button ${styles.primaryButton}`}>
-                회원가입
+                로그인
               </button>
             </form>
 
@@ -123,9 +95,9 @@ export default function SignUp() {
             </div>
 
             <p className={`text-s ${styles.switchText}`}>
-              이미 계정이 있으신가요?{" "}
-              <Link to="/login" className={styles.textLink}>
-                로그인
+              계정이 없으신가요?{" "}
+              <Link to="/signup" className={styles.textLink}>
+                회원가입
               </Link>
             </p>
           </div>
