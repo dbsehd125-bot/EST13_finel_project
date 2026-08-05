@@ -1,3 +1,5 @@
+import { supabase } from "../../lib/supabaseClient";
+
 import { Link } from "react-router";
 import Layout from "../../components/Layout";
 import styles from "./Auth.module.css";
@@ -6,6 +8,20 @@ import googleIcon from "../../images/google.png";
 import kakaoIcon from "../../images/kakao.png";
 
 export default function Login() {
+  async function handleSocialLogin(provider) {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (error) {
+      console.error(`${provider} 로그인 오류:`, error);
+      alert("소셜 로그인에 실패했습니다.");
+    }
+  }
+
   return (
     <Layout>
       <main className={styles.authPage}>
@@ -78,18 +94,27 @@ export default function Login() {
             </div>
 
             <div className={styles.socialButtons}>
-              <button type="button" className={`text-sm ${styles.socialButton}`}>
-                <img className={styles.icon} src={googleIcon} />
+              <button
+                type="button"
+                className={`text-sm ${styles.socialButton}`}
+                onClick={() => handleSocialLogin("google")}
+              >
+                <img className={styles.icon} src={googleIcon} alt="Google" />
+
                 <span className={styles.desktopSocialText}>Google로 계속하기</span>
+
                 <span className={styles.mobileSocialText}>Google</span>
               </button>
 
               <button
                 type="button"
                 className={`text-sm ${styles.socialButton} ${styles.kakaoButton}`}
+                onClick={() => handleSocialLogin("kakao")}
               >
-                <img className={styles.icon} src={kakaoIcon} />
+                <img className={styles.icon} src={kakaoIcon} alt="Kakao" />
+
                 <span className={styles.desktopSocialText}>Kakao로 계속하기</span>
+
                 <span className={styles.mobileSocialText}>Kakao</span>
               </button>
             </div>
