@@ -1,9 +1,16 @@
-import { useState } from "react";
-import { Link, NavLink } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router";
+
+import { supabase } from "../lib/supabaseClient";
 import "./Header.css";
 
 export default function Header() {
+  const navigate = useNavigate();
+
   const [menuOpen, setMenuOpen] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   const menuItems = [
     {
@@ -29,9 +36,68 @@ export default function Header() {
     },
   ];
 
-  const closeMenu = () => {
+  const isLoggedIn = Boolean(session?.user);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function getCurrentSession() {
+      const {
+        data: { session: currentSession },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("세션 확인 오류:", error);
+      }
+
+      if (isMounted) {
+        setSession(currentSession);
+        setAuthLoading(false);
+      }
+    }
+
+    getCurrentSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  function closeMenu() {
     setMenuOpen(false);
-  };
+  }
+
+  async function handleLogout() {
+    if (logoutLoading) return;
+
+    try {
+      setLogoutLoading(true);
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      setSession(null);
+      closeMenu();
+      navigate("/");
+    } catch (error) {
+      console.error("로그아웃 오류:", error);
+      alert("로그아웃에 실패했습니다.");
+    } finally {
+      setLogoutLoading(false);
+    }
+  }
 
   return (
     <header className="header">
@@ -119,28 +185,49 @@ export default function Header() {
             + 레시피 등록하기
           </Link>
 
-          {/* 마이페이지 */}
-          <Link to="/mypage" className="avatar" aria-label="마이페이지로 이동" onClick={closeMenu}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--brand-gray)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          {/* 로그인 상태일 때만 마이페이지 표시 */}
+          {isLoggedIn && (
+            <Link
+              to="/mypage"
+              className="avatar"
+              aria-label="마이페이지로 이동"
+              onClick={closeMenu}
             >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </Link>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--brand-gray)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </Link>
+          )}
 
-          {/* 데스크톱 로그인 */}
-          <Link to="/login" className="login-link text-sm">
-            로그인
-          </Link>
+          {/* 데스크톱 로그인 / 로그아웃 */}
+          <div className="auth-action">
+            {!authLoading &&
+              (isLoggedIn ? (
+                <button
+                  type="button"
+                  className="login-link logout-button text-sm"
+                  onClick={handleLogout}
+                  disabled={logoutLoading}
+                >
+                  {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+                </button>
+              ) : (
+                <Link to="/login" className="login-link text-sm">
+                  로그인
+                </Link>
+              ))}
+          </div>
 
           {/* 태블릿·모바일 햄버거 버튼 */}
           <button
@@ -149,7 +236,7 @@ export default function Header() {
             aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
-            onClick={() => setMenuOpen(prev => !prev)}
+            onClick={() => setMenuOpen(previous => !previous)}
           >
             <span />
             <span />
@@ -179,9 +266,21 @@ export default function Header() {
             레시피 등록하기
           </Link>
 
-          <Link to="/login" className="mobile-login text-button" onClick={closeMenu}>
-            로그인
-          </Link>
+          {!authLoading &&
+            (isLoggedIn ? (
+              <button
+                type="button"
+                className="mobile-login mobile-logout text-button"
+                onClick={handleLogout}
+                disabled={logoutLoading}
+              >
+                {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+              </button>
+            ) : (
+              <Link to="/login" className="mobile-login text-button" onClick={closeMenu}>
+                로그인
+              </Link>
+            ))}
         </div>
       </div>
     </header>
