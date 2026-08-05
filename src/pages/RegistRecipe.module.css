@@ -1,7 +1,7 @@
 /* 상단 헤더 영역 */
 .headerArea {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 80px;
 }
 
 /* 6단계 상단 인디케이터 바 */
@@ -60,9 +60,20 @@
   gap: 20px;
 }
 
-.placeholderStepContent {
+.stepTitle {
   text-align: center;
-  padding: 60px 20px;
+  padding: 20px 0 0;
+}
+
+h3 {
+  margin: 0;
+}
+
+.titleDivider {
+  height: 1px;
+  background-color: var(--brand-divider);
+  opacity: 0.7;
+  margin: 4px 0 8px 0;
 }
 
 /* 폼 입력 레이아웃 */
@@ -199,6 +210,163 @@
   border-radius: 12px;
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+/* ==========================================================================
+   Step 2 재료 입력 전용 스타일
+   ========================================================================== */
+.groupCard {
+  background-color: #ffffff;
+  margin-bottom: 24px;
+}
+
+.groupHeaderRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.groupTitleBadgeWrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--brand-cream);
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(64, 41, 31, 0.04);
+}
+
+.groupTitleInput {
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--brand-brown);
+  outline: none;
+  width: 110px;
+}
+
+.groupDeleteBtn {
+  border: none;
+  background: transparent;
+  color: var(--brand-gray);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+.ingredientTableHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 0.8rem;
+  color: var(--brand-gray);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.ingredientRowsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ingredientRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--brand-divider);
+}
+
+.textInputWithIcon {
+  width: 100%;
+  padding: 10px 32px 10px 14px;
+  background-color: var(--brand-cream);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--brand-brown);
+  outline: none;
+}
+
+.pencilIcon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* 대체 가능 체크박스 스타일 */
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--brand-brown);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  accent-color: var(--brand-primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.trashBtn {
+  border: none;
+  background-color: var(--brand-cream);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--brand-gray);
+  transition: background-color 0.2s ease;
+}
+
+.trashBtn:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.addRowBtn {
+  padding: 6px 12px;
+  background-color: #ffffff;
+  border: 1px dashed var(--brand-primary);
+  color: var(--brand-primary);
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addGroupBtn {
+  padding: 10px 24px;
+  background-color: var(--brand-cream);
+  border: 1px dashed var(--brand-primary);
+  color: var(--brand-primary);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.addGroupBtn:hover {
+  background-color: #f3edff;
 }
 
 /* 하단 액션 버튼 바 */
