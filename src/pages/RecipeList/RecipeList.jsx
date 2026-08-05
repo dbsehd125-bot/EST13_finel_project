@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '../components';
+import { Layout } from '../../components';
 import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import styles from './RecipeList.module.css';
 
-// [추가] 가독성과 재사용성을 위해 .map() 내부의 코드를 자식 컴포넌트로 분리했습니다.
-// (팁에서 말씀드린 '삭제 기능(onClick)'까지 함께 구현해 두었습니다!)
+
 function FilterChip({ filterName, onRemove }) {
   return (
     <span className={`${styles['filter-chip']} text-button`}>
-      {filterName} 
+      {filterName}
       <button className={styles['remove-filter']} onClick={() => onRemove(filterName)}>
         <X size={14} />
       </button>
@@ -16,7 +15,6 @@ function FilterChip({ filterName, onRemove }) {
   );
 }
 
-// [추가] 메인 레시피 카드 부분을 자식 컴포넌트로 분리했습니다.
 function RecipeCard({ recipe }) {
   return (
     <div className={styles['recipe-card']}>
@@ -44,31 +42,23 @@ function RecipeCard({ recipe }) {
   );
 }
 
+// 디바운스
 export default function RecipeList() {
   const [activeFilters, setActiveFilters] = useState(['한식', '30분 이하', '쉬움']);
 
-  // [디바운스 관련 코드 시작]
-  // 1. 사용자가 입력하는 검색어를 저장할 상태(state)입니다.
   const [searchTerm, setSearchTerm] = useState('');
-  // 1-1. [추가] 타이머 대기가 끝난 '최종 검색어'를 저장할 상태입니다.
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-  // 2. 검색어(searchTerm)가 바뀔 때마다 실행되는 디바운스(Debounce) 로직입니다.
   useEffect(() => {
-    // 3. 타이머 설정: 사용자가 입력을 멈추고 500ms(0.5초)가 지났을 때 내부 코드가 실행됩니다.
     const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm); // 타이머가 끝나면 최종 검색어로 업데이트!
+      setDebouncedSearchTerm(searchTerm);
       if (searchTerm) {
         console.log("레시피 목록 검색 실행 (디바운스 완료):", searchTerm);
-        // TODO: 실제로 백엔드에 검색 API를 요청하거나 목록을 필터링하는 코드를 여기에 작성합니다.
       }
     }, 500);
-
-    // 4. 클린업(Cleanup) 함수: 500ms가 지나기 전에 사용자가 새로운 글자를 입력하면
-    // 이전에 설정된 타이머를 취소(clearTimeout)하여 중복 실행을 막아줍니다.
     return () => clearTimeout(timer);
   }, [searchTerm]);
-  // [디바운스 관련 코드 끝]
+
 
   const recipes = [
     { id: 1, category: '양식', title: '매콤 크림 닭갈비 파스타', author: '주말의셰프', time: '30분', difficulty: '보통', rating: 4.9, views: '2,104', comments: '341', image: 'https://images.unsplash.com/photo-1645696301019-35adcb18cb4d?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80' },
@@ -81,7 +71,6 @@ export default function RecipeList() {
     { id: 8, category: '한식', title: '구수한 된장찌개', author: '할머니손맛', time: '30분', difficulty: '쉬움', rating: 4.9, views: '2,740', comments: '412', image: 'https://images.unsplash.com/photo-1520209268518-aec60b8bb5ca?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=100&q=80' },
   ];
 
-  // 최종 검색어(debouncedSearchTerm)가 포함된 레시피만 걸러냅니다.
   const filteredRecipes = recipes.filter(recipe =>
     recipe.title.includes(debouncedSearchTerm) ||
     recipe.author.includes(debouncedSearchTerm)
@@ -104,9 +93,9 @@ export default function RecipeList() {
           </div>
           <div className={styles['active-filters']}>
             {activeFilters.map(filter => (
-              <FilterChip 
-                key={filter} 
-                filterName={filter} 
+              <FilterChip
+                key={filter}
+                filterName={filter}
                 onRemove={(name) => setActiveFilters(activeFilters.filter(item => item !== name))}
               />
             ))}
