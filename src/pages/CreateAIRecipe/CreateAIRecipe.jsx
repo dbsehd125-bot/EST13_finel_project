@@ -1,9 +1,15 @@
+// Library
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+// Components
 import Layout from '../../components/Layout';
+import RecipeResultCard from './RecipeResultCard';
+// CSS
 import styles from './CreateAIRecipe.module.css';
 
+const API_BASE = '/api/v1';
+const ALAN_CLIENT_ID = import.meta.env.VITE_ALAN_CLIENT_ID;
 const DUMMY_MARKDOWN_RESULT = `**요리 제목:** 매콤 크림 닭갈비 파스타
 
 **요리 개요:**
@@ -113,6 +119,61 @@ export default function CreateAIRecipe() {
         markdown: DUMMY_MARKDOWN_RESULT,
       });
     }, 1800);
+  };
+
+  // test
+  const handleGenerateRecipe = async (e) => {
+    if (e) e.preventDefault();
+
+    // // 예외 처리: 필수 입력 항목 검증 (예: 선택한 재료가 없는 경우)
+    // if (!selectedIngredients || selectedIngredients.length === 0) {
+    //   alert('최소 하나 이상의 재료를 선택해 주세요.');
+    //   return;
+    // }
+
+    setIsLoading(true);
+    setResult(null);
+
+    try {
+      // 2. 프롬프트 생성
+      const userPrompt = `
+      다음 조건에 맞는 상세한 요리 레시피를 만들어줘.
+      - 집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.
+
+      [요청사항]
+      레시피 제목, 재료 목록, STEP별 조리 순서를 마크다운(Markdown) 포맷으로 작성해줘.
+    `.trim();
+
+      // 3. Query String 구성 (/api/v1/question 엔드포인트)
+      const queryString = new URLSearchParams({
+        content: userPrompt,
+        client_id: ALAN_CLIENT_ID,
+      }).toString();
+
+      // 4. API 요청 (/api/v1/question?... )
+      const response = await fetch(`${API_BASE}/question?${queryString}`);
+
+      if (!response.ok) {
+        throw new Error(`API 요청 실패 (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+
+      // 5. Alan AI 응답 데이터 파싱 (content > answer 순 추출)
+      const markdownContent =
+        data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+
+      // 6. 결과 반영
+      setResult({
+        image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+        markdown: markdownContent,
+      });
+    } catch (error) {
+      console.error('Alan AI 레시피 생성 실패:', error);
+      alert('레시피를 생성하지 못했습니다. 개발자 도구 콘솔 및 네트워크 탭을 확인해 주세요.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // 하단 추가 수정 프롬프트 제출
@@ -503,7 +564,7 @@ export default function CreateAIRecipe() {
             </div>
 
             {/* 생성하기 버튼 */}
-            <button type="submit" className={styles.submitBtn} disabled={isLoading}>
+            <button type="submit" className={styles.submitBtn} disabled={isLoading} onClick={handleGenerateRecipe}>
               {isLoading ? '✨ AI가 레시피를 구상 중입니다...' : '🪄 나만의 레시피 만들기'}
             </button>
           </form>
@@ -518,70 +579,63 @@ export default function CreateAIRecipe() {
                 </p>
               </div>
             ) : result ? (
-              <div className={styles.resultView}>
-                {/* 헤더 타이틀 */}
-                <div className={styles.resultTitleRow}>
-                  <span className={styles.sparkleIcon}>✨</span>
-                  <h2 className="font-display dtext-2xl" style={{ fontWeight: 600 }}>
-                    완성된 나만의 레시피
-                  </h2>
-                </div>
-
-                {/* 대표 요리 이미지 */}
-                <div className={styles.recipeImageWrapper}>
-                  <img src={result.image} alt="생성된 요리 이미지" className={styles.recipeImage} />
-                </div>
-
-                {/* 크림색 배경 마크다운 본문 박스 */}
-                <div className={styles.markdownCardBox}>
-                  <div className={styles.markdownContent}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.markdown}</ReactMarkdown>
-                  </div>
-
-                  <div className={styles.cardDivider} />
-
-                  {/* 하단 액션 버튼 바 */}
-                  <div className={styles.resultActionBar}>
-                    <div className={styles.leftIcons}>
-                      <button type="button" className={styles.iconCircleBtn} title="다시 생성">
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M21.5 2v6h-6" />
-                          <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-                        </svg>
-                      </button>
-                      <button type="button" className={styles.iconCircleBtn} title="복사하기">
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <button type="button" className={styles.publishBtn}>
-                      <span>➤</span> 게시하기
+              <RecipeResultCard result={result}>
+                {/* 1. 하단 액션 버튼 바 (children 주입) */}
+                <div className={styles.resultActionBar}>
+                  <div className={styles.leftIcons}>
+                    <button
+                      type="button"
+                      className={styles.iconCircleBtn}
+                      title="다시 생성"
+                      onClick={handleGenerateRecipe}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21.5 2v6h-6" />
+                        <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.iconCircleBtn}
+                      title="복사하기"
+                      onClick={() => {
+                        if (result?.markdown) {
+                          navigator.clipboard.writeText(result.markdown);
+                          alert('레시피가 클립보드에 복사되었습니다.');
+                        }
+                      }}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
                     </button>
                   </div>
+
+                  <button type="button" className={styles.publishBtn}>
+                    <span>➤</span> 게시하기
+                  </button>
                 </div>
 
-                {/* 추가 수정 프롬프트 입력창 */}
+                {/* 2. 추가 수정 프롬프트 입력창 (children 주입) */}
                 <form className={styles.refineInputWrapper} onSubmit={handleRefineSubmit}>
                   <input
                     type="text"
@@ -606,7 +660,7 @@ export default function CreateAIRecipe() {
                     </svg>
                   </button>
                 </form>
-              </div>
+              </RecipeResultCard>
             ) : (
               <div className={styles.emptyView}>
                 <div className={styles.emptyIconBadge}>
