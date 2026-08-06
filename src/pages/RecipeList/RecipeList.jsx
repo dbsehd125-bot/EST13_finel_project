@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router';
 import { Layout } from '../../components';
 import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import styles from './RecipeList.module.css';
@@ -15,17 +16,45 @@ function FilterChip({ filterName, onRemove }) {
   );
 }
 
-function RecipeCard({ recipe }) {
+function RecipeCard({ recipe, isWished, onToggleWish }) {
   return (
-    <div className={styles['recipe-card']}>
-      <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
+    <Link to={`/recipes/${recipe.id}`} className={styles['recipe-card']} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <div 
+        className={styles['recipe-image-container']} 
+        style={{ 
+          backgroundColor: 'var(--brand-light-gray)',
+          backgroundImage: `url(${recipe.image})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
         <span className={`${styles['category-badge']} text-s`}>{recipe.category}</span>
-        <button className={styles['like-btn']}><Heart size={18} /></button>
+        <button 
+          className={styles['like-btn']} 
+          onClick={(e) => {
+            e.preventDefault();
+            onToggleWish();
+          }}
+        >
+          <Heart 
+            size={18} 
+            fill={isWished ? "#FF5E36" : "none"} 
+            color={isWished ? "#FF5E36" : "currentColor"} 
+          />
+        </button>
       </div>
       <div className={styles['recipe-content']}>
         <h3 className={`${styles['recipe-title']} text-lg`}>{recipe.title}</h3>
         <div className={`${styles['recipe-author']} text-sm`}>
-          <div className={styles['author-avatar']} style={{ backgroundColor: 'var(--brand-light-gray)' }}></div>
+          <div 
+            className={styles['author-avatar']} 
+            style={{ 
+              backgroundColor: 'var(--brand-light-gray)',
+              backgroundImage: `url(${recipe.avatar})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          ></div>
           <span>{recipe.author}</span>
         </div>
         <div className={`${styles['recipe-meta-info']} text-s`}>
@@ -38,16 +67,44 @@ function RecipeCard({ recipe }) {
           <span className={styles['comments']}><MessageCircle size={14} /> {recipe.comments}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
 // 디바운스
 export default function RecipeList() {
-  const [activeFilters, setActiveFilters] = useState(['한식', '30분 이하', '쉬움']);
+  const [activeFilters, setActiveFilters] = useState([]);
+  const [wishedIds, setWishedIds] = useState([]);
+
+  const toggleWish = (id) => {
+    setWishedIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleFilterChange = (filterName) => {
+    setActiveFilters(prev => 
+      prev.includes(filterName) 
+        ? prev.filter(f => f !== filterName)
+        : [...prev, filterName]
+    );
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('최신순');
+  const [viewMode, setViewMode] = useState('recipe-grid-3col');
+
+  const [openSections, setOpenSections] = useState({
+    category: true,
+    diet: true,
+    difficulty: true,
+    sort: true,
+  });
+
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -71,10 +128,43 @@ export default function RecipeList() {
     { id: 8, category: '한식', title: '구수한 된장찌개', author: '할머니손맛', time: '30분', difficulty: '쉬움', rating: 4.9, views: '2,740', comments: '412', image: 'https://images.unsplash.com/photo-1520209268518-aec60b8bb5ca?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=100&q=80' },
   ];
 
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.title.includes(debouncedSearchTerm) ||
-    recipe.author.includes(debouncedSearchTerm)
-  );
+  const filterCategories = ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'];
+  const filterDiets = ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'];
+  const filterDifficulties = ['매우 쉬움', '쉬움', '보통', '어려움'];
+
+  const filteredRecipes = recipes.filter(recipe => {
+    const matchesSearch = recipe.title.includes(debouncedSearchTerm) || recipe.author.includes(debouncedSearchTerm);
+    
+    const activeCategories = activeFilters.filter(f => filterCategories.includes(f));
+    const activeDiets = activeFilters.filter(f => filterDiets.includes(f));
+    const activeDifficulties = activeFilters.filter(f => filterDifficulties.includes(f));
+
+    const matchesCategory = activeCategories.length === 0 || activeCategories.includes(recipe.category);
+    const matchesDiet = activeDiets.length === 0 || activeDiets.includes(recipe.category) || (recipe.diet && activeDiets.includes(recipe.diet));
+    const matchesDifficulty = activeDifficulties.length === 0 || activeDifficulties.includes(recipe.difficulty);
+
+    return matchesSearch && matchesCategory && matchesDiet && matchesDifficulty;
+  });
+
+  const filterSortOptions = ['최신순', '인기순', '조회순', '좋아요순', '댓글 많은 순'];
+
+  const sortedRecipes = [...filteredRecipes].sort((a, b) => {
+    const parseNum = (str) => parseInt(String(str).replace(/,/g, '')) || 0;
+    
+    switch (sortBy) {
+      case '최신순':
+        return b.id - a.id;
+      case '인기순':
+        return b.rating - a.rating;
+      case '조회순':
+      case '좋아요순':
+        return parseNum(b.views) - parseNum(a.views);
+      case '댓글 많은 순':
+        return parseNum(b.comments) - parseNum(a.comments);
+      default:
+        return 0;
+    }
+  });
 
   return (
     <Layout activeMenu="레시피 둘러보기">
@@ -110,30 +200,84 @@ export default function RecipeList() {
               <div className={`${styles['filter-header']} font-display dtext-xl`}>필터</div>
 
               <div className={styles['filter-category']}>
-                <div className={`${styles['filter-title']} text-button`}>음식 종류 <ChevronDown size={16} /></div>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 에피타이저</label>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 메인 요리</label>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 샐러드</label>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 수프</label>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 디저트</label>
+                <div 
+                  className={`${styles['filter-title']} text-button`} 
+                  onClick={() => toggleSection('category')}
+                >
+                  음식 종류 
+                  <ChevronDown size={16} style={{ transform: openSections.category ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                </div>
+                {openSections.category && filterCategories.map(cat => (
+                  <label key={cat} className={`${styles['checkbox-label']} text-sm`}>
+                    <input 
+                      type="checkbox" 
+                      checked={activeFilters.includes(cat)}
+                      onChange={() => handleFilterChange(cat)}
+                    /> 
+                    {cat}
+                  </label>
+                ))}
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div className={`${styles['filter-title']} text-button`}>식단 <ChevronDown size={16} /></div>
+                <div 
+                  className={`${styles['filter-title']} text-button`}
+                  onClick={() => toggleSection('diet')}
+                >
+                  건강/식단 
+                  <ChevronDown size={16} style={{ transform: openSections.diet ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                </div>
+                {openSections.diet && filterDiets.map(diet => (
+                  <label key={diet} className={`${styles['checkbox-label']} text-sm`}>
+                    <input 
+                      type="checkbox" 
+                      checked={activeFilters.includes(diet)}
+                      onChange={() => handleFilterChange(diet)}
+                    /> 
+                    {diet}
+                  </label>
+                ))}
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div className={`${styles['filter-title']} text-button`}>난이도 <ChevronDown size={16} /></div>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 쉬움</label>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 보통</label>
-                <label className={`${styles['checkbox-label']} text-sm`}><input type="checkbox" /> 어려움</label>
+                <div 
+                  className={`${styles['filter-title']} text-button`}
+                  onClick={() => toggleSection('difficulty')}
+                >
+                  난이도 
+                  <ChevronDown size={16} style={{ transform: openSections.difficulty ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                </div>
+                {openSections.difficulty && filterDifficulties.map(diff => (
+                  <label key={diff} className={`${styles['checkbox-label']} text-sm`}>
+                    <input 
+                      type="checkbox" 
+                      checked={activeFilters.includes(diff)}
+                      onChange={() => handleFilterChange(diff)}
+                    /> 
+                    {diff}
+                  </label>
+                ))}
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div className={`${styles['filter-title']} text-button`}>정렬 <ChevronDown size={16} /></div>
-                <label className={`${styles['radio-label']} text-sm`}><input type="radio" name="sort" /> 최신순</label>
-                <label className={`${styles['radio-label']} text-sm`}><input type="radio" name="sort" defaultChecked /> 인기순</label>
-                <label className={`${styles['radio-label']} text-sm`}><input type="radio" name="sort" /> 평점순</label>
+                <div 
+                  className={`${styles['filter-title']} text-button`}
+                  onClick={() => toggleSection('sort')}
+                >
+                  정렬 
+                  <ChevronDown size={16} style={{ transform: openSections.sort ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                </div>
+                {openSections.sort && filterSortOptions.map(option => (
+                  <label key={option} className={`${styles['radio-label']} text-sm`}>
+                    <input 
+                      type="radio" 
+                      name="sort" 
+                      checked={sortBy === option}
+                      onChange={() => setSortBy(option)}
+                    /> 
+                    {option}
+                  </label>
+                ))}
               </div>
             </div>
           </aside>
@@ -141,17 +285,27 @@ export default function RecipeList() {
           {/* 메인 레시피 목록*/}
           <main className={styles['recipe-main']}>
             <div className={styles['results-header']}>
-              <span className={`${styles['results-count']} text-sm`}>총 {filteredRecipes.length}개의 레시피</span>
+              <span className={`${styles['results-count']} text-sm`}>총 {sortedRecipes.length}개의 레시피</span>
               <div className={styles['view-toggles']}>
-                <button className={styles['view-btn']}><List size={18} /></button>
-                <button className={styles['view-btn']}><LayoutGrid size={18} /></button>
-                <button className={`${styles['view-btn']} ${styles['active']}`}><Grid size={18} /></button>
+                <button 
+                  className={`${styles['view-btn']} ${viewMode === 'recipe-grid-2col' ? styles['active'] : ''}`}
+                  onClick={() => setViewMode('recipe-grid-2col')}
+                ><LayoutGrid size={18} /></button>
+                <button 
+                  className={`${styles['view-btn']} ${viewMode === 'recipe-grid-3col' ? styles['active'] : ''}`}
+                  onClick={() => setViewMode('recipe-grid-3col')}
+                ><Grid size={18} /></button>
               </div>
             </div>
 
-            <div className={styles['recipe-grid-3col']}>
-              {filteredRecipes.map(recipe => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
+            <div className={styles[viewMode]}>
+              {sortedRecipes.map(recipe => (
+                <RecipeCard 
+                  key={recipe.id} 
+                  recipe={recipe} 
+                  isWished={wishedIds.includes(recipe.id)}
+                  onToggleWish={() => toggleWish(recipe.id)}
+                />
               ))}
             </div>
 
