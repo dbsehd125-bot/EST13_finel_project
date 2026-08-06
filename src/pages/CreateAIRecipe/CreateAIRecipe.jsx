@@ -7,31 +7,11 @@ import Layout from '../../components/Layout';
 import RecipeResultCard from './RecipeResultCard';
 // CSS
 import styles from './CreateAIRecipe.module.css';
+import { getOpenInteractionType } from '@mui/material/Select';
 
 const API_BASE = '/api/v1';
 const ALAN_CLIENT_ID = import.meta.env.VITE_ALAN_CLIENT_ID;
-const DUMMY_MARKDOWN_RESULT = `**요리 제목:** 매콤 크림 닭갈비 파스타
-
-**요리 개요:**
-매콤한 닭갈비 소스와 고소한 크림이 만나 어우러진, 이색적인 퓨전 파스타 요리입니다. 부드럽고 매콤한 맛으로 남녀노소 모두가 조리 시간 약 20분, 난이도는 '하' 수준으로 간편합니다.
-
-**재료 목록:**
-* 닭가슴살: 300g
-* 양파: 1/2개
-* 대파: 1/2대
-* 우유: 200ml
-* 고추장: 1스푼
-* 고춧가루: 1/2스푼
-* 간장: 1/2스푼
-* 다진마늘: 1/2스푼
-
-**조리 과정:**
-1. **재료 손질하기:** 닭가슴살과 양파, 대파는 먹기 좋은 크기로 썰어 준비합니다.
-2. **양념에 볶기:** 양념 재료를 모두 섞어 닭가슴살을 30분간 재웁니다.
-3. **크림 소스 만들기:** 팬에 올리브유를 두르고 손질한 야채를 볶은 후, 재운 닭가슴살을 넣어 볶습니다. 고기가 익으면 우유를 부어 끓여 크림 소스를 만듭니다.
-4. **완성하기:** 삶은 파스타 면을 소스에 넣고 약불에서 소스가 스며들도록 버무려 완성합니다.
-
-요리에 대한 더 자세한 설명이나, 다른 변형 레시피가 궁금하시다면 언제든지 질문해 주세요!`;
+const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
 export default function CreateAIRecipe() {
   // Step 1: 프롬프트 입력
@@ -81,7 +61,12 @@ export default function CreateAIRecipe() {
   const [refinePrompt, setRefinePrompt] = useState('');
 
   // 로딩 & 결과 상태
-  const [isLoading, setIsLoading] = useState(false);
+  /**
+   * null: 로딩 아님
+   * prompt: 레시피 프롬프트 생성 중
+   * image: 레시피 이미지 생성 중
+   */
+  const [loadingStep, setLoadingStep] = useState(null);
   const [result, setResult] = useState(null);
 
   // 재료 태그 추가
@@ -122,38 +107,15 @@ export default function CreateAIRecipe() {
     setOptions((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
-  // 레시피 생성 제출
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      setResult({
-        image: 'https://dummyimage.com/600x400/000/fff.png&text=dummy+image',
-        markdown: DUMMY_MARKDOWN_RESULT,
-      });
-    }, 1800);
-  };
-
   // test
   const handleGenerateRecipe = async (e) => {
     if (e) e.preventDefault();
 
-    // // 예외 처리: 필수 입력 항목 검증 (예: 선택한 재료가 없는 경우)
-    // if (!selectedIngredients || selectedIngredients.length === 0) {
-    //   alert('최소 하나 이상의 재료를 선택해 주세요.');
-    //   return;
-    // }
-
-    setIsLoading(true);
+    setLoadingStep('prompt');
     setResult(null);
 
     try {
-      // 1. 이미지 생성
-      const userImage = '';
-
-      // 2. 프롬프트 생성
+      // [Step 1] Alan AI 텍스트 생성
       const userPrompt = `
       다음 조건에 맞는 상세한 요리 레시피를 만들어줘.
 
@@ -175,35 +137,68 @@ export default function CreateAIRecipe() {
       위 내용을 읽기 좋은 깔끔한 마크다운(Markdown) 포맷으로 작성해줘.
     `.trim();
 
-      // 3. Query String 구성 (/api/v1/question 엔드포인트)
       const queryString = new URLSearchParams({
         content: userPrompt,
         client_id: ALAN_CLIENT_ID,
       }).toString();
 
-      // 4. API 요청 (/api/v1/question?... )
       const response = await fetch(`${API_BASE}/question?${queryString}`);
-
       if (!response.ok) {
         throw new Error(`API 요청 실패 (Status: ${response.status})`);
       }
 
       const data = await response.json();
-
-      // 5. Alan AI 응답 데이터 파싱 (content > answer 순 추출)
       const markdownContent =
         data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
 
-      // 6. 결과 반영
+      // [Step 2] Open AI 이미지 생성
+      setLoadingStep('image');
+
+      const titleMatch = markdownContent.match(/^#\s*(.+)/m);
+      const recipeTitle = titleMatch ? titleMatch[1].trim() : '맛있는 요리';
+
+      let fallbackUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
+      let base64ImageContent = fallbackUrl;
+
+      try {
+        const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${OPEN_AI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-image-2',
+            prompt: `A professional studio food photography of ${recipeTitle}, ${conditions.cuisine} cuisine, beautifully plated, delicious look, warm lighting, 4k resolution.`,
+            n: 1,
+            size: '1024x1024',
+            quality: 'low',
+            output_format: 'png',
+          }),
+        });
+
+        if (imageResponse.ok) {
+          const result = await imageResponse.json();
+          const rawBase64 = result?.data?.[0]?.b64_json;
+          base64ImageContent = rawBase64 ? `data:image/png;base64,${rawBase64}` : fallbackUrl;
+        } else {
+          const error = await imageResponse.json();
+          console.error('OpenAI API 에러 상세:', error);
+        }
+      } catch (error) {
+        console.error('이미지 생성 실패 (기본 이미지로 대체):', error);
+      }
+
+      // [Step 3] 최종 결과 저장
       setResult({
-        image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+        image: base64ImageContent,
         markdown: markdownContent,
       });
     } catch (error) {
-      console.error('Alan AI 레시피 생성 실패:', error);
+      console.error('Alan AI 에러 상세:', error);
       alert('레시피를 생성하지 못했습니다. 개발자 도구 콘솔 및 네트워크 탭을 확인해 주세요.');
     } finally {
-      setIsLoading(false);
+      setLoadingStep(null);
     }
   };
 
@@ -212,9 +207,9 @@ export default function CreateAIRecipe() {
     e.preventDefault();
     if (!refinePrompt.trim()) return;
 
-    setIsLoading(true);
+    setLoadingStep(true);
     setTimeout(() => {
-      setIsLoading(false);
+      setLoadingStep(false);
       setResult((prev) => ({
         ...prev,
         markdown: prev.markdown + `\n\n> 💡 **추가 반영 요청:** "${refinePrompt}" 내용이 적용된 레시피입니다.`,
@@ -240,7 +235,7 @@ export default function CreateAIRecipe() {
         {/* 2컬럼 레이아웃 */}
         <div className={styles.mainGrid}>
           {/* 왼쪽: 폼 영역 */}
-          <form className={styles.formSection} onSubmit={handleSubmit}>
+          <form className={styles.formSection} onSubmit={handleGenerateRecipe}>
             {/* Step 1: 무엇을 만들고 싶나요? */}
             <div className={styles.stepCard}>
               <div className={styles.stepTitleRow}>
@@ -570,18 +565,25 @@ export default function CreateAIRecipe() {
             </div>
 
             {/* 생성하기 버튼 */}
-            <button type="submit" className={styles.submitBtn} disabled={isLoading} onClick={handleGenerateRecipe}>
-              {isLoading ? '✨ AI가 레시피를 구상 중입니다...' : '🪄 나만의 레시피 만들기'}
+            <button type="submit" className={styles.submitBtn} disabled={loadingStep} onClick={handleGenerateRecipe}>
+              {loadingStep ? '✨ AI가 레시피를 구상 중입니다...' : '🪄 나만의 레시피 만들기'}
             </button>
           </form>
 
           {/* 오른쪽: 미리보기 / 결과 카드 */}
           <div className={styles.resultCard}>
-            {isLoading ? (
+            {loadingStep ? (
               <div className={styles.loadingContainer}>
                 <div className={styles.spinner} />
-                <p className="text-m" style={{ color: 'var(--brand-brown)', marginTop: '16px' }}>
-                  AI가 최고의 레시피를 생성하는 중입니다...
+
+                {/* loadingStep 상태에 따른 텍스트 분기 처리 */}
+                <p className="text-m" style={{ color: 'var(--brand-brown)', marginTop: '16px', fontWeight: 600 }}>
+                  {loadingStep === 'prompt' && '🤖 레시피를 생성 중입니다...'}
+                  {loadingStep === 'image' && '🎨 이미지를 생성 중입니다...'}
+                </p>
+                <p className="text-sm" style={{ color: 'var(--brand-gray)', marginTop: '6px' }}>
+                  {loadingStep === 'prompt' && '입력하신 재료와 조건을 분석하고 있어요.'}
+                  {loadingStep === 'image' && '맛있는 이미지를 그리고 있어요. 곧 완성됩니다!'}
                 </p>
               </div>
             ) : result ? (
