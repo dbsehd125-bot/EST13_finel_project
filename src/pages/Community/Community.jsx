@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import {
   AddPhotoAlternateOutlined,
   Bookmark,
@@ -13,110 +14,13 @@ import {
 import { Button, Dialog, FormControl, IconButton, MenuItem, Select } from "@mui/material";
 import Masonry from "@mui/lab/Masonry";
 
+import { supabase } from "../../lib/supabaseClient";
 import Layout from "../../components/Layout";
 import styles from "./Community.module.css";
 
 const categories = ["인기", "최신", "요리 후기", "질문", "자유 이야기"];
-
 const writableCategories = ["요리 후기", "질문", "자유 이야기"];
-
-const initialCommunityPosts = [
-  {
-    id: 1,
-    nickname: "달콤한아침",
-    time: "3시간 전",
-    content: "레몬 버터 연어 처음 만들어봤는데 대성공! 레몬 양만 조절하면 완벽해요!",
-    image: "https://picsum.photos/seed/salmon1/600/600",
-    imageAlt: "레몬 버터 연어",
-    likes: 128,
-    comments: 24,
-    category: "요리 후기",
-    recipeName: "레몬 버터 연어 스테이크",
-    liked: false,
-    bookmarked: false,
-  },
-  {
-    id: 2,
-    nickname: "집밥러버",
-    time: "5시간 전",
-    content: "냉장고에 남은 채소들을 모아서 볶음밥을 만들었어요. 간단한데 정말 맛있네요!",
-    image: "https://picsum.photos/seed/rice2/600/500",
-    imageAlt: "채소 볶음밥",
-    likes: 93,
-    comments: 17,
-    category: "요리 후기",
-    recipeName: "냉장고 채소 볶음밥",
-    liked: false,
-    bookmarked: false,
-  },
-  {
-    id: 3,
-    nickname: "주말의셰프",
-    time: "7시간 전",
-    content: "크림 파스타에 후추를 넉넉하게 넣으니까 느끼함도 잡히고 향이 훨씬 좋아졌어요.",
-    image: "https://picsum.photos/seed/pasta3/600/650",
-    imageAlt: "크림 파스타",
-    likes: 75,
-    comments: 12,
-    category: "요리 후기",
-    recipeName: "후추 크림 파스타",
-    liked: false,
-    bookmarked: false,
-  },
-  {
-    id: 4,
-    nickname: "요리하는정원",
-    time: "어제",
-    content: "에어프라이어로 닭다리를 구울 때 겉은 바삭하고 속은 촉촉하게 만드는 방법이 있을까요?",
-    image: "https://picsum.photos/seed/chicken4/600/530",
-    imageAlt: "에어프라이어 닭다리",
-    likes: 42,
-    comments: 31,
-    category: "질문",
-    recipeName: "에어프라이어 닭다리",
-    liked: false,
-    bookmarked: false,
-  },
-  {
-    id: 5,
-    nickname: "한입만",
-    time: "어제",
-    content:
-      "오늘 시장에서 산 토마토가 정말 달아요. 토마토로 만들 수 있는 간단한 요리 추천해주세요!",
-    image: "https://picsum.photos/seed/tomato5/600/470",
-    imageAlt: "싱싱한 토마토",
-    likes: 61,
-    comments: 19,
-    category: "자유 이야기",
-    recipeName: "",
-    liked: false,
-    bookmarked: false,
-  },
-];
-
-const initialComments = [
-  {
-    id: 1,
-    writer: "요리하는정원",
-    time: "1시간 전",
-    content: "우와 플레이팅까지 완벽하네요! 레몬은 몇 개나 넣으셨어요?",
-    likes: 12,
-  },
-  {
-    id: 2,
-    writer: "집밥러버",
-    time: "50분 전",
-    content: "저는 반 개만 넣었어요. 한 개 넣으니 좀 시더라고요 ㅎㅎ",
-    likes: 8,
-  },
-  {
-    id: 3,
-    writer: "주말의셰프",
-    time: "30분 전",
-    content: "버터를 마지막에 녹여 끼얹으면 풍미가 확 올라와요 🧈",
-    likes: 21,
-  },
-];
+const COMMUNITY_BUCKET = "community-images";
 
 const initialWriteForm = {
   category: "자유 이야기",
@@ -125,32 +29,235 @@ const initialWriteForm = {
   image: "",
 };
 
+function formatRelativeTime(dateString) {
+  const createdAt = new Date(dateString);
+  const diff = Date.now() - createdAt.getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) return "방금 전";
+  if (diff < hour) return `${Math.floor(diff / minute)}분 전`;
+  if (diff < day) return `${Math.floor(diff / hour)}시간 전`;
+  if (diff < day * 2) return "어제";
+
+  return createdAt.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function mapPost(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    nickname: row.nickname || "사용자",
+    time: formatRelativeTime(row.created_at),
+    createdAt: row.created_at,
+    content: row.content,
+    image: row.image_url || "",
+    imageAlt: row.recipe_name || "커뮤니티 게시글 첨부 이미지",
+    likes: row.like_count ?? 0,
+    comments: row.comment_count ?? 0,
+    category: row.category,
+    recipeName: row.recipe_name || "",
+    liked: false,
+    bookmarked: false,
+  };
+}
+
+function mapComment(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    writer: row.nickname || "사용자",
+    time: formatRelativeTime(row.created_at),
+    content: row.content,
+    likes: row.like_count ?? 0,
+  };
+}
+
 export default function Community() {
+  const navigate = useNavigate();
+
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [selectedCategory, setSelectedCategory] = useState("인기");
-  const [posts, setPosts] = useState(initialCommunityPosts);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
   const [selectedPostId, setSelectedPostId] = useState(null);
+
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [writeForm, setWriteForm] = useState(initialWriteForm);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [writeError, setWriteError] = useState("");
+  const [writeSubmitting, setWriteSubmitting] = useState(false);
 
   const fileInputRef = useRef(null);
 
   const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
-
   const detailModalOpen = Boolean(selectedPost);
 
-  const filteredPosts = posts.filter(post => {
+  const filteredPosts = useMemo(() => {
+    const copiedPosts = [...posts];
+
     if (selectedCategory === "인기") {
-      return true;
+      return copiedPosts.sort((a, b) => b.likes - a.likes);
     }
 
     if (selectedCategory === "최신") {
-      return true;
+      return copiedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    return post.category === selectedCategory;
-  });
+    return copiedPosts.filter(post => post.category === selectedCategory);
+  }, [posts, selectedCategory]);
+
+  async function fetchPosts({ showLoading = false } = {}) {
+    if (showLoading) {
+      setPostsLoading(true);
+    }
+
+    setPageError("");
+
+    const { data, error } = await supabase
+      .from("community_posts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("커뮤니티 게시글 조회 오류:", error);
+      setPageError("게시글을 불러오지 못했습니다.");
+
+      if (showLoading) {
+        setPostsLoading(false);
+      }
+
+      return false;
+    }
+
+    setPosts((data ?? []).map(mapPost));
+
+    if (showLoading) {
+      setPostsLoading(false);
+    }
+
+    return true;
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadInitialData() {
+      try {
+        const {
+          data: { user: currentUser },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (!mounted) return;
+
+        if (userError) {
+          console.error("사용자 정보 조회 오류:", userError);
+        }
+
+        setUser(currentUser ?? null);
+        setAuthLoading(false);
+
+        await fetchPosts({ showLoading: true });
+      } catch (error) {
+        console.error("커뮤니티 초기 데이터 조회 오류:", error);
+
+        if (mounted) {
+          setPageError("게시글을 불러오지 못했습니다.");
+          setPostsLoading(false);
+          setAuthLoading(false);
+        }
+      }
+    }
+
+    loadInitialData();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setAuthLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPostId) {
+      setComments([]);
+      setCommentText("");
+      return;
+    }
+
+    let mounted = true;
+
+    async function loadComments() {
+      setCommentLoading(true);
+
+      const { data, error } = await supabase
+        .from("community_comments")
+        .select("*")
+        .eq("post_id", selectedPostId)
+        .order("created_at", { ascending: true });
+
+      if (!mounted) return;
+
+      if (error) {
+        console.error("댓글 조회 오류:", error);
+        setComments([]);
+      } else {
+        setComments((data ?? []).map(mapComment));
+      }
+
+      setCommentLoading(false);
+    }
+
+    loadComments();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedPostId]);
+
+  async function getAuthenticatedUser() {
+    if (user) return user;
+
+    const {
+      data: { user: currentUser },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !currentUser) {
+      return null;
+    }
+
+    setUser(currentUser);
+    return currentUser;
+  }
+
+  function moveToLogin() {
+    handleDetailModalClose();
+    setWriteModalOpen(false);
+    navigate("/login", { state: { from: "/community" } });
+  }
 
   function handleDetailModalOpen(postId) {
     setSelectedPostId(postId);
@@ -158,14 +265,13 @@ export default function Community() {
 
   function handleDetailModalClose() {
     setSelectedPostId(null);
+    setCommentText("");
   }
 
   function handleLikeToggle(postId) {
     setPosts(previousPosts =>
       previousPosts.map(post => {
-        if (post.id !== postId) {
-          return post;
-        }
+        if (post.id !== postId) return post;
 
         return {
           ...post,
@@ -178,20 +284,22 @@ export default function Community() {
 
   function handleBookmarkToggle(postId) {
     setPosts(previousPosts =>
-      previousPosts.map(post => {
-        if (post.id !== postId) {
-          return post;
-        }
-
-        return {
-          ...post,
-          bookmarked: !post.bookmarked,
-        };
-      }),
+      previousPosts.map(post =>
+        post.id === postId ? { ...post, bookmarked: !post.bookmarked } : post,
+      ),
     );
   }
 
-  function handleWriteModalOpen() {
+  async function handleWriteModalOpen() {
+    if (authLoading) return;
+
+    const currentUser = await getAuthenticatedUser();
+
+    if (!currentUser) {
+      moveToLogin();
+      return;
+    }
+
     setWriteError("");
     setWriteModalOpen(true);
   }
@@ -205,6 +313,7 @@ export default function Community() {
       return initialWriteForm;
     });
 
+    setSelectedImageFile(null);
     setWriteError("");
 
     if (fileInputRef.current) {
@@ -213,6 +322,7 @@ export default function Community() {
   }
 
   function handleWriteModalClose() {
+    if (writeSubmitting) return;
     setWriteModalOpen(false);
     resetWriteForm();
   }
@@ -220,22 +330,15 @@ export default function Community() {
   function handleWriteFormChange(event) {
     const { name, value } = event.target;
 
-    setWriteForm(previousForm => ({
-      ...previousForm,
-      [name]: value,
-    }));
+    setWriteForm(previousForm => ({ ...previousForm, [name]: value }));
 
-    if (writeError) {
-      setWriteError("");
-    }
+    if (writeError) setWriteError("");
   }
 
   function handleImageChange(event) {
     const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       setWriteError("이미지 파일만 등록할 수 있습니다.");
@@ -243,9 +346,7 @@ export default function Community() {
       return;
     }
 
-    const maxFileSize = 5 * 1024 * 1024;
-
-    if (file.size > maxFileSize) {
+    if (file.size > 5 * 1024 * 1024) {
       setWriteError("이미지는 5MB 이하만 등록할 수 있습니다.");
       event.target.value = "";
       return;
@@ -258,12 +359,10 @@ export default function Community() {
         URL.revokeObjectURL(previousForm.image);
       }
 
-      return {
-        ...previousForm,
-        image: imageUrl,
-      };
+      return { ...previousForm, image: imageUrl };
     });
 
+    setSelectedImageFile(file);
     setWriteError("");
   }
 
@@ -273,19 +372,49 @@ export default function Community() {
         URL.revokeObjectURL(previousForm.image);
       }
 
-      return {
-        ...previousForm,
-        image: "",
-      };
+      return { ...previousForm, image: "" };
     });
+
+    setSelectedImageFile(null);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
 
-  function handleWriteSubmit(event) {
+  async function uploadCommunityImage(file, currentUser) {
+    if (!file) return { imageUrl: null, uploadedPath: null };
+
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const imagePath = `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(COMMUNITY_BUCKET)
+      .upload(imagePath, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from(COMMUNITY_BUCKET).getPublicUrl(imagePath);
+
+    return {
+      imageUrl: data.publicUrl,
+      uploadedPath: imagePath,
+    };
+  }
+
+  async function handleWriteSubmit(event) {
     event.preventDefault();
+
+    const currentUser = await getAuthenticatedUser();
+
+    if (!currentUser) {
+      moveToLogin();
+      return;
+    }
 
     const trimmedContent = writeForm.content.trim();
     const trimmedRecipeName = writeForm.recipeName.trim();
@@ -300,30 +429,112 @@ export default function Community() {
       return;
     }
 
-    const newPost = {
-      id: Date.now(),
-      nickname: "요리하는정원",
-      time: "방금 전",
-      content: trimmedContent,
-      image: writeForm.image,
-      imageAlt: trimmedRecipeName || "커뮤니티 게시글 첨부 이미지",
-      likes: 0,
-      comments: 0,
-      category: writeForm.category,
-      recipeName: trimmedRecipeName,
-      liked: false,
-      bookmarked: false,
-    };
+    let uploadedImagePath = null;
 
-    setPosts(previousPosts => [newPost, ...previousPosts]);
-    setSelectedCategory(writeForm.category);
+    try {
+      setWriteSubmitting(true);
+      setWriteError("");
 
-    setWriteModalOpen(false);
-    setWriteForm(initialWriteForm);
-    setWriteError("");
+      const { imageUrl, uploadedPath } = await uploadCommunityImage(selectedImageFile, currentUser);
+      uploadedImagePath = uploadedPath;
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      const nickname =
+        currentUser.user_metadata?.nickname ||
+        currentUser.user_metadata?.full_name ||
+        currentUser.email?.split("@")[0] ||
+        "사용자";
+
+      const submittedCategory = writeForm.category;
+
+      const { error } = await supabase.from("community_posts").insert({
+        user_id: currentUser.id,
+        nickname,
+        category: submittedCategory,
+        content: trimmedContent,
+        recipe_name: trimmedRecipeName || null,
+        image_url: imageUrl,
+      });
+
+      if (error) throw error;
+
+      // 등록 직후 DB에서 최신 게시글 목록을 다시 조회해 화면에 바로 반영
+      await fetchPosts();
+
+      setSelectedCategory(submittedCategory);
+      setWriteModalOpen(false);
+      resetWriteForm();
+    } catch (error) {
+      console.error("게시글 등록 오류:", error);
+
+      if (uploadedImagePath) {
+        await supabase.storage.from(COMMUNITY_BUCKET).remove([uploadedImagePath]);
+      }
+
+      setWriteError(error.message || "게시글 등록에 실패했습니다.");
+    } finally {
+      setWriteSubmitting(false);
+    }
+  }
+
+  async function handleCommentSubmit(event) {
+    event.preventDefault();
+
+    const currentUser = await getAuthenticatedUser();
+
+    if (!currentUser) {
+      moveToLogin();
+      return;
+    }
+
+    const trimmedComment = commentText.trim();
+
+    if (!selectedPost || !trimmedComment) return;
+
+    try {
+      setCommentSubmitting(true);
+
+      const nickname =
+        currentUser.user_metadata?.nickname ||
+        currentUser.user_metadata?.full_name ||
+        currentUser.email?.split("@")[0] ||
+        "사용자";
+
+      const { data, error } = await supabase
+        .from("community_comments")
+        .insert({
+          post_id: selectedPost.id,
+          user_id: currentUser.id,
+          nickname,
+          content: trimmedComment,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const nextCommentCount = selectedPost.comments + 1;
+
+      const { error: countUpdateError } = await supabase
+        .from("community_posts")
+        .update({ comment_count: nextCommentCount })
+        .eq("id", selectedPost.id);
+
+      if (countUpdateError) {
+        console.error("댓글 수 갱신 오류:", countUpdateError);
+      }
+
+      setComments(previousComments => [...previousComments, mapComment(data)]);
+      setCommentText("");
+      setPosts(previousPosts =>
+        previousPosts.map(post =>
+          post.id === selectedPost.id ? { ...post, comments: nextCommentCount } : post,
+        ),
+      );
+    } catch (error) {
+      console.error("댓글 등록 오류:", error);
+      alert(error.message || "댓글 등록에 실패했습니다.");
+    } finally {
+      setCommentSubmitting(false);
     }
   }
 
@@ -443,7 +654,15 @@ export default function Community() {
       </section>
 
       <section className={styles.cards}>
-        {filteredPosts.length > 0 ? (
+        {postsLoading ? (
+          <div className={styles.emptyState}>
+            <p>게시글을 불러오는 중입니다.</p>
+          </div>
+        ) : pageError ? (
+          <div className={styles.emptyState}>
+            <p>{pageError}</p>
+          </div>
+        ) : filteredPosts.length > 0 ? (
           <Masonry
             columns={{
               xs: 1,
@@ -473,6 +692,12 @@ export default function Community() {
 
                 {post.image && (
                   <img className={styles.cardImage} src={post.image} alt={post.imageAlt} />
+                )}
+
+                {post.recipeName && (
+                  <div className={styles.cardRecipeArea}>
+                    <span className={styles.cardRecipeButton}>📖 {post.recipeName}</span>
+                  </div>
                 )}
 
                 <div className={styles.icons} onClick={event => event.stopPropagation()}>
@@ -611,27 +836,33 @@ export default function Community() {
                 </div>
 
                 <div className={styles.modalComments}>
-                  <p className={styles.commentCount}>댓글 {initialComments.length}</p>
+                  <p className={styles.commentCount}>댓글 {comments.length}</p>
 
-                  {initialComments.map(comment => (
-                    <div key={comment.id} className={styles.modalCommentItem}>
-                      <div className={styles.commentProfileImage} />
+                  {commentLoading ? (
+                    <p>댓글을 불러오는 중입니다.</p>
+                  ) : comments.length > 0 ? (
+                    comments.map(comment => (
+                      <div key={comment.id} className={styles.modalCommentItem}>
+                        <div className={styles.commentProfileImage} />
 
-                      <div className={styles.commentContent}>
-                        <div className={styles.commentWriter}>
-                          <strong>{comment.writer}</strong>
-                          <span>{comment.time}</span>
-                        </div>
+                        <div className={styles.commentContent}>
+                          <div className={styles.commentWriter}>
+                            <strong>{comment.writer}</strong>
+                            <span>{comment.time}</span>
+                          </div>
 
-                        <p>{comment.content}</p>
+                          <p>{comment.content}</p>
 
-                        <div className={styles.commentLike}>
-                          <FavoriteBorder fontSize="small" />
-                          <span>{comment.likes}</span>
+                          <div className={styles.commentLike}>
+                            <FavoriteBorder fontSize="small" />
+                            <span>{comment.likes}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p>아직 등록된 댓글이 없습니다.</p>
+                  )}
                 </div>
               </div>
 
@@ -667,10 +898,22 @@ export default function Community() {
                   </button>
                 </div>
 
-                <form className={styles.commentForm} onSubmit={event => event.preventDefault()}>
-                  <input type="text" placeholder="댓글을 남겨보세요..." />
+                <form className={styles.commentForm} onSubmit={handleCommentSubmit}>
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={event => setCommentText(event.target.value)}
+                    placeholder="댓글을 남겨보세요..."
+                    maxLength={300}
+                    disabled={commentSubmitting}
+                  />
 
-                  <IconButton type="submit" aria-label="댓글 등록" className={styles.sendButton}>
+                  <IconButton
+                    type="submit"
+                    aria-label="댓글 등록"
+                    className={styles.sendButton}
+                    disabled={commentSubmitting}
+                  >
                     <SendOutlined />
                   </IconButton>
                 </form>
@@ -894,8 +1137,8 @@ export default function Community() {
               취소
             </button>
 
-            <button type="submit" className={styles.submitWriteButton}>
-              등록하기
+            <button type="submit" className={styles.submitWriteButton} disabled={writeSubmitting}>
+              {writeSubmitting ? "등록 중..." : "등록하기"}
             </button>
           </div>
         </form>

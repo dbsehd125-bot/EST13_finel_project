@@ -161,6 +161,31 @@
   height: auto;
 }
 
+.cardRecipeArea {
+  padding: 14px 16px 0;
+}
+
+.cardRecipeButton {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+
+  padding: 8px 14px;
+
+  overflow: hidden;
+
+  color: var(--brand-primary);
+  background: var(--brand-cream);
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* =========================
    카드 하단 아이콘
 ========================= */
@@ -1052,6 +1077,15 @@
   .cardText {
     font-size: 15px;
     line-height: 1.55;
+  }
+
+  .cardRecipeArea {
+    padding: 12px 14px 0;
+  }
+
+  .cardRecipeButton {
+    padding: 7px 12px;
+    font-size: 12px;
   }
 
   .icons {
