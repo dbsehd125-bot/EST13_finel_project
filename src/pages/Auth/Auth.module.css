@@ -1,7 +1,6 @@
 .authPage {
   display: flex;
   justify-content: center;
-  padding-block: 40px;
 }
 
 .authCard {
@@ -168,7 +167,6 @@
   background: transparent;
   border: 0;
 
-  font: inherit;
   text-decoration: none;
   cursor: pointer;
 }
@@ -387,10 +385,6 @@
 ========================= */
 
 @media (max-width: 1023px) {
-  .authPage {
-    padding-block: 48px;
-  }
-
   .authCard,
   .signupCard {
     display: flex;
@@ -427,10 +421,6 @@
 ========================= */
 
 @media (max-width: 599px) {
-  .authPage {
-    padding-block: 24px;
-  }
-
   .authCard,
   .signupCard {
     border-radius: 20px;
