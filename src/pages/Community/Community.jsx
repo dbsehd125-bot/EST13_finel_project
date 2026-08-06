@@ -11,7 +11,7 @@ import {
   ModeCommentOutlined,
   SendOutlined,
 } from "@mui/icons-material";
-import { Button, Dialog, FormControl, IconButton, MenuItem, Select } from "@mui/material";
+import { Button, Dialog, FormControl, IconButton, MenuItem, Select, Skeleton } from "@mui/material";
 import Masonry from "@mui/lab/Masonry";
 
 import { supabase } from "../../lib/supabaseClient";
@@ -21,6 +21,7 @@ import styles from "./Community.module.css";
 const categories = ["인기", "최신", "요리 후기", "질문", "자유 이야기"];
 const writableCategories = ["요리 후기", "질문", "자유 이야기"];
 const COMMUNITY_BUCKET = "community-images";
+const POSTS_PER_PAGE = 9;
 
 const initialWriteForm = {
   category: "자유 이야기",
@@ -78,6 +79,40 @@ function mapComment(row) {
   };
 }
 
+function CommunityCardSkeleton({ index }) {
+  const imageHeights = [220, 300, 250, 340, 280, 230, 320, 260, 360];
+
+  return (
+    <article className={`${styles.card} ${styles.skeletonCard}`}>
+      <div className={styles.profile}>
+        <Skeleton variant="circular" width={40} height={40} />
+
+        <div className={styles.skeletonProfileText}>
+          <Skeleton variant="text" width={92} height={22} />
+          <Skeleton variant="text" width={58} height={18} />
+        </div>
+      </div>
+
+      <div className={styles.comment}>
+        <Skeleton variant="text" width="96%" height={24} />
+        <Skeleton variant="text" width="88%" height={24} />
+        <Skeleton variant="text" width="64%" height={24} />
+      </div>
+
+      <Skeleton
+        variant="rectangular"
+        width="100%"
+        height={imageHeights[index % imageHeights.length]}
+      />
+
+      <div className={styles.icons}>
+        <Skeleton variant="rounded" width={92} height={34} />
+        <Skeleton variant="circular" width={34} height={34} />
+      </div>
+    </article>
+  );
+}
+
 export default function Community() {
   const navigate = useNavigate();
 
@@ -87,6 +122,8 @@ export default function Community() {
   const [selectedCategory, setSelectedCategory] = useState("인기");
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
   const [pageError, setPageError] = useState("");
   const [selectedPostId, setSelectedPostId] = useState(null);
 
@@ -102,6 +139,8 @@ export default function Community() {
   const [writeSubmitting, setWriteSubmitting] = useState(false);
 
   const fileInputRef = useRef(null);
+  const loadMoreRef = useRef(null);
+  const loadingMoreRef = useRef(false);
 
   const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
   const detailModalOpen = Boolean(selectedPost);
@@ -120,36 +159,63 @@ export default function Community() {
     return copiedPosts.filter(post => post.category === selectedCategory);
   }, [posts, selectedCategory]);
 
-  async function fetchPosts({ showLoading = false } = {}) {
-    if (showLoading) {
-      setPostsLoading(true);
+  async function fetchPosts({ reset = false, showLoading = false } = {}) {
+    if (loadingMoreRef.current) {
+      return false;
     }
 
+    const from = reset ? 0 : posts.length;
+    const to = from + POSTS_PER_PAGE - 1;
+
+    if (showLoading) {
+      setPostsLoading(true);
+    } else if (!reset) {
+      setLoadingMore(true);
+    }
+
+    loadingMoreRef.current = true;
     setPageError("");
 
-    const { data, error } = await supabase
-      .from("community_posts")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("community_posts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
-    if (error) {
+      if (error) {
+        throw error;
+      }
+
+      const mappedPosts = (data ?? []).map(mapPost);
+
+      setPosts(previousPosts => {
+        if (reset) {
+          return mappedPosts;
+        }
+
+        const existingIds = new Set(previousPosts.map(post => post.id));
+        const newPosts = mappedPosts.filter(post => !existingIds.has(post.id));
+
+        return [...previousPosts, ...newPosts];
+      });
+
+      setHasMorePosts(mappedPosts.length === POSTS_PER_PAGE);
+
+      return true;
+    } catch (error) {
       console.error("커뮤니티 게시글 조회 오류:", error);
       setPageError("게시글을 불러오지 못했습니다.");
+      return false;
+    } finally {
+      loadingMoreRef.current = false;
 
       if (showLoading) {
         setPostsLoading(false);
       }
 
-      return false;
+      setLoadingMore(false);
     }
-
-    setPosts((data ?? []).map(mapPost));
-
-    if (showLoading) {
-      setPostsLoading(false);
-    }
-
-    return true;
   }
 
   useEffect(() => {
@@ -171,7 +237,7 @@ export default function Community() {
         setUser(currentUser ?? null);
         setAuthLoading(false);
 
-        await fetchPosts({ showLoading: true });
+        await fetchPosts({ reset: true, showLoading: true });
       } catch (error) {
         console.error("커뮤니티 초기 데이터 조회 오류:", error);
 
@@ -199,6 +265,35 @@ export default function Community() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+
+    if (!target || postsLoading || loadingMore || !hasMorePosts || pageError) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      entries => {
+        const [entry] = entries;
+
+        if (entry.isIntersecting && !loadingMoreRef.current) {
+          fetchPosts();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "500px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [posts.length, postsLoading, loadingMore, hasMorePosts, pageError]);
 
   useEffect(() => {
     if (!selectedPostId) {
@@ -346,8 +441,10 @@ export default function Community() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setWriteError("이미지는 5MB 이하만 등록할 수 있습니다.");
+    const maxFileSize = 2 * 1024 * 1024;
+
+    if (file.size > maxFileSize) {
+      setWriteError("이미지는 2MB 이하만 등록할 수 있습니다.");
       event.target.value = "";
       return;
     }
@@ -458,7 +555,7 @@ export default function Community() {
       if (error) throw error;
 
       // 등록 직후 DB에서 최신 게시글 목록을 다시 조회해 화면에 바로 반영
-      await fetchPosts();
+      await fetchPosts({ reset: true });
 
       setSelectedCategory(submittedCategory);
       setWriteModalOpen(false);
@@ -655,14 +752,6 @@ export default function Community() {
 
       <section className={styles.cards}>
         {postsLoading ? (
-          <div className={styles.emptyState}>
-            <p>게시글을 불러오는 중입니다.</p>
-          </div>
-        ) : pageError ? (
-          <div className={styles.emptyState}>
-            <p>{pageError}</p>
-          </div>
-        ) : filteredPosts.length > 0 ? (
           <Masonry
             columns={{
               xs: 1,
@@ -671,76 +760,137 @@ export default function Community() {
             }}
             spacing={2}
           >
-            {filteredPosts.map(post => (
-              <article
-                key={post.id}
-                className={styles.card}
-                onClick={() => handleDetailModalOpen(post.id)}
-              >
-                <div className={styles.profile}>
-                  <div className={styles.profileImage} />
-
-                  <div className={styles.profileName}>
-                    <p className={styles.cardNickname}>{post.nickname}</p>
-                    <p className={styles.cardTime}>{post.time}</p>
-                  </div>
-                </div>
-
-                <div className={styles.comment}>
-                  <p className={styles.cardText}>{post.content}</p>
-                </div>
-
-                {post.image && (
-                  <img className={styles.cardImage} src={post.image} alt={post.imageAlt} />
-                )}
-
-                {post.recipeName && (
-                  <div className={styles.cardRecipeArea}>
-                    <span className={styles.cardRecipeButton}>📖 {post.recipeName}</span>
-                  </div>
-                )}
-
-                <div className={styles.icons} onClick={event => event.stopPropagation()}>
-                  <div className={styles.iconGroup}>
-                    <button
-                      type="button"
-                      className={`${styles.likeButton} ${
-                        post.liked ? styles.activeLikeButton : ""
-                      }`}
-                      aria-label={post.liked ? "좋아요 취소" : "좋아요"}
-                      aria-pressed={post.liked}
-                      onClick={() => handleLikeToggle(post.id)}
-                    >
-                      {post.liked ? <Favorite /> : <FavoriteBorder />}
-                      <span>{post.likes}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={styles.commentIconButton}
-                      aria-label={`댓글 ${post.comments}개 보기`}
-                      onClick={() => handleDetailModalOpen(post.id)}
-                    >
-                      <ModeCommentOutlined />
-                      <span>{post.comments}</span>
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={`${styles.bookmarkButton} ${
-                      post.bookmarked ? styles.activeBookmarkButton : ""
-                    }`}
-                    aria-label={post.bookmarked ? "북마크 취소" : "게시글 북마크"}
-                    aria-pressed={post.bookmarked}
-                    onClick={() => handleBookmarkToggle(post.id)}
-                  >
-                    {post.bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
-                  </button>
-                </div>
-              </article>
+            {Array.from({ length: 9 }, (_, index) => (
+              <CommunityCardSkeleton key={index} index={index} />
             ))}
           </Masonry>
+        ) : pageError && posts.length === 0 ? (
+          <div className={styles.emptyState}>
+            <p>{pageError}</p>
+
+            <button type="button" onClick={() => fetchPosts({ reset: true, showLoading: true })}>
+              다시 불러오기
+            </button>
+          </div>
+        ) : filteredPosts.length > 0 ? (
+          <>
+            <Masonry
+              columns={{
+                xs: 1,
+                sm: 2,
+                md: 3,
+              }}
+              spacing={2}
+            >
+              {filteredPosts.map((post, index) => (
+                <article
+                  key={post.id}
+                  className={styles.card}
+                  onClick={() => handleDetailModalOpen(post.id)}
+                >
+                  <div className={styles.profile}>
+                    <div className={styles.profileImage} />
+
+                    <div className={styles.profileName}>
+                      <p className={styles.cardNickname}>{post.nickname}</p>
+                      <p className={styles.cardTime}>{post.time}</p>
+                    </div>
+                  </div>
+
+                  <div className={styles.comment}>
+                    <p className={styles.cardText}>{post.content}</p>
+                  </div>
+
+                  {post.image && (
+                    <img
+                      className={styles.cardImage}
+                      src={post.image}
+                      alt={post.imageAlt}
+                      loading={index < 3 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : "auto"}
+                      decoding="async"
+                    />
+                  )}
+
+                  {post.recipeName && (
+                    <div className={styles.cardRecipeArea}>
+                      <span className={styles.cardRecipeButton}>📖 {post.recipeName}</span>
+                    </div>
+                  )}
+
+                  <div className={styles.icons} onClick={event => event.stopPropagation()}>
+                    <div className={styles.iconGroup}>
+                      <button
+                        type="button"
+                        className={`${styles.likeButton} ${
+                          post.liked ? styles.activeLikeButton : ""
+                        }`}
+                        aria-label={post.liked ? "좋아요 취소" : "좋아요"}
+                        aria-pressed={post.liked}
+                        onClick={() => handleLikeToggle(post.id)}
+                      >
+                        {post.liked ? <Favorite /> : <FavoriteBorder />}
+                        <span>{post.likes}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.commentIconButton}
+                        aria-label={`댓글 ${post.comments}개 보기`}
+                        onClick={() => handleDetailModalOpen(post.id)}
+                      >
+                        <ModeCommentOutlined />
+                        <span>{post.comments}</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={`${styles.bookmarkButton} ${
+                        post.bookmarked ? styles.activeBookmarkButton : ""
+                      }`}
+                      aria-label={post.bookmarked ? "북마크 취소" : "게시글 북마크"}
+                      aria-pressed={post.bookmarked}
+                      onClick={() => handleBookmarkToggle(post.id)}
+                    >
+                      {post.bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </Masonry>
+
+            {loadingMore && (
+              <Masonry
+                columns={{
+                  xs: 1,
+                  sm: 2,
+                  md: 3,
+                }}
+                spacing={2}
+                className={styles.moreSkeletons}
+              >
+                {Array.from({ length: 3 }, (_, index) => (
+                  <CommunityCardSkeleton key={`more-${index}`} index={index + 3} />
+                ))}
+              </Masonry>
+            )}
+
+            <div ref={loadMoreRef} className={styles.loadMoreTrigger} aria-hidden="true" />
+
+            {!hasMorePosts && posts.length > 0 && (
+              <p className={styles.endMessage}>모든 게시글을 불러왔습니다.</p>
+            )}
+
+            {pageError && posts.length > 0 && (
+              <div className={styles.loadMoreError}>
+                <span>{pageError}</span>
+                <button type="button" onClick={() => fetchPosts()}>
+                  다시 시도
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className={styles.emptyState}>
             <p>아직 등록된 게시글이 없습니다.</p>
@@ -1084,7 +1234,7 @@ export default function Community() {
             <div className={styles.writeImageField}>
               <div className={styles.writeImageLabel}>
                 <span>사진</span>
-                <small>선택 사항 · 최대 5MB</small>
+                <small>선택 사항 · 최대 2MB</small>
               </div>
 
               <input
