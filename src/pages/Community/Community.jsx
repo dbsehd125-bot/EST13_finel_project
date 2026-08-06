@@ -347,7 +347,7 @@ export default function Community() {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setWriteError("이미지는 5MB 이하만 등록할 수 있습니다.");
+      setWriteError("이미지는 2MB 이하만 등록할 수 있습니다.");
       event.target.value = "";
       return;
     }
@@ -1084,7 +1084,7 @@ export default function Community() {
             <div className={styles.writeImageField}>
               <div className={styles.writeImageLabel}>
                 <span>사진</span>
-                <small>선택 사항 · 최대 5MB</small>
+                <small>선택 사항 · 최대 2MB</small>
               </div>
 
               <input
