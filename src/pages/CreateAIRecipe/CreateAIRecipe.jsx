@@ -12,6 +12,7 @@ import { getOpenInteractionType } from '@mui/material/Select';
 const API_BASE = '/api/v1';
 const ALAN_CLIENT_ID = import.meta.env.VITE_ALAN_CLIENT_ID;
 const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+const FALLBACK_URL = 'https://dummyimage.com/1024x1024/f26b3a/ffffff.png&text=No+Image';
 
 export default function CreateAIRecipe() {
   // Step 1: 프롬프트 입력
@@ -37,13 +38,10 @@ export default function CreateAIRecipe() {
 
   // Step 4: 결과 생성 옵션
   const [options, setOptions] = useState({
-    title: true,
-    steps: true,
-    substitutes: true,
-    shoppingList: true,
-    summary: true,
     image: true,
+    sidedishes: true,
     nutrition: true,
+    shoppinglist: true,
   });
 
   // 셀렉트 박스 화살표 상태
@@ -107,6 +105,35 @@ export default function CreateAIRecipe() {
     setOptions((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
+  /**
+   * 선택된 결과 옵션(options)에 따라 프롬프트 요구사항을 동적으로 생성
+   * @param {Object} options - { image, sidedishes, nutrition, shoppinglist }
+   * @returns {string} 프롬프트에 추가될 요구사항 문자열
+   */
+  const buildOutputOptionsPrompt = (options) => {
+    const requirements = [];
+
+    if (options.sidedishes) {
+      requirements.push(
+        '- [곁들이기 추천] 이 요리와 잘 어울리는 반찬, 국, 또는 음료/주류 추천 1~2가지를 포함해줘.',
+      );
+    }
+
+    if (options.nutrition) {
+      requirements.push(
+        '- [영양 성분 정보] 1인분 기준 예상 칼로리(kcal)와 주요 영양소 비율(탄수화물g, 단백질g, 지방g, 기타)을 요약해서 작성해줘.',
+      );
+    }
+
+    if (options.shoppinglist) {
+      requirements.push(
+        '- [장보기 체크리스트] 마트에서 바로 살 수 있도록 주재료와 양념류를 구획한 체크리스트(- [ ] 형태)를 마크다운 하단에 작성해줘.',
+      );
+    }
+
+    return requirements.length > 0 ? `\n[결과 옵션]\n${requirements.join('\n')}` : '';
+  };
+
   // test
   const handleGenerateRecipe = async (e) => {
     if (e) e.preventDefault();
@@ -134,6 +161,10 @@ export default function CreateAIRecipe() {
       1. 레시피 제목과 간단한 요약 설명
       2. 정확한 재료 및 양념장 비율 목록
       3. Step-by-Step 상세 조리 순서 (각 단계별 조리 팁 포함)
+      4. 내용 분기마다 이모지 1개씩 문장 맨 앞에 추가
+
+      ${buildOutputOptionsPrompt(options)}
+
       위 내용을 읽기 좋은 깔끔한 마크다운(Markdown) 포맷으로 작성해줘.
     `.trim();
 
@@ -151,42 +182,43 @@ export default function CreateAIRecipe() {
       const markdownContent =
         data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
 
-      // [Step 2] Open AI 이미지 생성
-      setLoadingStep('image');
+      let base64ImageContent = FALLBACK_URL;
 
-      const titleMatch = markdownContent.match(/^#\s*(.+)/m);
-      const recipeTitle = titleMatch ? titleMatch[1].trim() : '맛있는 요리';
+      if (options.image) {
+        // [Step 2] Open AI 이미지 생성
+        setLoadingStep('image');
 
-      let fallbackUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
-      let base64ImageContent = fallbackUrl;
+        const titleMatch = markdownContent.match(/^#\s*(.+)/m);
+        const recipeTitle = titleMatch ? titleMatch[1].trim() : '맛있는 요리';
 
-      try {
-        const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${OPEN_AI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-image-2',
-            prompt: `A professional studio food photography of ${recipeTitle}, ${conditions.cuisine} cuisine, beautifully plated, delicious look, warm lighting, 4k resolution.`,
-            n: 1,
-            size: '1024x1024',
-            quality: 'low',
-            output_format: 'png',
-          }),
-        });
+        try {
+          const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${OPEN_AI_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-image-2',
+              prompt: `A professional studio food photography of ${recipeTitle}, ${conditions.cuisine} cuisine, beautifully plated, delicious look, warm lighting, 4k resolution.`,
+              n: 1,
+              size: '1024x1024',
+              quality: 'low',
+              output_format: 'png',
+            }),
+          });
 
-        if (imageResponse.ok) {
-          const result = await imageResponse.json();
-          const rawBase64 = result?.data?.[0]?.b64_json;
-          base64ImageContent = rawBase64 ? `data:image/png;base64,${rawBase64}` : fallbackUrl;
-        } else {
-          const error = await imageResponse.json();
-          console.error('OpenAI API 에러 상세:', error);
+          if (imageResponse.ok) {
+            const result = await imageResponse.json();
+            const rawBase64 = result?.data?.[0]?.b64_json;
+            base64ImageContent = rawBase64 ? `data:image/png;base64,${rawBase64}` : fallbackUrl;
+          } else {
+            const error = await imageResponse.json();
+            console.error('OpenAI API 에러 상세:', error);
+          }
+        } catch (error) {
+          console.error('이미지 생성 실패 (기본 이미지로 대체):', error);
         }
-      } catch (error) {
-        console.error('이미지 생성 실패 (기본 이미지로 대체):', error);
       }
 
       // [Step 3] 최종 결과 저장
@@ -202,7 +234,7 @@ export default function CreateAIRecipe() {
     }
   };
 
-  // 하단 추가 수정 프롬프트 제출
+  // 하단 추가 수정 프롬프트 제출 (x)
   const handleRefineSubmit = (e) => {
     e.preventDefault();
     if (!refinePrompt.trim()) return;
@@ -212,7 +244,7 @@ export default function CreateAIRecipe() {
       setLoadingStep(false);
       setResult((prev) => ({
         ...prev,
-        markdown: prev.markdown + `\n\n> 💡 **추가 반영 요청:** "${refinePrompt}" 내용이 적용된 레시피입니다.`,
+        markdown: prev.markdown + `\n\n> 💡 **전송한 메세지의 내용**이 적용된 레시피입니다.`,
       }));
       setRefinePrompt('');
     }, 1200);
@@ -520,21 +552,6 @@ export default function CreateAIRecipe() {
               </div>
               <div className={styles.optionsGrid}>
                 <label className={styles.checkboxItem}>
-                  <input type="checkbox" checked={options.title} onChange={() => handleOptionToggle('title')} />
-                  <span>레시피 제목 생성</span>
-                </label>
-
-                <label className={styles.checkboxItem}>
-                  <input type="checkbox" checked={options.summary} onChange={() => handleOptionToggle('summary')} />
-                  <span>핵심 조리 과정 요약</span>
-                </label>
-
-                <label className={styles.checkboxItem}>
-                  <input type="checkbox" checked={options.steps} onChange={() => handleOptionToggle('steps')} />
-                  <span>상세 조리 단계 생성</span>
-                </label>
-
-                <label className={styles.checkboxItem}>
                   <input type="checkbox" checked={options.image} onChange={() => handleOptionToggle('image')} />
                   <span>완성 이미지 생성</span>
                 </label>
@@ -542,8 +559,8 @@ export default function CreateAIRecipe() {
                 <label className={styles.checkboxItem}>
                   <input
                     type="checkbox"
-                    checked={options.substitutes}
-                    onChange={() => handleOptionToggle('substitutes')}
+                    checked={options.sidedishes}
+                    onChange={() => handleOptionToggle('sidedishes')}
                   />
                   <span>대체 재료 추천</span>
                 </label>
@@ -556,8 +573,8 @@ export default function CreateAIRecipe() {
                 <label className={styles.checkboxItem}>
                   <input
                     type="checkbox"
-                    checked={options.shoppingList}
-                    onChange={() => handleOptionToggle('shoppingList')}
+                    checked={options.shoppinglist}
+                    onChange={() => handleOptionToggle('shoppinglist')}
                   />
                   <span>장보기 목록 생성</span>
                 </label>
