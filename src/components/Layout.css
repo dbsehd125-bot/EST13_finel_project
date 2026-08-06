@@ -13,3 +13,8 @@
   margin: 0 auto;
   padding: 60px 24px;
 }
+
+.layout-content-full {
+  flex: 1;
+  width: 100%;
+}
