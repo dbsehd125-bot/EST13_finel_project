@@ -1,0 +1,1318 @@
+/* === 히어로 섹션 === */
+
+/* 1280px 섹션 컨테이너 */
+.hero-section {
+  width: 1280px;
+  max-width: 100%;
+  margin: 0 auto;
+  background-color: #FAF5EE; /* 따뜻한 아이보리/베이지 배경색 */
+  padding: 60px 70px;
+  border-radius: 0px; /* 필요시 20px 등 모서리 라운드 추가 가능 */
+}
+
+.hero-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+}
+
+/* 왼쪽 콘텐츠 영역 */
+.hero-content {
+  flex: 1;
+  max-width: 540px;
+}
+
+/* 상단 뱃지 */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #FFF0EB;
+  color: #E26748;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+
+.badge-icon {
+  font-size: 13px;
+}
+
+/* 메인 타이틀 (명조체 적용) */
+.hero-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 48px;
+  font-weight: 500;
+  color: #1A1A1A;
+  line-height: 1.35;
+  letter-spacing: -0.5px;
+  margin-bottom: 24px;
+}
+
+/* 서브 설명글 */
+.hero-description {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #8A8580;
+  margin-bottom: 40px;
+  letter-spacing: -0.3px;
+}
+
+/* 버튼 그룹 */
+.hero-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 공통 버튼 스타일 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* 주황색 주요 버튼 */
+.btn-primary {
+  background-color: #E5633E;
+  color: #FFFFFF;
+  gap: 6px;
+}
+
+.btn-primary:hover {
+  background-color: #D45430;
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
+/* 흰색 보조 버튼 */
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: #222222;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-secondary:hover {
+  background-color: #F8F8F8;
+}
+
+/* 오른쪽 이미지 영역 */
+.hero-image-wrapper {
+  flex: 1;
+  max-width: 530px;
+  height: 400px;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 20px; /* 이미지 모서리 둥글게 */
+}
+
+
+/* === 오늘 뭐 먹지? 레시피 섹션 === */
+
+/* 1280px 섹션 컨테이너 */
+.recipe-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.recipe-container {
+  width: 1280px;
+  position: relative;
+  background-color: transparent;
+}
+
+/* 플로팅 액션 버튼 (우측 상단 별빛 아이콘) */
+.fab-btn {
+  position: absolute;
+  top: -20px;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #B588F7, #8B5CF6);
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  transition: transform 0.2s;
+  z-index: 10;
+}
+
+.fab-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* 헤더 영역 (타이틀 및 전체보기) - 충돌 방지 스코핑 */
+.recipe-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.recipe-section .main-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.recipe-section .sub-title {
+  font-size: 15px;
+  color: #777;
+  letter-spacing: -0.3px;
+}
+
+.view-all-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FF6A4D;
+  text-decoration: none;
+}
+
+.view-all-link svg {
+  margin-top: 1px;
+}
+
+/* 카테고리 필터 영역 */
+.category-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  border-radius: 20px;
+  border: none;
+  background-color: #F5F5F5;
+  color: #111;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.filter-btn:hover {
+  background-color: #EAEAEA;
+}
+
+.filter-btn.active {
+  background-color: #FF6A4D;
+  color: #FFF;
+}
+
+/* 레시피 그리드 영역 */
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+/* 개별 레시피 카드 */
+.recipe-card {
+  background-color: #FFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); /* 아주 옅은 그림자 */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recipe-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* 카드 이미지 및 뱃지/버튼 */
+.card-image-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3; /* 이미지 비율 설정 */
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.category-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: rgba(0, 0, 0, 0.55);
+  color: #FFF;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.wish-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #FFF;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #999;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  z-index: 2;
+}
+
+.wish-btn:hover, .wish-btn.active {
+  color: #FF5E36;
+}
+
+/* 카드 하단 정보 영역 */
+.card-info {
+  padding: 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.author-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: #EEE;
+}
+
+.author-name {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+}
+
+.meta-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.meta-info svg {
+  vertical-align: -2px;
+  margin-right: 2px;
+}
+
+.meta-info span:not(:last-child)::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 10px;
+  background-color: #DDD;
+  margin-left: 8px;
+  vertical-align: -1px;
+}
+
+/* 별점, 좋아요, 댓글 통계 */
+.stats-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #777;
+  border-top: 1px solid #F0F0F0;
+  padding-top: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-item.rating {
+  color: #FF5E36;
+  font-weight: 600;
+}
+
+
+/* === 에디터 추천 섹션 === */
+
+/* 1280px 섹션 컨테이너 */
+.editor-pick-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.editor-pick-container {
+  width: 1280px;
+}
+
+/* 헤더 영역 (상단 회색 라인 포함) - 충돌 방지 스코핑 */
+.editor-pick-section .section-header {
+  border-top: 1px solid #E5E5E5;
+  padding-top: 24px;
+  margin-bottom: 28px;
+}
+
+.editor-pick-section .main-title {
+  font-size: 24px;
+  font-weight: 500; /* 시안처럼 약간 얇고 정돈된 느낌 */
+  color: #1A1A1A;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.editor-pick-section .sub-title {
+  font-size: 14px;
+  color: #888;
+  font-weight: 400;
+  letter-spacing: -0.3px;
+}
+
+/* CSS Grid 레이아웃 (에디터 추천) */
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 320px; /* 카드 기본 높이 */
+  gap: 20px; /* 카드 사이 간격 */
+}
+
+/* 왼쪽 큰 카드 설정 (열 2칸, 행 2칸 차지) */
+.card-large {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* 개별 카드 디자인 설정 */
+.editor-card {
+  position: relative;
+  display: block;
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  background-color: #000; /* 로딩 전 배경 */
+}
+
+/* 카드 내 배경 이미지 */
+.card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+/* 마우스 오버 시 이미지 확대 애니메이션 */
+.editor-card:hover .card-bg {
+  transform: scale(1.05);
+}
+
+/* 하단 텍스트 그라데이션 오버레이 */
+.card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 30px;
+  z-index: 2;
+}
+
+/* 작은 카드들은 패딩을 약간 줄임 */
+.editor-card:not(.card-large) .card-overlay {
+  padding: 24px;
+}
+
+/* 뱃지 디자인 (반투명 테두리 및 배경) */
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  color: #FFF;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  font-weight: 300;
+  backdrop-filter: blur(2px);
+}
+
+/* 타이틀 텍스트 */
+.title {
+  color: #FFFFFF;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.5px;
+  word-break: keep-all;
+}
+
+/* 큰 카드 전용 타이틀 및 설명 텍스트 */
+.card-large .title {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.card-large .desc {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: -0.3px;
+}
+
+
+/* === AI 냉장고 털기 섹션 === */
+
+.ai-fridge-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 80px 20px;
+  background-color: #FCF8F2; /* 시안 바탕색 (따뜻한 아이보리) */
+}
+
+.ai-fridge-container {
+  width: 1280px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+}
+
+/* 왼쪽 콘텐츠 영역 */
+.fridge-content {
+  flex: 1;
+  max-width: 600px;
+}
+
+.ai-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #AB88ED; /* 보라색 포인트 컬러 */
+  margin-bottom: 20px;
+}
+
+/* 충돌 방지 스코핑 */
+.ai-fridge-section .main-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 32px;
+  font-weight: 500;
+  color: #1A1A1A;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.ai-fridge-section .sub-desc {
+  font-size: 16px;
+  color: #777;
+  margin-bottom: 32px;
+  letter-spacing: -0.3px;
+}
+
+/* 입력 박스 */
+.input-box {
+  background-color: #F6F7F9;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.tag {
+  background-color: #FFFFFF;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tag:hover {
+  background-color: #FFF0EB;
+  color: #E26748;
+}
+
+.tag::after {
+  content: "×";
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.add-tag-btn {
+  background-color: transparent;
+  color: #F17558; /* 주황/다홍색 */
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 24px;
+  border: 1px dashed #F17558; /* 점선 테두리 */
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.add-tag-btn:hover {
+  background-color: rgba(241, 117, 88, 0.05);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-upload, .btn-recommend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s, transform 0.1s ease;
+}
+
+.btn-upload {
+  background-color: #FFFFFF;
+  color: #222;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+.btn-recommend {
+  background-color: #AB88ED;
+  color: #FFFFFF;
+}
+
+.btn-upload:hover, .btn-recommend:hover {
+  opacity: 0.85;
+}
+
+.btn-upload:active, .btn-recommend:active {
+  transform: scale(0.98);
+}
+
+/* 오른쪽 결과 미리보기 영역 */
+.fridge-preview {
+  flex: 1;
+  max-width: 580px;
+  background-color: #F6F7F9;
+  border-radius: 20px;
+  padding: 24px;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: opacity 0.3s ease;
+}
+
+.fridge-preview.loading {
+  opacity: 0.6;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #AB88ED;
+  margin-bottom: 16px;
+}
+
+.preview-img {
+  width: 100%;
+  aspect-ratio: 2.2 / 1; /* 시안처럼 넓은 파노라마 비율 설정 */
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+}
+
+.preview-desc {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.preview-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: #888;
+  margin-top: 8px;
+}
+
+
+/* === 이번 주 식단 미리보기 섹션 === */
+
+.meal-plan-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 80px 20px;
+  background-color: #EBE6DA; /* 이미지상의 섹션 고유 배경색 */
+}
+
+.meal-plan-container {
+  width: 1280px;
+}
+
+/* 헤더 영역 - 충돌 방지 스코핑 */
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.meal-plan-section .main-title {
+  font-family: 'Noto Serif KR', serif; /* 시안처럼 고급스러운 명조체 적용 */
+  font-size: 26px;
+  font-weight: 500;
+  color: #1A1A1A;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.meal-plan-section .sub-desc {
+  font-size: 15px;
+  color: #777;
+  letter-spacing: -0.3px;
+}
+
+/* 우측 상단 초록색 버튼 */
+.ai-plan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #7A9B76; /* 차분한 그린 컬러 */
+  color: #FFF;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+
+.ai-plan-btn:hover {
+  background-color: #688764;
+  transform: translateY(-2px);
+}
+
+.ai-plan-btn:active {
+  transform: scale(0.98);
+}
+
+/* 식단 카드 그리드 (7분할) */
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 16px; /* 카드 사이의 간격 */
+}
+
+/* 개별 카드 스타일 */
+.plan-card {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-card.loading {
+  opacity: 0.6;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+/* 요일 및 식사 타입 뱃지 */
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.day {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E65F42; /* 다홍색 포인트 */
+}
+
+.meal-type {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+  background-color: #FAF4EF; /* 뱃지 배경색 */
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* 레시피 타이틀 */
+.recipe-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 20px;
+  line-height: 1.3;
+  word-break: keep-all;
+  
+  /* 긴 텍스트는 1줄 말줄임표 처리 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 하단 교체 버튼 */
+.replace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: auto; /* 카드 높이가 달라도 항상 하단에 위치하도록 설정 */
+  font-family: inherit;
+  transition: color 0.2s, transform 0.1s ease;
+}
+
+.replace-btn:hover {
+  color: #444;
+}
+
+.replace-btn:active svg {
+  transform: rotate(45deg);
+}
+
+.replace-btn svg {
+  margin-top: -1px;
+  transition: transform 0.2s ease;
+}
+
+
+/* === 사용자 리뷰 섹션 === */
+
+.user-review-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 60px 20px;
+  background-color: #F3EEE6; /* 시안 바탕색 (소프트한 베이지) */
+}
+
+.user-review-container {
+  width: 1280px;
+}
+
+/* 헤더 영역 - 충돌 방지 스코핑 */
+.user-review-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.user-review-section .main-title {
+  font-family: 'Noto Serif KR', serif; /* 명조체 적용 */
+  font-size: 28px;
+  font-weight: 500;
+  color: #1A1A1A;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.user-review-section .sub-desc {
+  font-size: 15px;
+  color: #777;
+  letter-spacing: -0.3px;
+}
+
+/* 더보기 링크 */
+.more-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #DC6B52; /* 코랄/다홍색 포인트 */
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.more-link:hover {
+  opacity: 0.8;
+}
+
+.more-link svg {
+  margin-top: 1px;
+}
+
+/* 리뷰 카드 그리드 (4분할) */
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+/* 개별 카드 스타일 */
+.review-card {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* 상단 음식 이미지 */
+.review-card .card-img {
+  width: 100%;
+  aspect-ratio: 16 / 11; /* 시안과 유사한 살짝 넓은 비율 */
+  object-fit: cover;
+}
+
+/* 하단 콘텐츠 영역 */
+.card-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+/* 사용자 정보 (프로필, 이름, 시간) */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #E0E0E0; /* 아바타 플레이스홀더 색상 */
+  background-size: cover;
+  background-position: center;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+}
+
+.time {
+  margin-left: auto; /* 시간 텍스트를 우측으로 밀어냄 */
+  font-size: 13px;
+  color: #999;
+}
+
+/* 리뷰 텍스트 */
+.review-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  margin-bottom: 16px;
+  word-break: keep-all;
+  
+  /* 텍스트가 길 경우 2줄에서 말줄임표 처리 (옵션) */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 연결된 레시피 링크 (책 아이콘 포함) */
+.recipe-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #DC6B52; /* 코랄/다홍색 포인트 */
+  text-decoration: none;
+  margin-bottom: 16px;
+  margin-top: auto; /* 내용 길이에 상관없이 위치를 일정하게 맞춤 */
+}
+
+.recipe-link svg {
+  margin-top: -1px;
+}
+
+/* 하단 하트, 댓글 통계 */
+.card-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-top: 1px solid #F0F0F0; /* 옅은 구분선 */
+  padding-top: 14px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #888;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.stat:hover {
+  color: #DC6B52;
+}
+
+.stat svg {
+  color: #A0A0A0;
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.stat.liked {
+  color: #FF5E36;
+  font-weight: 600;
+}
+
+.stat.liked svg {
+  color: #FF5E36;
+  fill: #FF5E36;
+}
+
+
+/* === 레시피 공유 배너 섹션 === */
+
+.cta-banner-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.cta-banner-container {
+  width: 1280px;
+}
+
+/* 배너 래퍼 설정 */
+.cta-banner {
+  position: relative;
+  width: 100%;
+  min-height: 240px; /* 배너 최소 높이 */
+  border-radius: 16px; /* 모서리 라운딩 처리 */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 50px 80px; /* 내부 좌우 여백을 넓게 확보 */
+  
+  /* 배경 이미지 및 그라데이션 오버레이 적용 (텍스트 가독성 확보) */
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 40%, transparent 100%),
+    url('https://images.unsplash.com/photo-1490818387583-1b5ba2614794?q=80&w=1280&auto=format&fit=crop'); 
+  background-size: cover;
+  background-position: center;
+}
+
+/* 콘텐츠 컨테이너 */
+.cta-content {
+  position: relative;
+  z-index: 2;
+  color: #FFFFFF;
+  max-width: 600px;
+  text-align: left; /* 정렬 명시 */
+}
+
+/* 메인 타이틀 */
+.cta-title {
+  font-size: 32px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+  word-break: keep-all;
+}
+
+/* 서브 설명 텍스트 */
+.cta-desc {
+  font-size: 15px;
+  font-weight: 300; /* 시안처럼 얇고 깔끔한 느낌 */
+  color: rgba(255, 255, 255, 0.85); /* 완전한 흰색이 아닌 살짝 투명한 색 */
+  margin-bottom: 32px;
+  letter-spacing: -0.3px;
+  word-break: keep-all;
+}
+
+/* 액션 버튼 (레시피 등록하기) */
+.btn-register {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #EF6F4B; /* 다홍/오렌지 포인트 컬러 */
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 30px; /* 알약 형태의 둥근 버튼 */
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-register:hover {
+  background-color: #DC5E3B; /* 마우스 오버 시 살짝 어두워짐 */
+  transform: translateY(-2px);
+}
+
+.btn-register:active {
+  transform: scale(0.98);
+}
+
+
+/* === 반응형 미디어 쿼리 === */
+
+/* 반응형 (해상도가 1280px 미만일 때) */
+@media (max-width: 1280px) {
+  .hero-section {
+    width: 100%;
+    padding: 40px 24px;
+  }
+  
+  .hero-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-image-wrapper {
+    width: 100%;
+    max-width: 100%;
+    height: 350px;
+  }
+
+  .recipe-container {
+    width: 100%;
+  }
+  
+  .recipe-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .editor-pick-container {
+    width: 100%;
+  }
+
+  .ai-fridge-container {
+    width: 100%;
+  }
+
+  .meal-plan-container {
+    width: 100%;
+  }
+
+  .user-review-container {
+    width: 100%;
+  }
+
+  .cta-banner-container {
+    width: 100%;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* 태블릿 사이즈에서는 스크롤이 가능하도록 변경 */
+  .plan-grid {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    scroll-snap-type: x mandatory;
+    gap: 16px;
+  }
+  .plan-card {
+    min-width: 160px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 992px) {
+  /* 태블릿 사이즈에서는 2열 레이아웃으로 변경 */
+  .editor-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 280px;
+  }
+  .card-large {
+    grid-column: span 2;
+    grid-row: span 1; /* 큰 카드의 세로 크기를 줄임 */
+  }
+
+  .ai-fridge-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .fridge-content, .fridge-preview {
+    max-width: 100%;
+  }
+
+  .review-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .recipe-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .fab-btn {
+    top: -50px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .plan-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .cta-banner {
+    padding: 40px 30px; /* 모바일에서는 여백을 줄임 */
+    min-height: auto;
+    
+    /* 모바일에서는 텍스트가 더 잘 보이도록 그라데이션 범위를 늘림 */
+    background-image: 
+      linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 70%, transparent 100%),
+      url('https://images.unsplash.com/photo-1490818387583-1b5ba2614794?q=80&w=1280&auto=format&fit=crop'); 
+  }
+  
+  .cta-title {
+    font-size: 24px;
+  }
+  
+  .cta-desc {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 576px) {
+  /* 모바일 사이즈에서는 1열 레이아웃으로 변경 */
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-large {
+    grid-column: span 1;
+  }
+
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+}

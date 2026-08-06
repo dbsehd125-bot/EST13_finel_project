@@ -12,7 +12,7 @@ import {
 } from "@mui/icons-material";
 
 import styles from "./RecipeDetail.module.css";
-import Layout from "../components/Layout";
+import Layout from "../../components/Layout";
 
 const cookingSteps = [
   {

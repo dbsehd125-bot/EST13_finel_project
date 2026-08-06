@@ -221,8 +221,15 @@
 }
 
 /* =========================
-   로그인
+   로그인·로그아웃
 ========================= */
+
+.auth-action {
+  display: flex;
+  min-width: 58px;
+  align-items: center;
+  justify-content: flex-start;
+}
 
 .login-link {
   color: var(--brand-gray);
@@ -234,6 +241,31 @@
 
 .login-link:hover {
   color: var(--brand-primary);
+}
+
+.logout-button {
+  padding: 0;
+
+  color: var(--brand-gray);
+  background: transparent;
+  border: 0;
+
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.logout-button:hover:not(:disabled) {
+  color: var(--brand-primary);
+}
+
+.logout-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* =========================
@@ -278,8 +310,6 @@
     opacity 0.2s ease;
 }
 
-/* 메뉴가 열리면 X */
-
 .menu-btn.open span:nth-child(1) {
   transform: translateY(7px) rotate(45deg);
 }
@@ -314,7 +344,7 @@
     display: none;
   }
 
-  .login-link {
+  .auth-action {
     display: none;
   }
 
@@ -322,7 +352,6 @@
     display: flex;
   }
 
-  /* 본문 위에 겹쳐서 열리는 메뉴 */
   .mobile-menu {
     position: absolute;
     top: 100%;
@@ -334,7 +363,6 @@
     max-height: 0;
     overflow: hidden;
 
-    /* 기존 64px에서 줄임 */
     padding-inline: 40px;
 
     background: #fff;
@@ -353,8 +381,6 @@
 
   .mobile-menu.open {
     max-height: 520px;
-
-    /* 위아래 여백도 조금 줄임 */
     padding-block: 14px 24px;
 
     border-bottom-color: var(--brand-divider);
@@ -368,8 +394,6 @@
     width: 100%;
     max-width: 1280px;
     flex-direction: column;
-
-    /* 메뉴 사이 간격 추가 */
     gap: 10px;
 
     margin-inline: auto;
@@ -380,7 +404,6 @@
     min-height: 54px;
     align-items: center;
 
-    /* 기존 24px보다 살짝 줄임 */
     padding-inline: 18px;
 
     color: var(--brand-brown);
@@ -423,7 +446,8 @@
     transition:
       color 0.2s ease,
       border-color 0.2s ease,
-      background-color 0.2s ease;
+      background-color 0.2s ease,
+      opacity 0.2s ease;
   }
 
   .mobile-create {
@@ -442,12 +466,20 @@
     color: var(--brand-brown);
     background: #fff;
     border: 1px solid var(--brand-divider);
+
+    font-family: inherit;
+    cursor: pointer;
   }
 
-  .mobile-login:hover {
+  .mobile-login:hover:not(:disabled) {
     color: var(--brand-primary);
     background: var(--brand-cream);
     border-color: var(--brand-primary);
+  }
+
+  .mobile-logout:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 }
 
@@ -487,7 +519,6 @@
     gap: 4px;
   }
 
-  /* 모바일 상단에서 숨김 */
   .search-btn,
   .alarm-btn,
   .btn-create {
@@ -509,7 +540,6 @@
   }
 
   .mobile-menu {
-    /* 기존 32px에서 줄임 */
     padding-inline: 20px;
   }
 
@@ -518,7 +548,6 @@
   }
 
   .mobile-nav {
-    /* 모바일 메뉴 사이 간격 */
     gap: 8px;
   }
 

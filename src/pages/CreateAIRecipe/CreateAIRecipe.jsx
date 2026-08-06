@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import Layout from '../components/Layout';
+import Layout from '../../components/Layout';
 import styles from './CreateAIRecipe.module.css';
 
 const DUMMY_MARKDOWN_RESULT = `**요리 제목:** 매콤 크림 닭갈비 파스타

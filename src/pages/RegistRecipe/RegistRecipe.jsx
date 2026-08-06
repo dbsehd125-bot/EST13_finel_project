@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router';
-import Layout from '../components/Layout';
+import Layout from '../../components/Layout';
 import styles from './RegistRecipe.module.css';
 
 /* ==========================================================================

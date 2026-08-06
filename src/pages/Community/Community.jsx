@@ -14,7 +14,7 @@ import { Button, Checkbox, Dialog, IconButton } from "@mui/material";
 import Masonry from "@mui/lab/Masonry";
 
 import styles from "./Community.module.css";
-import Layout from "../components/Layout";
+import Layout from "../../components/Layout";
 
 export default function Community() {
   const [selectedCategory, setSelectedCategory] = useState("인기");
