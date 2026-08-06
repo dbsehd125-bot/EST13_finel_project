@@ -1,6 +1,14 @@
 /* =========================
-   페이지 제목
+   페이지 상단
 ========================= */
+
+.communityHeader {
+  margin-bottom: 32px;
+}
+
+.titleArea {
+  margin-bottom: 24px;
+}
 
 .title_h1 {
   margin: 0;
@@ -8,23 +16,40 @@
 }
 
 .title_p {
-  margin: 8px 0 24px;
+  margin: 8px 0 0;
   color: var(--brand-gray);
 }
 
 /* =========================
-   카테고리
+   카테고리 및 글쓰기
 ========================= */
+
+.categoryBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
 
 .category {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 32px;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
 }
 
-.button {
-  color: var(--brand-primary);
+.categoryRow {
+  display: contents;
+}
+
+.categoryButton {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.writeButton {
+  flex-shrink: 0;
 }
 
 /* =========================
@@ -62,7 +87,7 @@
 .profile {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 
   padding: 16px;
   border-bottom: 1px solid var(--brand-divider);
@@ -79,12 +104,32 @@
 
 .profileName {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .profileName p {
   margin: 0;
+}
+
+.cardNickname {
+  overflow: hidden;
+
+  color: var(--brand-brown);
+
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardTime {
+  color: var(--brand-gray);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 /* =========================
@@ -92,11 +137,22 @@
 ========================= */
 
 .comment {
-  padding: 16px;
+  padding: 18px 16px;
 }
 
 .comment p {
   margin: 0;
+}
+
+.cardText {
+  color: var(--brand-brown);
+
+  font-size: clamp(15px, 1.35vw, 18px);
+  font-weight: 500;
+  line-height: 1.6;
+
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .cardImage {
@@ -105,20 +161,154 @@
   height: auto;
 }
 
+.cardRecipeArea {
+  padding: 14px 16px 0;
+}
+
+.cardRecipeButton {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+
+  padding: 8px 14px;
+
+  overflow: hidden;
+
+  color: var(--brand-primary);
+  background: var(--brand-cream);
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* =========================
    카드 하단 아이콘
 ========================= */
 
 .icons {
   display: flex;
+  min-height: 56px;
   align-items: center;
   justify-content: space-between;
 
-  padding: 8px;
+  padding: 6px 10px;
+}
+
+.iconGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.likeButton,
+.commentIconButton,
+.bookmarkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--brand-gray);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+
+  font: inherit;
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.likeButton,
+.commentIconButton {
+  gap: 5px;
+  padding: 7px 9px;
+
+  font-size: 13px;
+  line-height: 1;
+}
+
+.bookmarkButton {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+.likeButton:hover,
+.commentIconButton:hover,
+.bookmarkButton:hover {
+  color: var(--brand-primary);
+  background: var(--brand-cream);
+}
+
+.likeButton svg,
+.commentIconButton svg,
+.bookmarkButton svg {
+  width: 22px;
+  height: 22px;
+}
+
+.likeButton span,
+.commentIconButton span {
+  color: inherit;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.activeLikeButton,
+.activeBookmarkButton {
+  color: var(--brand-primary);
+  background: var(--brand-cream);
 }
 
 /* =========================
-   팝업 전체
+   빈 게시글
+========================= */
+
+.emptyState {
+  display: flex;
+  min-height: 260px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+
+  color: var(--brand-gray);
+  background: var(--brand-cream);
+  border: 1px dashed var(--brand-divider);
+  border-radius: 24px;
+
+  text-align: center;
+}
+
+.emptyState p {
+  margin: 0;
+}
+
+.emptyState button {
+  padding: 10px 18px;
+
+  color: #fff;
+  background: var(--brand-primary);
+  border: 0;
+  border-radius: 999px;
+
+  font: inherit;
+  cursor: pointer;
+}
+
+.emptyState button:hover {
+  background: var(--brand-primary-dark);
+}
+
+/* =========================
+   상세 모달
 ========================= */
 
 .modal {
@@ -134,9 +324,9 @@
   border-radius: inherit;
 }
 
-/* =========================
-   팝업 이미지
-========================= */
+.modalWithoutImage {
+  grid-template-columns: 1fr;
+}
 
 .modalImageArea {
   min-width: 0;
@@ -155,10 +345,6 @@
   object-position: center;
 }
 
-/* =========================
-   팝업 오른쪽 영역
-========================= */
-
 .modalContent {
   display: flex;
   min-width: 0;
@@ -171,23 +357,21 @@
   background: #fff;
 }
 
-/* =========================
-   팝업 작성자 헤더
-========================= */
-
 .modalHeader {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
 
-  flex-shrink: 0;
   padding: 14px 18px;
 
+  background: #fff;
   border-bottom: 1px solid var(--brand-divider);
 }
 
 .modalProfile {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 12px;
 }
@@ -221,20 +405,18 @@
 
 .modalHeaderButtons {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 2px;
 }
-
-/* =========================
-   팝업 본문
-========================= */
 
 .modalBody {
   min-height: 0;
   flex: 1;
+  overflow-x: hidden;
   overflow-y: auto;
 
   scrollbar-width: thin;
+  overscroll-behavior: contain;
 }
 
 .modalPost {
@@ -247,11 +429,16 @@
 
   color: var(--brand-brown);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.6;
+
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .recipeButton {
+  max-width: 100%;
   padding: 8px 14px;
+  overflow: hidden;
 
   color: var(--brand-primary);
   background: var(--brand-cream);
@@ -260,15 +447,18 @@
 
   font: inherit;
   font-size: 14px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 /* =========================
-   팝업 댓글
+   상세 모달 댓글
 ========================= */
 
 .modalComments {
-  padding: 14px 18px;
+  padding: 14px 18px 24px;
 }
 
 .commentCount {
@@ -283,7 +473,7 @@
   align-items: flex-start;
   gap: 10px;
 
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .modalCommentItem:last-child {
@@ -301,6 +491,7 @@
 
 .commentContent {
   min-width: 0;
+  flex: 1;
 }
 
 .commentWriter {
@@ -325,7 +516,10 @@
 
   color: var(--brand-brown);
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .commentLike {
@@ -338,40 +532,81 @@
 }
 
 /* =========================
-   좋아요 및 북마크
+   상세 모달 하단
 ========================= */
+
+.modalFooter {
+  flex-shrink: 0;
+
+  background: #fff;
+  border-top: 1px solid var(--brand-divider);
+}
 
 .modalActions {
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  flex-shrink: 0;
-  padding: 10px 18px;
-
-  border-top: 1px solid var(--brand-divider);
+  padding: 8px 18px;
 }
 
 .modalStats {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 8px;
 }
 
-.modalStats button {
+.modalLikeButton,
+.modalBookmarkButton {
   display: flex;
   align-items: center;
-  gap: 6px;
-
-  padding: 0;
+  justify-content: center;
 
   color: var(--brand-gray);
   background: transparent;
   border: 0;
+  border-radius: 999px;
 
   font: inherit;
-  font-size: 15px;
   cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.modalLikeButton {
+  gap: 6px;
+  padding: 7px 9px;
+
+  font-size: 15px;
+}
+
+.modalBookmarkButton {
+  width: 40px;
+  height: 40px;
+}
+
+.modalLikeButton:hover,
+.modalBookmarkButton:hover {
+  color: var(--brand-primary);
+  background: var(--brand-cream);
+}
+
+.activeModalAction {
+  color: var(--brand-primary);
+  background: var(--brand-cream);
+}
+
+.modalCommentStat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 9px;
+
+  color: var(--brand-gray);
+  font-size: 15px;
 }
 
 /* =========================
@@ -383,8 +618,8 @@
   align-items: center;
   gap: 10px;
 
-  flex-shrink: 0;
   padding: 10px 14px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
 
   border-top: 1px solid var(--brand-divider);
 }
@@ -423,219 +658,605 @@
 }
 
 /* =========================
-   태블릿: 768px
+   글쓰기 모달
 ========================= */
 
-@media (max-width: 1023px) {
-  .category {
-    gap: 12px;
-  }
+.writeModal {
+  display: flex;
+  width: 100%;
+  max-height: calc(100dvh - 48px);
+  flex-direction: column;
+  overflow: hidden;
 
-  .modal {
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-  }
+  color: var(--brand-brown);
+  background: #fff;
+}
 
-  .modalImageArea {
-    width: 100%;
-    height: 300px;
-    flex-shrink: 0;
-  }
+.writeModalHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
 
-  .modalContent {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-  }
+  padding: 22px 24px;
 
-  .modalBody {
-    overflow: visible;
-  }
+  border-bottom: 1px solid var(--brand-divider);
+}
 
-  .modalHeader {
-    padding: 18px 20px;
-  }
+.writeModalHeader h2 {
+  margin: 0;
+}
 
-  .modalProfileImage {
-    width: 52px;
-    height: 52px;
-  }
+.writeModalHeader p {
+  margin: 6px 0 0;
+  color: var(--brand-gray);
+}
 
-  .modalNickname {
-    font-size: 18px;
-  }
+.writeModalBody {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
 
-  .modalTime {
-    font-size: 14px;
-  }
+  padding: 24px;
 
-  .modalPost {
-    padding: 22px 20px;
-  }
+  overscroll-behavior: contain;
+}
 
-  .modalPostText {
-    font-size: 17px;
-  }
+.writeField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  .modalComments {
-    padding: 20px;
-  }
+.writeField > span,
+.writeImageLabel > span {
+  color: var(--brand-brown);
+  font-size: 14px;
+  font-weight: 600;
+}
 
-  .commentCount {
-    font-size: 16px;
-  }
+.writeField input,
+.writeField textarea {
+  width: 100%;
+  padding: 13px 15px;
 
-  .modalCommentItem {
-    gap: 12px;
-    margin-bottom: 20px;
-  }
+  color: var(--brand-brown);
+  background: var(--brand-cream);
+  border: 1px solid var(--brand-divider);
+  border-radius: 16px;
 
-  .commentProfileImage {
-    width: 44px;
-    height: 44px;
-  }
+  font: inherit;
+  font-size: 14px;
+  outline: none;
 
-  .commentWriter strong {
-    font-size: 15px;
-  }
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
 
-  .commentWriter span,
-  .commentContent p {
-    font-size: 14px;
-  }
+.writeField textarea {
+  min-height: 160px;
+  resize: vertical;
 
-  .modalActions {
-    padding: 14px 20px;
-  }
+  line-height: 1.6;
+}
 
-  .commentForm {
-    padding: 12px 16px;
-  }
+.writeField input::placeholder,
+.writeField textarea::placeholder {
+  color: var(--brand-gray);
+}
+
+.writeField input:focus,
+.writeField textarea:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(242, 107, 58, 0.12);
+}
+
+.writeField small {
+  align-self: flex-end;
+
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+.writeImageField {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.writeImageLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.writeImageLabel small {
+  color: var(--brand-gray);
+  font-size: 12px;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.imageUploadButton {
+  display: flex;
+  min-height: 150px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+
+  color: var(--brand-gray);
+  background: var(--brand-cream);
+  border: 1px dashed var(--brand-divider);
+  border-radius: 18px;
+
+  font: inherit;
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.imageUploadButton:hover {
+  color: var(--brand-primary);
+  background: var(--brand-beige);
+  border-color: var(--brand-primary);
+}
+
+.imageUploadButton svg {
+  width: 34px;
+  height: 34px;
+}
+
+.writeImagePreview {
+  position: relative;
+  overflow: hidden;
+
+  background: var(--brand-light-gray);
+  border-radius: 18px;
+}
+
+.writeImagePreview img {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+
+  object-fit: cover;
+}
+
+.removeImageButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+
+  padding: 8px 12px;
+
+  color: #fff;
+  background: rgba(64, 41, 31, 0.75);
+  border: 0;
+  border-radius: 999px;
+
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.removeImageButton:hover {
+  background: rgba(64, 41, 31, 0.92);
 }
 
 /* =========================
-   모바일: 375px
+   글쓰기 오류
 ========================= */
 
-@media (max-width: 599px) {
-  .title_p {
-    margin-bottom: 20px;
+.writeErrorSlot {
+  min-height: 20px;
+
+  color: #d93025;
+
+  font-size: 13px;
+  line-height: 20px;
+
+  visibility: hidden;
+  opacity: 0;
+
+  transition: opacity 0.2s ease;
+}
+
+.writeErrorVisible {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* =========================
+   글쓰기 모달 하단
+========================= */
+
+.writeModalFooter {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 16px 24px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+
+  background: #fff;
+  border-top: 1px solid var(--brand-divider);
+}
+
+.cancelWriteButton,
+.submitWriteButton {
+  min-width: 100px;
+  padding: 12px 20px;
+
+  border-radius: 999px;
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.cancelWriteButton {
+  color: var(--brand-brown);
+  background: #fff;
+  border: 1px solid var(--brand-divider);
+}
+
+.cancelWriteButton:hover {
+  background: var(--brand-cream);
+}
+
+.submitWriteButton {
+  color: #fff;
+  background: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+}
+
+.submitWriteButton:hover {
+  background: var(--brand-primary-dark);
+  border-color: var(--brand-primary-dark);
+}
+
+/* =========================
+   태블릿
+========================= */
+
+@media (max-width: 1023px) {
+  .communityHeader {
+    margin-bottom: 28px;
+  }
+
+  .categoryBar {
+    align-items: flex-start;
+    gap: 14px;
   }
 
   .category {
-    flex-wrap: nowrap;
-    gap: 8px;
-
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .category::-webkit-scrollbar {
-    display: none;
-  }
-
-  .modalImageArea {
-    height: 230px;
-  }
-
-  .modalHeader {
-    padding: 14px 16px;
-  }
-
-  .modalProfile {
+    flex-wrap: wrap;
     gap: 10px;
   }
 
-  .modalProfileImage {
-    width: 44px;
-    height: 44px;
+  .profile {
+    gap: 12px;
+    padding: 14px;
   }
 
-  .modalNickname {
-    font-size: 16px;
+  .comment {
+    padding: 16px 14px;
   }
 
-  .modalTime {
-    font-size: 13px;
-  }
-
-  .modalPost {
-    padding: 16px;
-  }
-
-  .modalPostText {
-    margin-bottom: 14px;
-
+  .cardText {
     font-size: 16px;
     line-height: 1.55;
   }
 
-  .recipeButton {
-    padding: 9px 14px;
-    font-size: 14px;
+  .modal {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
   }
 
-  .modalComments {
-    padding: 18px 16px;
+  .modalImageArea {
+    width: 100%;
+    height: min(280px, 34vh);
+    flex-shrink: 0;
   }
 
-  .commentCount {
+  .modalContent {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .modalBody {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+/* =========================
+   모바일
+========================= */
+
+@media (max-width: 599px) {
+  .communityHeader {
+    margin-bottom: 24px;
+  }
+
+  .titleArea {
     margin-bottom: 18px;
-    font-size: 15px;
   }
 
-  .modalCommentItem {
-    gap: 10px;
-    margin-bottom: 22px;
+  .title_h1 {
+    font-size: 34px;
   }
 
-  .commentProfileImage {
-    width: 40px;
-    height: 40px;
-  }
-
-  .commentWriter {
-    gap: 4px 8px;
-  }
-
-  .commentWriter strong {
-    font-size: 14px;
-  }
-
-  .commentWriter span {
-    font-size: 12px;
-  }
-
-  .commentContent p {
+  .title_p {
     font-size: 14px;
     line-height: 1.5;
   }
 
+  /* 카테고리 좌측 정렬 */
+
+  .categoryBar {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .category {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .categoryRow {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .categoryButton {
+    width: auto;
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .writeButton {
+    align-self: flex-end;
+  }
+
+  .card {
+    border-radius: 20px;
+  }
+
+  .profile {
+    gap: 10px;
+    padding: 13px 14px;
+  }
+
+  .profileImage {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cardNickname {
+    font-size: 14px;
+  }
+
+  .cardTime {
+    font-size: 12px;
+  }
+
+  .comment {
+    padding: 15px 14px;
+  }
+
+  .cardText {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .cardRecipeArea {
+    padding: 12px 14px 0;
+  }
+
+  .cardRecipeButton {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .icons {
+    min-height: 52px;
+    padding: 4px 8px;
+  }
+
+  .likeButton,
+  .commentIconButton {
+    gap: 4px;
+    padding: 7px;
+
+    font-size: 12px;
+  }
+
+  .likeButton svg,
+  .commentIconButton svg,
+  .bookmarkButton svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .bookmarkButton {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* 상세 모달 */
+
+  .modalImageArea {
+    height: min(210px, 28vh);
+  }
+
+  .modalHeader {
+    padding: 10px 12px;
+  }
+
+  .modalProfile {
+    gap: 9px;
+  }
+
+  .modalProfileImage {
+    width: 40px;
+    height: 40px;
+  }
+
+  .modalNickname {
+    font-size: 14px;
+  }
+
+  .modalTime {
+    font-size: 12px;
+  }
+
+  .modalPost {
+    padding: 14px;
+  }
+
+  .modalPostText {
+    margin-bottom: 12px;
+
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .modalComments {
+    padding: 16px 14px 22px;
+  }
+
+  .modalCommentItem {
+    gap: 9px;
+    margin-bottom: 18px;
+  }
+
+  .commentProfileImage {
+    width: 36px;
+    height: 36px;
+  }
+
+  .commentContent p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
   .modalActions {
-    padding: 12px 16px;
+    min-height: 48px;
+    padding: 4px 12px;
   }
 
-  .modalStats {
-    gap: 16px;
+  .modalLikeButton,
+  .modalCommentStat {
+    gap: 4px;
+    padding: 6px 7px;
+
+    font-size: 13px;
   }
 
-  .modalStats button {
-    font-size: 16px;
+  .modalLikeButton svg,
+  .modalCommentStat svg {
+    width: 21px;
+    height: 21px;
   }
 
   .commentForm {
     gap: 8px;
-    padding: 10px 12px;
+
+    padding: 8px 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
   .commentForm input {
-    padding: 11px 14px;
-    font-size: 14px;
+    padding: 10px 13px;
+    font-size: 13px;
   }
 
   .commentForm .sendButton {
-    width: 46px;
-    height: 46px;
+    width: 40px;
+    height: 40px;
+  }
+
+  /* 글쓰기 모달 */
+
+  .writeModal {
+    max-height: calc(100dvh - 16px);
+  }
+
+  .writeModalHeader {
+    padding: 18px 16px;
+  }
+
+  .writeModalHeader h2 {
+    font-size: 22px;
+  }
+
+  .writeModalHeader p {
+    font-size: 13px;
+  }
+
+  .writeModalBody {
+    gap: 17px;
+    padding: 18px 16px;
+  }
+
+  .writeField input,
+  .writeField textarea {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  .writeField textarea {
+    min-height: 130px;
+  }
+
+  .imageUploadButton {
+    min-height: 125px;
+  }
+
+  .writeImagePreview img {
+    max-height: 240px;
+  }
+
+  .writeModalFooter {
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .cancelWriteButton,
+  .submitWriteButton {
+    min-width: 0;
+    flex: 1;
+
+    padding: 11px 14px;
   }
 }
