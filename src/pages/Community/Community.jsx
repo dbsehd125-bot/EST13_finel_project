@@ -7,12 +7,10 @@ import {
   EditOutlined,
   Favorite,
   FavoriteBorder,
-  FlagOutlined,
-  ModeComment,
   ModeCommentOutlined,
   SendOutlined,
 } from "@mui/icons-material";
-import { Button, Checkbox, Dialog, IconButton } from "@mui/material";
+import { Button, Dialog, FormControl, IconButton, MenuItem, Select } from "@mui/material";
 import Masonry from "@mui/lab/Masonry";
 
 import Layout from "../../components/Layout";
@@ -34,6 +32,8 @@ const initialCommunityPosts = [
     comments: 24,
     category: "요리 후기",
     recipeName: "레몬 버터 연어 스테이크",
+    liked: false,
+    bookmarked: false,
   },
   {
     id: 2,
@@ -46,6 +46,8 @@ const initialCommunityPosts = [
     comments: 17,
     category: "요리 후기",
     recipeName: "냉장고 채소 볶음밥",
+    liked: false,
+    bookmarked: false,
   },
   {
     id: 3,
@@ -58,6 +60,8 @@ const initialCommunityPosts = [
     comments: 12,
     category: "요리 후기",
     recipeName: "후추 크림 파스타",
+    liked: false,
+    bookmarked: false,
   },
   {
     id: 4,
@@ -70,6 +74,8 @@ const initialCommunityPosts = [
     comments: 31,
     category: "질문",
     recipeName: "에어프라이어 닭다리",
+    liked: false,
+    bookmarked: false,
   },
   {
     id: 5,
@@ -83,6 +89,8 @@ const initialCommunityPosts = [
     comments: 19,
     category: "자유 이야기",
     recipeName: "",
+    liked: false,
+    bookmarked: false,
   },
 ];
 
@@ -119,18 +127,16 @@ const initialWriteForm = {
 
 export default function Community() {
   const [selectedCategory, setSelectedCategory] = useState("인기");
-
   const [posts, setPosts] = useState(initialCommunityPosts);
-
-  const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
-
   const [writeForm, setWriteForm] = useState(initialWriteForm);
-
   const [writeError, setWriteError] = useState("");
 
   const fileInputRef = useRef(null);
+
+  const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
 
   const detailModalOpen = Boolean(selectedPost);
 
@@ -146,12 +152,43 @@ export default function Community() {
     return post.category === selectedCategory;
   });
 
-  function handleDetailModalOpen(post) {
-    setSelectedPost(post);
+  function handleDetailModalOpen(postId) {
+    setSelectedPostId(postId);
   }
 
   function handleDetailModalClose() {
-    setSelectedPost(null);
+    setSelectedPostId(null);
+  }
+
+  function handleLikeToggle(postId) {
+    setPosts(previousPosts =>
+      previousPosts.map(post => {
+        if (post.id !== postId) {
+          return post;
+        }
+
+        return {
+          ...post,
+          liked: !post.liked,
+          likes: post.liked ? Math.max(0, post.likes - 1) : post.likes + 1,
+        };
+      }),
+    );
+  }
+
+  function handleBookmarkToggle(postId) {
+    setPosts(previousPosts =>
+      previousPosts.map(post => {
+        if (post.id !== postId) {
+          return post;
+        }
+
+        return {
+          ...post,
+          bookmarked: !post.bookmarked,
+        };
+      }),
+    );
   }
 
   function handleWriteModalOpen() {
@@ -274,23 +311,70 @@ export default function Community() {
       comments: 0,
       category: writeForm.category,
       recipeName: trimmedRecipeName,
+      liked: false,
+      bookmarked: false,
     };
 
     setPosts(previousPosts => [newPost, ...previousPosts]);
-
     setSelectedCategory(writeForm.category);
-    setWriteModalOpen(false);
 
-    /*
-     * 등록된 카드에서 blob URL을 계속 사용해야 하므로
-     * 등록 직후에는 URL.revokeObjectURL()을 호출하지 않음
-     */
+    setWriteModalOpen(false);
     setWriteForm(initialWriteForm);
     setWriteError("");
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  }
+
+  function renderCategoryButton(category) {
+    const isSelected = selectedCategory === category;
+
+    return (
+      <Button
+        key={category}
+        type="button"
+        variant={isSelected ? "contained" : "outlined"}
+        onClick={() => setSelectedCategory(category)}
+        className={styles.categoryButton}
+        sx={{
+          width: "auto",
+          minWidth: 0,
+          flex: "0 0 auto",
+
+          padding: {
+            xs: "7px 16px",
+            sm: "8px 18px",
+          },
+
+          color: isSelected ? "#fff" : "var(--brand-primary)",
+
+          backgroundColor: isSelected ? "var(--brand-primary)" : "transparent",
+
+          borderColor: "var(--brand-primary)",
+          borderRadius: "999px",
+          whiteSpace: "nowrap",
+
+          fontSize: {
+            xs: "13px",
+            sm: "14px",
+          },
+
+          boxShadow: "none",
+
+          "&:hover": {
+            color: isSelected ? "#fff" : "var(--brand-primary)",
+
+            backgroundColor: isSelected ? "var(--brand-primary-dark)" : "var(--brand-cream)",
+
+            borderColor: "var(--brand-primary-dark)",
+            boxShadow: "none",
+          },
+        }}
+      >
+        {category}
+      </Button>
+    );
   }
 
   return (
@@ -303,49 +387,13 @@ export default function Community() {
         </div>
 
         <div className={styles.categoryBar}>
-          <div className={styles.categoryScroll}>
-            <div className={styles.category}>
-              {categories.map(category => {
-                const isSelected = selectedCategory === category;
+          <div className={styles.category}>
+            <div className={styles.categoryRow}>
+              {categories.slice(0, 2).map(renderCategoryButton)}
+            </div>
 
-                return (
-                  <Button
-                    key={category}
-                    type="button"
-                    variant={isSelected ? "contained" : "outlined"}
-                    onClick={() => setSelectedCategory(category)}
-                    sx={{
-                      flexShrink: 0,
-                      minWidth: "auto",
-                      padding: {
-                        xs: "7px 14px",
-                        sm: "8px 18px",
-                      },
-                      color: isSelected ? "#fff" : "var(--brand-primary)",
-                      backgroundColor: isSelected ? "var(--brand-primary)" : "transparent",
-                      borderColor: "var(--brand-primary)",
-                      borderRadius: "999px",
-                      whiteSpace: "nowrap",
-                      fontSize: {
-                        xs: "13px",
-                        sm: "14px",
-                      },
-                      boxShadow: "none",
-
-                      "&:hover": {
-                        color: isSelected ? "#fff" : "var(--brand-primary)",
-                        backgroundColor: isSelected
-                          ? "var(--brand-primary-dark)"
-                          : "var(--brand-cream)",
-                        borderColor: "var(--brand-primary-dark)",
-                        boxShadow: "none",
-                      },
-                    }}
-                  >
-                    {category}
-                  </Button>
-                );
-              })}
+            <div className={styles.categoryRow}>
+              {categories.slice(2).map(renderCategoryButton)}
             </div>
           </div>
 
@@ -353,21 +401,27 @@ export default function Community() {
             type="button"
             variant="contained"
             startIcon={<EditOutlined />}
+            className={styles.writeButton}
             onClick={handleWriteModalOpen}
             sx={{
               flexShrink: 0,
+
               color: "#fff",
               backgroundColor: "var(--brand-primary)",
               borderRadius: "999px",
+
               padding: {
-                xs: "8px 14px",
+                xs: "8px 16px",
                 sm: "9px 18px",
               },
+
               whiteSpace: "nowrap",
+
               fontSize: {
                 xs: "13px",
                 sm: "14px",
               },
+
               boxShadow: "none",
 
               "&:hover": {
@@ -402,14 +456,13 @@ export default function Community() {
               <article
                 key={post.id}
                 className={styles.card}
-                onClick={() => handleDetailModalOpen(post)}
+                onClick={() => handleDetailModalOpen(post.id)}
               >
                 <div className={styles.profile}>
                   <div className={styles.profileImage} />
 
                   <div className={styles.profileName}>
                     <p className={styles.cardNickname}>{post.nickname}</p>
-
                     <p className={styles.cardTime}>{post.time}</p>
                   </div>
                 </div>
@@ -424,35 +477,41 @@ export default function Community() {
 
                 <div className={styles.icons} onClick={event => event.stopPropagation()}>
                   <div className={styles.iconGroup}>
-                    <div className={styles.cardStat}>
-                      <Checkbox
-                        size="small"
-                        icon={<FavoriteBorder />}
-                        checkedIcon={<Favorite />}
-                        aria-label="좋아요"
-                      />
-
+                    <button
+                      type="button"
+                      className={`${styles.likeButton} ${
+                        post.liked ? styles.activeLikeButton : ""
+                      }`}
+                      aria-label={post.liked ? "좋아요 취소" : "좋아요"}
+                      aria-pressed={post.liked}
+                      onClick={() => handleLikeToggle(post.id)}
+                    >
+                      {post.liked ? <Favorite /> : <FavoriteBorder />}
                       <span>{post.likes}</span>
-                    </div>
+                    </button>
 
-                    <div className={styles.cardStat}>
-                      <Checkbox
-                        size="small"
-                        icon={<ModeCommentOutlined />}
-                        checkedIcon={<ModeComment />}
-                        aria-label="댓글"
-                      />
-
+                    <button
+                      type="button"
+                      className={styles.commentIconButton}
+                      aria-label={`댓글 ${post.comments}개 보기`}
+                      onClick={() => handleDetailModalOpen(post.id)}
+                    >
+                      <ModeCommentOutlined />
                       <span>{post.comments}</span>
-                    </div>
+                    </button>
                   </div>
 
-                  <Checkbox
-                    size="small"
-                    icon={<BookmarkBorderOutlined />}
-                    checkedIcon={<Bookmark />}
-                    aria-label="북마크"
-                  />
+                  <button
+                    type="button"
+                    className={`${styles.bookmarkButton} ${
+                      post.bookmarked ? styles.activeBookmarkButton : ""
+                    }`}
+                    aria-label={post.bookmarked ? "북마크 취소" : "게시글 북마크"}
+                    aria-pressed={post.bookmarked}
+                    onClick={() => handleBookmarkToggle(post.id)}
+                  >
+                    {post.bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
+                  </button>
                 </div>
               </article>
             ))}
@@ -510,7 +569,7 @@ export default function Community() {
         }}
       >
         {selectedPost && (
-          <div className={styles.modal}>
+          <div className={`${styles.modal} ${!selectedPost.image ? styles.modalWithoutImage : ""}`}>
             {selectedPost.image && (
               <div className={styles.modalImageArea}>
                 <img
@@ -521,11 +580,7 @@ export default function Community() {
               </div>
             )}
 
-            <div
-              className={`${styles.modalContent} ${
-                !selectedPost.image ? styles.modalContentFull : ""
-              }`}
-            >
+            <div className={styles.modalContent}>
               <div className={styles.modalHeader}>
                 <div className={styles.modalProfile}>
                   <div className={styles.modalProfileImage} />
@@ -538,11 +593,7 @@ export default function Community() {
                 </div>
 
                 <div className={styles.modalHeaderButtons}>
-                  <IconButton aria-label="신고">
-                    <FlagOutlined />
-                  </IconButton>
-
-                  <IconButton aria-label="닫기" onClick={handleDetailModalClose}>
+                  <IconButton type="button" aria-label="닫기" onClick={handleDetailModalClose}>
                     <Close />
                   </IconButton>
                 </div>
@@ -569,7 +620,6 @@ export default function Community() {
                       <div className={styles.commentContent}>
                         <div className={styles.commentWriter}>
                           <strong>{comment.writer}</strong>
-
                           <span>{comment.time}</span>
                         </div>
 
@@ -588,20 +638,33 @@ export default function Community() {
               <div className={styles.modalFooter}>
                 <div className={styles.modalActions}>
                   <div className={styles.modalStats}>
-                    <button type="button">
-                      <FavoriteBorder />
+                    <button
+                      type="button"
+                      className={`${styles.modalLikeButton} ${
+                        selectedPost.liked ? styles.activeModalAction : ""
+                      }`}
+                      onClick={() => handleLikeToggle(selectedPost.id)}
+                    >
+                      {selectedPost.liked ? <Favorite /> : <FavoriteBorder />}
                       <span>{selectedPost.likes}</span>
                     </button>
 
-                    <button type="button">
+                    <div className={styles.modalCommentStat}>
                       <ModeCommentOutlined />
                       <span>{selectedPost.comments}</span>
-                    </button>
+                    </div>
                   </div>
 
-                  <IconButton aria-label="저장">
-                    <BookmarkBorderOutlined />
-                  </IconButton>
+                  <button
+                    type="button"
+                    className={`${styles.modalBookmarkButton} ${
+                      selectedPost.bookmarked ? styles.activeModalAction : ""
+                    }`}
+                    aria-label={selectedPost.bookmarked ? "북마크 취소" : "북마크"}
+                    onClick={() => handleBookmarkToggle(selectedPost.id)}
+                  >
+                    {selectedPost.bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
+                  </button>
                 </div>
 
                 <form className={styles.commentForm} onSubmit={event => event.preventDefault()}>
@@ -637,6 +700,7 @@ export default function Community() {
             },
 
             maxWidth: "none",
+
             maxHeight: {
               xs: "calc(100dvh - 16px)",
               sm: "calc(100dvh - 48px)",
@@ -667,17 +731,85 @@ export default function Community() {
           </div>
 
           <div className={styles.writeModalBody}>
-            <label className={styles.writeField}>
+            <div className={styles.writeField}>
               <span>카테고리</span>
 
-              <select name="category" value={writeForm.category} onChange={handleWriteFormChange}>
-                {writableCategories.map(category => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <FormControl fullWidth size="small">
+                <Select
+                  name="category"
+                  value={writeForm.category}
+                  onChange={handleWriteFormChange}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        mt: 0.5,
+                        borderRadius: "14px",
+                        boxShadow: "0 8px 24px rgba(64, 41, 31, 0.12)",
+                      },
+                    },
+                  }}
+                  sx={{
+                    minHeight: "48px",
+
+                    color: "var(--brand-brown)",
+                    backgroundColor: "var(--brand-cream)",
+                    borderRadius: "16px",
+
+                    fontFamily: "inherit",
+
+                    fontSize: {
+                      xs: "13px",
+                      sm: "14px",
+                    },
+
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "var(--brand-divider)",
+                    },
+
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "var(--brand-primary)",
+                    },
+
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "var(--brand-primary)",
+                      borderWidth: "1px",
+                    },
+
+                    "&.Mui-focused": {
+                      boxShadow: "0 0 0 3px rgba(242, 107, 58, 0.12)",
+                    },
+
+                    "& .MuiSelect-select": {
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "12px 14px",
+                    },
+                  }}
+                >
+                  {writableCategories.map(category => (
+                    <MenuItem
+                      key={category}
+                      value={category}
+                      sx={{
+                        fontFamily: "inherit",
+                        fontSize: "14px",
+
+                        "&.Mui-selected": {
+                          color: "var(--brand-primary)",
+                          backgroundColor: "var(--brand-cream)",
+                        },
+
+                        "&.Mui-selected:hover": {
+                          backgroundColor: "var(--brand-beige)",
+                        },
+                      }}
+                    >
+                      {category}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </div>
 
             <label className={styles.writeField}>
               <span>내용</span>
