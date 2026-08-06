@@ -346,7 +346,9 @@ export default function Community() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    const maxFileSize = 2 * 1024 * 1024;
+
+    if (file.size > maxFileSize) {
       setWriteError("이미지는 2MB 이하만 등록할 수 있습니다.");
       event.target.value = "";
       return;
