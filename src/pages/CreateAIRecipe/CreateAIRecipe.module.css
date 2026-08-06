@@ -48,7 +48,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .stepBadge {
@@ -115,7 +115,7 @@
 }
 
 .addTagBtn {
-  padding: 6px 14px;
+  padding: 4px 14px;
   background-color: #ffffff;
   border: 1px dashed var(--brand-primary);
   color: var(--brand-primary);
@@ -160,6 +160,10 @@
 .selectField {
   display: flex;
   flex-direction: column;
+}
+
+.selectField > label{
+  padding-left: 16px;
 }
 
 .selectField > div {
@@ -241,7 +245,7 @@
 }
 
 .checkboxItem:hover {
-  color: var(--font-body)
+  color: var(--font-body);
 }
 
 .checkboxItem:has(input:checked) {
@@ -464,10 +468,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--brand-cream);
+  background-color: var(--background);
   border: 1px solid var(--brand-beige);
   border-radius: 24px;
   padding: 6px 6px 6px 16px;
+}
+
+.refineInputWrapper:focus-within {
+  border-color: var(--brand-primary);
 }
 
 .refineInput {

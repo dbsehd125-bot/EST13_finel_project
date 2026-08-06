@@ -39,10 +39,13 @@ export default function CreateAIRecipe() {
     '집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.',
   );
 
-  // Step 2: 보유 재료 선택
+  // Step 2: 태그 선택
   const [ingredients, setIngredients] = useState(['계란', '양파', '참치', '밥']);
   const [newIngredient, setNewIngredient] = useState('');
-  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [isAddingIngredientTag, setIsAddingIngredientTag] = useState(false);
+  const [excluded, setExcluded] = useState(['우유', '복숭아', '새우', '땅콩']);
+  const [newExcluded, setNewExcluded] = useState('');
+  const [isAddingExcludedTag, setIsAddingExcludedTag] = useState(false);
 
   // Step 3: 조건 선택
   const [conditions, setConditions] = useState({
@@ -50,8 +53,6 @@ export default function CreateAIRecipe() {
     cookingTime: '30분 이내',
     difficulty: '쉬움',
     cuisine: '한식',
-    spiciness: '보통',
-    excluded: '없음',
   });
 
   // Step 4: 결과 생성 옵션
@@ -89,12 +90,26 @@ export default function CreateAIRecipe() {
       setIngredients([...ingredients, newIngredient.trim()]);
       setNewIngredient('');
     }
-    setIsAddingTag(false);
+    setIsAddingIngredientTag(false);
   };
 
   // 재료 태그 삭제
   const handleRemoveIngredient = (tag) => {
     setIngredients(ingredients.filter((item) => item !== tag));
+  };
+
+  // 제외 태그 추가
+  const handleAddExcluded = () => {
+    if (newExcluded.trim() && !excluded.includes(newExcluded.trim())) {
+      setExcluded([...excluded, newExcluded.trim()]);
+      setNewExcluded('');
+    }
+    setIsAddingExcludedTag(false);
+  };
+
+  // 제외 태그 삭제
+  const handleRemoveExcluded = (tag) => {
+    setExcluded(excluded.filter((item) => item !== tag));
   };
 
   // 조건 셀렉트 변경
@@ -135,13 +150,29 @@ export default function CreateAIRecipe() {
     setResult(null);
 
     try {
+      // 1. 이미지 생성
+      const userImage = '';
+
       // 2. 프롬프트 생성
       const userPrompt = `
       다음 조건에 맞는 상세한 요리 레시피를 만들어줘.
-      - 집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.
 
       [요청사항]
-      레시피 제목, 재료 목록, STEP별 조리 순서를 마크다운(Markdown) 포맷으로 작성해줘.
+      - ${prompt}
+
+      [요리 조건]
+      - 보유/사용 재료: ${ingredients.join(', ')}
+      - 식사 인원: ${conditions.servings}
+      - 조리 시간: ${conditions.cookingTime}
+      - 난이도: ${conditions.difficulty}
+      - 요리 종류: ${conditions.cuisine}
+      - 못 먹는 재료: ${excluded.length > 0 ? excluded.join(', ') : '없음'}
+
+      [출력 포맷 요청]
+      1. 레시피 제목과 간단한 요약 설명
+      2. 정확한 재료 및 양념장 비율 목록
+      3. Step-by-Step 상세 조리 순서 (각 단계별 조리 팁 포함)
+      위 내용을 읽기 좋은 깔끔한 마크다운(Markdown) 포맷으로 작성해줘.
     `.trim();
 
       // 3. Query String 구성 (/api/v1/question 엔드포인트)
@@ -245,7 +276,7 @@ export default function CreateAIRecipe() {
                   </span>
                 ))}
 
-                {isAddingTag ? (
+                {isAddingIngredientTag ? (
                   <div className={styles.addTagInputWrapper}>
                     <input
                       type="text"
@@ -261,7 +292,7 @@ export default function CreateAIRecipe() {
                     </button>
                   </div>
                 ) : (
-                  <button type="button" className={styles.addTagBtn} onClick={() => setIsAddingTag(true)}>
+                  <button type="button" className={styles.addTagBtn} onClick={() => setIsAddingIngredientTag(true)}>
                     재료 추가 +
                   </button>
                 )}
@@ -429,84 +460,59 @@ export default function CreateAIRecipe() {
                     </span>
                   </div>
                 </div>
-
-                <div className={styles.selectField}>
-                  <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
-                    매운맛
+              </div>
+              {/* 제외시킬 재료 */}
+              <div>
+                {/* <div className={styles.stepTitleRow}> */}
+                {/* <span className={styles.stepBadge}>2</span> */}
+                <div style={{ paddingTop: '20px', paddingBottom: '16px' }}>
+                  <label className="text-sm" style={{ color: 'var(--brand-gray)' }}>
+                    🚫 제외시킬 재료
                   </label>
-                  <div>
-                    <select
-                      className={styles.selectBox}
-                      value={conditions.spiciness}
-                      onClick={() => toggleSelect('spiciness')}
-                      onBlur={() => closeSelect('spiciness')}
-                      onChange={(e) => {
-                        handleConditionChange('spiciness', e.target.value);
-                        closeSelect('spiciness');
-                      }}
-                    >
-                      <option>순한맛</option>
-                      <option>보통</option>
-                      <option>매운맛</option>
-                      <option>아주 매운맛</option>
-                    </select>
-                    {/* 커스텀 화살표 아이콘 */}
-                    <span className={`${styles.selectArrow} ${openSelects.spiciness ? styles.selectArrowOpen : ''}`}>
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </span>
-                  </div>
                 </div>
-
-                <div className={styles.selectField}>
-                  <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
-                    제외 재료
-                  </label>
-                  <div>
-                    <select
-                      className={styles.selectBox}
-                      value={conditions.excluded}
-                      onClick={() => toggleSelect('excluded')}
-                      onBlur={() => closeSelect('excluded')}
-                      onChange={(e) => {
-                        handleConditionChange('excluded', e.target.value);
-                        closeSelect('excluded');
-                      }}
-                    >
-                      <option>없음</option>
-                      <option>견과류</option>
-                      <option>유제품</option>
-                      <option>해산물</option>
-                      <option>돼지고기</option>
-                    </select>
-                    {/* 커스텀 화살표 아이콘 */}
-                    <span className={`${styles.selectArrow} ${openSelects.excluded ? styles.selectArrowOpen : ''}`}>
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
+                {/* </div> */}
+                <div className={styles.tagList}>
+                  {excluded.map((tag) => (
+                    <span key={tag} className={styles.tagChip}>
+                      {tag}
+                      <button type="button" className={styles.tagDeleteBtn} onClick={() => handleRemoveExcluded(tag)}>
+                        ✕
+                      </button>
                     </span>
-                  </div>
+                  ))}
+
+                  {isAddingExcludedTag ? (
+                    <div className={styles.addTagInputWrapper}>
+                      <input
+                        type="text"
+                        className={styles.addTagInput}
+                        value={newExcluded}
+                        onChange={(e) => setNewExcluded(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddExcluded())}
+                        placeholder="재료명"
+                      />
+                      <button type="button" className={styles.addTagConfirmBtn} onClick={handleAddExcluded}>
+                        추가
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className={styles.addTagBtn} onClick={() => setIsAddingExcludedTag(true)}>
+                      재료 추가 +
+                    </button>
+                  )}
                 </div>
               </div>
+              {/* 보유 재료 태그 리스트 */}
+              {/* <div className={styles.tagContainer}>
+                {ingredients.map((tag) => (
+                  <span key={tag} className={styles.tagBadge}>
+                    {tag}
+                    <button type="button" className={styles.tagDeleteBtn} onClick={() => handleRemoveIngredient(tag)}>
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div> */}
             </div>
 
             {/* Step 4: 결과 생성 옵션 */}
