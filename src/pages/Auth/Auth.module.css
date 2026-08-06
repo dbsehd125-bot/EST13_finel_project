@@ -72,6 +72,7 @@
   align-items: center;
   justify-content: center;
 
+  color: #fff;
   background: var(--brand-primary);
   border-radius: 50%;
 }
@@ -134,6 +135,9 @@
   border-radius: 999px;
 
   outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .field input::placeholder {
@@ -142,6 +146,12 @@
 
 .field input:focus {
   border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(242, 107, 58, 0.12);
+}
+
+.field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .labelRow {
@@ -168,6 +178,12 @@
   text-decoration: underline;
 }
 
+.textLink:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  text-decoration: none;
+}
+
 /* =========================
    음식 취향 선택
 ========================= */
@@ -181,6 +197,10 @@
 .preferenceField legend {
   margin-bottom: 10px;
   color: var(--brand-gray);
+}
+
+.preferenceField:disabled {
+  opacity: 0.65;
 }
 
 .chips {
@@ -198,6 +218,10 @@
   border-radius: 999px;
 
   cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .chip:hover {
@@ -205,9 +229,48 @@
   background: var(--brand-beige);
 }
 
-.chip:focus {
+.chip:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.selectedChip {
   color: #fff;
   background: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.selectedChip:hover {
+  color: #fff;
+  background: var(--brand-primary-dark);
+  border-color: var(--brand-primary-dark);
+}
+
+/* =========================
+   오류 메시지
+========================= */
+
+.errorSlot {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+
+  margin: -2px 0 0;
+
+  color: #d93025;
+
+  font-size: 13px;
+  line-height: 20px;
+
+  visibility: hidden;
+  opacity: 0;
+
+  transition: opacity 0.2s ease;
+}
+
+.errorVisible {
+  visibility: visible;
+  opacity: 1;
 }
 
 /* =========================
@@ -224,10 +287,18 @@
   border-radius: 999px;
 
   cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.primaryButton:hover {
+.primaryButton:hover:not(:disabled) {
   background: var(--brand-primary-dark);
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .divider {
@@ -271,10 +342,18 @@
   border-radius: 999px;
 
   cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.socialButton:hover {
+.socialButton:hover:not(:disabled) {
   background: var(--brand-cream);
+}
+
+.socialButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .kakaoButton {
@@ -282,13 +361,15 @@
   border-color: #fee500;
 }
 
-.kakaoButton:hover {
+.kakaoButton:hover:not(:disabled) {
   background: #f4dc00;
 }
 
 .icon {
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .mobileSocialText {
@@ -337,7 +418,7 @@
   }
 
   .socialButtons {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -364,14 +445,15 @@
   }
 
   .brandIcon {
+    display: flex;
     width: 38px;
     height: 38px;
-    background-color: #f26b3a;
-    border-radius: 50%;
-    display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+
+    color: #fff;
+    background-color: var(--brand-primary);
+    border-radius: 50%;
     box-shadow: 0 2px 6px rgba(242, 107, 58, 0.25);
   }
 

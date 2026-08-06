@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link } from "react-router";
-import { Layout } from "../components";
+import { Layout } from "../../components";
 import "./Home.css";
 
 export default function Home() {
