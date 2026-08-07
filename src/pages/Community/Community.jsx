@@ -81,27 +81,6 @@ function mapComment(row) {
   };
 }
 
-function preloadImages(posts) {
-  const imageUrls = posts.map(post => post.image).filter(Boolean);
-
-  if (imageUrls.length === 0) {
-    return Promise.resolve();
-  }
-
-  return Promise.all(
-    imageUrls.map(
-      src =>
-        new Promise(resolve => {
-          const image = new Image();
-
-          image.onload = resolve;
-          image.onerror = resolve;
-          image.src = src;
-        }),
-    ),
-  );
-}
-
 function CommunityCardSkeleton({ index }) {
   const imageHeights = [220, 300, 250, 340, 280, 230, 320, 260, 360];
 
@@ -167,12 +146,103 @@ export default function Community() {
   const [editingCommentText, setEditingCommentText] = useState("");
   const [commentActionId, setCommentActionId] = useState(null);
 
+  // 좋아요/북마크 중복 클릭 방지
+  const [likeActionIds, setLikeActionIds] = useState([]);
+  const [bookmarkActionIds, setBookmarkActionIds] = useState([]);
+
   const fileInputRef = useRef(null);
   const loadMoreRef = useRef(null);
   const loadingMoreRef = useRef(false);
 
   const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
   const detailModalOpen = Boolean(selectedPost);
+
+  // 좋아요/북마크 권한 문제 확인용 인증 상태 로그
+  // access_token 같은 민감한 값은 출력하지 않는다.
+  async function debugSupabaseAuth(actionName) {
+    const { data, error } = await supabase.auth.getSession();
+    const session = data?.session ?? null;
+
+    console.group(`[Community] ${actionName} 인증 상태`);
+    console.log("AuthContext user 존재:", Boolean(user));
+    console.log("AuthContext user id:", user?.id ?? null);
+    console.log("Supabase session 존재:", Boolean(session));
+    console.log("Supabase session user id:", session?.user?.id ?? null);
+    console.log("Supabase session email:", session?.user?.email ?? null);
+    console.log(
+      "AuthContext와 session user 일치:",
+      Boolean(user?.id && session?.user?.id && user.id === session.user.id),
+    );
+    console.log("getSession error:", error ?? null);
+    console.groupEnd();
+
+    return session;
+  }
+
+  // 게시글 조회와 분리된 좋아요/북마크 상태 조회
+  // 이 요청이 실패해도 게시글 자체는 정상적으로 표시된다.
+  async function loadMyPostReactions(postIds) {
+    if (!user || !postIds?.length) return;
+
+    // 최초 상태 조회가 anon 요청으로 나가는지 확인할 때 사용
+    await debugSupabaseAuth("좋아요/북마크 상태 조회");
+
+    const [likeResult, bookmarkResult] = await Promise.allSettled([
+      supabase
+        .from("community_post_likes")
+        .select("post_id")
+        .eq("user_id", user.id)
+        .in("post_id", postIds),
+      supabase
+        .from("community_post_bookmarks")
+        .select("post_id")
+        .eq("user_id", user.id)
+        .in("post_id", postIds),
+    ]);
+
+    let likedPostIds = null;
+    let bookmarkedPostIds = null;
+
+    if (likeResult.status === "fulfilled") {
+      const { data, error } = likeResult.value;
+
+      if (error) {
+        console.error("좋아요 상태 조회 오류:", error);
+      } else {
+        likedPostIds = new Set((data ?? []).map(row => row.post_id));
+      }
+    } else {
+      console.error("좋아요 상태 조회 오류:", likeResult.reason);
+    }
+
+    if (bookmarkResult.status === "fulfilled") {
+      const { data, error } = bookmarkResult.value;
+
+      if (error) {
+        console.error("북마크 상태 조회 오류:", error);
+      } else {
+        bookmarkedPostIds = new Set((data ?? []).map(row => row.post_id));
+      }
+    } else {
+      console.error("북마크 상태 조회 오류:", bookmarkResult.reason);
+    }
+
+    if (!likedPostIds && !bookmarkedPostIds) return;
+
+    const targetIds = new Set(postIds);
+
+    setPosts(previousPosts =>
+      previousPosts.map(post => {
+        if (!targetIds.has(post.id)) return post;
+
+        return {
+          ...post,
+          ...(likedPostIds ? { liked: likedPostIds.has(post.id) } : {}),
+          ...(bookmarkedPostIds ? { bookmarked: bookmarkedPostIds.has(post.id) } : {}),
+        };
+      }),
+    );
+  }
 
   async function fetchPosts({
     reset = false,
@@ -218,12 +288,6 @@ export default function Community() {
 
       const mappedPosts = (data ?? []).map(mapPost);
 
-      // 최초 커뮤니티 진입에서는 첫 페이지 이미지까지 모두 준비한 뒤
-      // 스켈레톤을 제거해 Masonry가 이미지 로딩 때문에 재배치되는 현상을 줄인다.
-      if (reset && showLoading) {
-        await preloadImages(mappedPosts);
-      }
-
       setPosts(previousPosts => {
         if (reset) {
           return mappedPosts;
@@ -234,6 +298,11 @@ export default function Community() {
 
         return [...previousPosts, ...newPosts];
       });
+
+      // 좋아요/북마크 조회는 게시글 조회와 완전히 분리한다.
+      if (user && mappedPosts.length > 0) {
+        void loadMyPostReactions(mappedPosts.map(post => post.id));
+      }
 
       setHasMorePosts(mappedPosts.length === POSTS_PER_PAGE);
 
@@ -261,6 +330,26 @@ export default function Community() {
       category: "최신",
     });
   }, []);
+
+  // 최초 게시글 조회보다 인증 확인이 늦게 끝나는 경우를 위한 보완 처리
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      setPosts(previousPosts =>
+        previousPosts.map(post => ({
+          ...post,
+          liked: false,
+          bookmarked: false,
+        })),
+      );
+      return;
+    }
+
+    if (posts.length > 0) {
+      void loadMyPostReactions(posts.map(post => post.id));
+    }
+  }, [authLoading, user?.id]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -353,26 +442,130 @@ export default function Community() {
     setEditingCommentText("");
   }
 
-  function handleLikeToggle(postId) {
-    setPosts(previousPosts =>
-      previousPosts.map(post => {
-        if (post.id !== postId) return post;
+  async function handleLikeToggle(postId) {
+    if (authLoading) return;
 
-        return {
-          ...post,
-          liked: !post.liked,
-          likes: post.liked ? Math.max(0, post.likes - 1) : post.likes + 1,
-        };
-      }),
-    );
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    const session = await debugSupabaseAuth("좋아요 클릭");
+
+    if (!session) {
+      console.error("좋아요 요청 중단: Supabase 세션이 없습니다.");
+      alert("로그인 세션을 확인하지 못했습니다. 다시 로그인해주세요.");
+      return;
+    }
+
+    if (likeActionIds.includes(postId)) return;
+
+    const targetPost = posts.find(post => post.id === postId);
+    if (!targetPost) return;
+
+    try {
+      setLikeActionIds(previousIds => [...previousIds, postId]);
+
+      if (targetPost.liked) {
+        const { error } = await supabase
+          .from("community_post_likes")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("community_post_likes").insert({
+          post_id: postId,
+          user_id: user.id,
+        });
+
+        if (error) throw error;
+      }
+
+      const nextLikeCount = targetPost.liked
+        ? Math.max(0, targetPost.likes - 1)
+        : targetPost.likes + 1;
+
+      // 기존 community_posts.like_count를 유지해서 인기순 정렬에도 반영한다.
+      const { error: countUpdateError } = await supabase
+        .from("community_posts")
+        .update({ like_count: nextLikeCount })
+        .eq("id", postId);
+
+      if (countUpdateError) throw countUpdateError;
+
+      setPosts(previousPosts =>
+        previousPosts.map(post =>
+          post.id === postId
+            ? {
+                ...post,
+                liked: !targetPost.liked,
+                likes: nextLikeCount,
+              }
+            : post,
+        ),
+      );
+    } catch (error) {
+      console.error("게시글 좋아요 처리 오류:", error);
+      alert(error.message || "좋아요 처리에 실패했습니다.");
+    } finally {
+      setLikeActionIds(previousIds => previousIds.filter(id => id !== postId));
+    }
   }
 
-  function handleBookmarkToggle(postId) {
-    setPosts(previousPosts =>
-      previousPosts.map(post =>
-        post.id === postId ? { ...post, bookmarked: !post.bookmarked } : post,
-      ),
-    );
+  async function handleBookmarkToggle(postId) {
+    if (authLoading) return;
+
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    const session = await debugSupabaseAuth("북마크 클릭");
+
+    if (!session) {
+      console.error("북마크 요청 중단: Supabase 세션이 없습니다.");
+      alert("로그인 세션을 확인하지 못했습니다. 다시 로그인해주세요.");
+      return;
+    }
+
+    if (bookmarkActionIds.includes(postId)) return;
+
+    const targetPost = posts.find(post => post.id === postId);
+    if (!targetPost) return;
+
+    try {
+      setBookmarkActionIds(previousIds => [...previousIds, postId]);
+
+      if (targetPost.bookmarked) {
+        const { error } = await supabase
+          .from("community_post_bookmarks")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("community_post_bookmarks").insert({
+          post_id: postId,
+          user_id: user.id,
+        });
+
+        if (error) throw error;
+      }
+
+      setPosts(previousPosts =>
+        previousPosts.map(post =>
+          post.id === postId ? { ...post, bookmarked: !targetPost.bookmarked } : post,
+        ),
+      );
+    } catch (error) {
+      console.error("게시글 북마크 처리 오류:", error);
+      alert(error.message || "북마크 처리에 실패했습니다.");
+    } finally {
+      setBookmarkActionIds(previousIds => previousIds.filter(id => id !== postId));
+    }
   }
 
   function handlePostEditOpen() {
@@ -1048,7 +1241,7 @@ export default function Community() {
                       className={styles.cardImage}
                       src={post.image}
                       alt={post.imageAlt}
-                      loading="eager"
+                      loading={index < 3 ? "eager" : "lazy"}
                       fetchPriority={index === 0 ? "high" : "auto"}
                       decoding="async"
                     />
@@ -1069,6 +1262,7 @@ export default function Community() {
                         }`}
                         aria-label={post.liked ? "좋아요 취소" : "좋아요"}
                         aria-pressed={post.liked}
+                        disabled={likeActionIds.includes(post.id)}
                         onClick={() => handleLikeToggle(post.id)}
                       >
                         {post.liked ? <Favorite /> : <FavoriteBorder />}
@@ -1093,6 +1287,7 @@ export default function Community() {
                       }`}
                       aria-label={post.bookmarked ? "북마크 취소" : "게시글 북마크"}
                       aria-pressed={post.bookmarked}
+                      disabled={bookmarkActionIds.includes(post.id)}
                       onClick={() => handleBookmarkToggle(post.id)}
                     >
                       {post.bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
@@ -1331,6 +1526,7 @@ export default function Community() {
                       className={`${styles.modalLikeButton} ${
                         selectedPost.liked ? styles.activeModalAction : ""
                       }`}
+                      disabled={likeActionIds.includes(selectedPost.id)}
                       onClick={() => handleLikeToggle(selectedPost.id)}
                     >
                       {selectedPost.liked ? <Favorite /> : <FavoriteBorder />}
@@ -1349,6 +1545,7 @@ export default function Community() {
                       selectedPost.bookmarked ? styles.activeModalAction : ""
                     }`}
                     aria-label={selectedPost.bookmarked ? "북마크 취소" : "북마크"}
+                    disabled={bookmarkActionIds.includes(selectedPost.id)}
                     onClick={() => handleBookmarkToggle(selectedPost.id)}
                   >
                     {selectedPost.bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}

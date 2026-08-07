@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+
 import { supabase } from "../lib/supabaseClient";
 
 const AuthContext = createContext(null);
@@ -6,6 +7,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
+
   const [authLoading, setAuthLoading] = useState(true);
   const [logoutLoading, setLogoutLoading] = useState(false);
 
@@ -23,12 +25,19 @@ export function AuthProvider({ children }) {
           console.error("세션 확인 오류:", error);
         }
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
       } catch (error) {
         console.error("세션 확인 오류:", error);
+
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+        }
       } finally {
         if (mounted) {
           setAuthLoading(false);
@@ -41,7 +50,9 @@ export function AuthProvider({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -68,6 +79,9 @@ export function AuthProvider({ children }) {
         throw error;
       }
 
+      setSession(null);
+      setUser(null);
+
       return true;
     } catch (error) {
       console.error("로그아웃 오류:", error);
@@ -84,7 +98,7 @@ export function AuthProvider({ children }) {
     authLoading,
     logoutLoading,
 
-    isLoggedIn: Boolean(user),
+    isLoggedIn: Boolean(session && user),
 
     logout,
   };

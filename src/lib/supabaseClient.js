@@ -7,104 +7,180 @@ if (!supabaseUrl || !supabasePublishableKey) {
   throw new Error("Supabase 환경변수가 설정되지 않았습니다.");
 }
 
-// 배포 환경인지 확인
 const isProduction = import.meta.env.PROD;
 
-/*
- * Supabase Auth 세션을 localStorage 대신
- * Cookie에 저장하기 위한 custom storage
- */
+// 쿠키 하나의 실제 브라우저 제한보다 여유 있게 설정
+const COOKIE_CHUNK_SIZE = 3000;
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function getCookie(name) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const encodedName = encodeURIComponent(name);
+
+  const cookie = document.cookie.split("; ").find(item => item.startsWith(`${encodedName}=`));
+
+  if (!cookie) {
+    return null;
+  }
+
+  return cookie.substring(cookie.indexOf("=") + 1);
+}
+
+function setCookie(name, value) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const cookieOptions = [
+    `${encodeURIComponent(name)}=${value}`,
+    "path=/",
+    `max-age=${COOKIE_MAX_AGE}`,
+    "SameSite=Lax",
+    isProduction ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  document.cookie = cookieOptions;
+}
+
+function removeCookie(name) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const cookieOptions = [
+    `${encodeURIComponent(name)}=`,
+    "path=/",
+    "max-age=0",
+    "SameSite=Lax",
+    isProduction ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  document.cookie = cookieOptions;
+}
+
 const cookieStorage = {
-  /*
-   * 쿠키에서 세션 가져오기
-   */
   getItem(key) {
     if (typeof document === "undefined") {
       return null;
     }
 
-    const encodedKey = encodeURIComponent(key);
-
-    const cookies = document.cookie.split("; ").find(cookie => cookie.startsWith(`${encodedKey}=`));
-
-    if (!cookies) {
-      return null;
-    }
-
-    const value = cookies.substring(cookies.indexOf("=") + 1);
-
     try {
-      return decodeURIComponent(value);
-    } catch {
+      // 분할 쿠키 개수 확인
+      const partsValue = getCookie(`${key}.parts`);
+
+      // 예전 단일 쿠키 방식이 남아있는 경우
+      if (!partsValue) {
+        const legacyValue = getCookie(key);
+
+        if (!legacyValue) {
+          return null;
+        }
+
+        return decodeURIComponent(legacyValue);
+      }
+
+      const parts = Number(partsValue);
+
+      if (!Number.isInteger(parts) || parts <= 0) {
+        return null;
+      }
+
+      let encodedValue = "";
+
+      for (let index = 0; index < parts; index += 1) {
+        const chunk = getCookie(`${key}.${index}`);
+
+        if (chunk === null) {
+          return null;
+        }
+
+        encodedValue += chunk;
+      }
+
+      return decodeURIComponent(encodedValue);
+    } catch (error) {
+      console.error("Supabase 세션 쿠키 읽기 오류:", error);
       return null;
     }
   },
 
-  /*
-   * 쿠키에 세션 저장하기
-   */
   setItem(key, value) {
     if (typeof document === "undefined") {
       return;
     }
 
-    // 쿠키 유지 기간: 1년
-    const maxAge = 60 * 60 * 24 * 365;
+    try {
+      // 기존 쿠키 정리
+      this.removeItem(key);
 
-    const cookieOptions = [
-      `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
-      "path=/",
-      `max-age=${maxAge}`,
-      "SameSite=Lax",
+      const encodedValue = encodeURIComponent(value);
 
-      // Vercel(HTTPS)에서는 Secure 사용
-      // localhost에서는 제외
-      isProduction ? "Secure" : "",
-    ]
-      .filter(Boolean)
-      .join("; ");
+      const chunks = [];
 
-    document.cookie = cookieOptions;
+      for (let index = 0; index < encodedValue.length; index += COOKIE_CHUNK_SIZE) {
+        chunks.push(encodedValue.slice(index, index + COOKIE_CHUNK_SIZE));
+      }
+
+      chunks.forEach((chunk, index) => {
+        setCookie(`${key}.${index}`, chunk);
+      });
+
+      setCookie(`${key}.parts`, String(chunks.length));
+    } catch (error) {
+      console.error("Supabase 세션 쿠키 저장 오류:", error);
+    }
   },
 
-  /*
-   * 로그아웃 시 쿠키 삭제
-   */
   removeItem(key) {
     if (typeof document === "undefined") {
       return;
     }
 
-    const cookieOptions = [
-      `${encodeURIComponent(key)}=`,
-      "path=/",
-      "max-age=0",
-      "SameSite=Lax",
-      isProduction ? "Secure" : "",
-    ]
-      .filter(Boolean)
-      .join("; ");
+    try {
+      // 현재 분할된 쿠키 개수
+      const partsValue = getCookie(`${key}.parts`);
+      const parts = Number(partsValue);
 
-    document.cookie = cookieOptions;
+      if (Number.isInteger(parts) && parts > 0) {
+        for (let index = 0; index < parts; index += 1) {
+          removeCookie(`${key}.${index}`);
+        }
+      }
+
+      removeCookie(`${key}.parts`);
+
+      // 이전 단일 쿠키 방식도 같이 삭제
+      removeCookie(key);
+
+      // 혹시 parts 정보가 깨졌을 경우를 대비해
+      // 일정 개수까지 잔여 조각 제거
+      for (let index = 0; index < 20; index += 1) {
+        removeCookie(`${key}.${index}`);
+      }
+    } catch (error) {
+      console.error("Supabase 세션 쿠키 삭제 오류:", error);
+    }
   },
 };
 
-/*
- * Supabase Client
- */
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
-    // localStorage 대신 Cookie 사용
     storage: cookieStorage,
 
-    // 새로고침해도 로그인 유지
+    // 새로고침 후에도 로그인 유지
     persistSession: true,
 
     // access token 자동 갱신
     autoRefreshToken: true,
 
-    // Google / Kakao OAuth 로그인 후
-    // URL에서 인증 세션 감지
+    // Google / Kakao OAuth 리다이렉트 처리
     detectSessionInUrl: true,
   },
 });
