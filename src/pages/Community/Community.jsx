@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   AddPhotoAlternateOutlined,
@@ -16,9 +16,10 @@ import Masonry from "@mui/lab/Masonry";
 
 import { supabase } from "../../lib/supabaseClient";
 import Layout from "../../components/Layout";
+import { useAuth } from "../../context/AuthContext";
 import styles from "./Community.module.css";
 
-const categories = ["인기", "최신", "요리 후기", "질문", "자유 이야기"];
+const categories = ["최신", "인기", "요리 후기", "질문", "자유 이야기"];
 const writableCategories = ["요리 후기", "질문", "자유 이야기"];
 const COMMUNITY_BUCKET = "community-images";
 const POSTS_PER_PAGE = 9;
@@ -116,10 +117,9 @@ function CommunityCardSkeleton({ index }) {
 export default function Community() {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user, authLoading } = useAuth();
 
-  const [selectedCategory, setSelectedCategory] = useState("인기");
+  const [selectedCategory, setSelectedCategory] = useState("최신");
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -145,21 +145,11 @@ export default function Community() {
   const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
   const detailModalOpen = Boolean(selectedPost);
 
-  const filteredPosts = useMemo(() => {
-    const copiedPosts = [...posts];
-
-    if (selectedCategory === "인기") {
-      return copiedPosts.sort((a, b) => b.likes - a.likes);
-    }
-
-    if (selectedCategory === "최신") {
-      return copiedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    }
-
-    return copiedPosts.filter(post => post.category === selectedCategory);
-  }, [posts, selectedCategory]);
-
-  async function fetchPosts({ reset = false, showLoading = false } = {}) {
+  async function fetchPosts({
+    reset = false,
+    showLoading = false,
+    category = selectedCategory,
+  } = {}) {
     if (loadingMoreRef.current) {
       return false;
     }
@@ -177,11 +167,21 @@ export default function Community() {
     setPageError("");
 
     try {
-      const { data, error } = await supabase
-        .from("community_posts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(from, to);
+      let query = supabase.from("community_posts").select("*");
+
+      if (category === "요리 후기" || category === "질문" || category === "자유 이야기") {
+        query = query.eq("category", category);
+      }
+
+      if (category === "인기") {
+        query = query
+          .order("like_count", { ascending: false })
+          .order("created_at", { ascending: false });
+      } else {
+        query = query.order("created_at", { ascending: false });
+      }
+
+      const { data, error } = await query.range(from, to);
 
       if (error) {
         throw error;
@@ -219,52 +219,16 @@ export default function Community() {
   }
 
   useEffect(() => {
-    let mounted = true;
+    setPosts([]);
+    setHasMorePosts(true);
+    setSelectedPostId(null);
 
-    async function loadInitialData() {
-      try {
-        const {
-          data: { user: currentUser },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (!mounted) return;
-
-        if (userError) {
-          console.error("사용자 정보 조회 오류:", userError);
-        }
-
-        setUser(currentUser ?? null);
-        setAuthLoading(false);
-
-        await fetchPosts({ reset: true, showLoading: true });
-      } catch (error) {
-        console.error("커뮤니티 초기 데이터 조회 오류:", error);
-
-        if (mounted) {
-          setPageError("게시글을 불러오지 못했습니다.");
-          setPostsLoading(false);
-          setAuthLoading(false);
-        }
-      }
-    }
-
-    loadInitialData();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setUser(session?.user ?? null);
-        setAuthLoading(false);
-      }
+    fetchPosts({
+      reset: true,
+      showLoading: true,
+      category: selectedCategory,
     });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+  }, [selectedCategory]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -278,7 +242,7 @@ export default function Community() {
         const [entry] = entries;
 
         if (entry.isIntersecting && !loadingMoreRef.current) {
-          fetchPosts();
+          fetchPosts({ category: selectedCategory });
         }
       },
       {
@@ -293,7 +257,7 @@ export default function Community() {
     return () => {
       observer.disconnect();
     };
-  }, [posts.length, postsLoading, loadingMore, hasMorePosts, pageError]);
+  }, [posts.length, postsLoading, loadingMore, hasMorePosts, pageError, selectedCategory]);
 
   useEffect(() => {
     if (!selectedPostId) {
@@ -332,22 +296,6 @@ export default function Community() {
     };
   }, [selectedPostId]);
 
-  async function getAuthenticatedUser() {
-    if (user) return user;
-
-    const {
-      data: { user: currentUser },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error || !currentUser) {
-      return null;
-    }
-
-    setUser(currentUser);
-    return currentUser;
-  }
-
   function moveToLogin() {
     handleDetailModalClose();
     setWriteModalOpen(false);
@@ -385,12 +333,10 @@ export default function Community() {
     );
   }
 
-  async function handleWriteModalOpen() {
+  function handleWriteModalOpen() {
     if (authLoading) return;
 
-    const currentUser = await getAuthenticatedUser();
-
-    if (!currentUser) {
+    if (!user) {
       moveToLogin();
       return;
     }
@@ -506,9 +452,7 @@ export default function Community() {
   async function handleWriteSubmit(event) {
     event.preventDefault();
 
-    const currentUser = await getAuthenticatedUser();
-
-    if (!currentUser) {
+    if (!user) {
       moveToLogin();
       return;
     }
@@ -532,19 +476,19 @@ export default function Community() {
       setWriteSubmitting(true);
       setWriteError("");
 
-      const { imageUrl, uploadedPath } = await uploadCommunityImage(selectedImageFile, currentUser);
+      const { imageUrl, uploadedPath } = await uploadCommunityImage(selectedImageFile, user);
       uploadedImagePath = uploadedPath;
 
       const nickname =
-        currentUser.user_metadata?.nickname ||
-        currentUser.user_metadata?.full_name ||
-        currentUser.email?.split("@")[0] ||
+        user.user_metadata?.nickname ||
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
         "사용자";
 
       const submittedCategory = writeForm.category;
 
       const { error } = await supabase.from("community_posts").insert({
-        user_id: currentUser.id,
+        user_id: user.id,
         nickname,
         category: submittedCategory,
         content: trimmedContent,
@@ -554,10 +498,14 @@ export default function Community() {
 
       if (error) throw error;
 
-      // 등록 직후 DB에서 최신 게시글 목록을 다시 조회해 화면에 바로 반영
-      await fetchPosts({ reset: true });
-
-      setSelectedCategory(submittedCategory);
+      if (selectedCategory !== submittedCategory) {
+        setSelectedCategory(submittedCategory);
+      } else {
+        await fetchPosts({
+          reset: true,
+          category: submittedCategory,
+        });
+      }
       setWriteModalOpen(false);
       resetWriteForm();
     } catch (error) {
@@ -576,9 +524,7 @@ export default function Community() {
   async function handleCommentSubmit(event) {
     event.preventDefault();
 
-    const currentUser = await getAuthenticatedUser();
-
-    if (!currentUser) {
+    if (!user) {
       moveToLogin();
       return;
     }
@@ -591,16 +537,16 @@ export default function Community() {
       setCommentSubmitting(true);
 
       const nickname =
-        currentUser.user_metadata?.nickname ||
-        currentUser.user_metadata?.full_name ||
-        currentUser.email?.split("@")[0] ||
+        user.user_metadata?.nickname ||
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
         "사용자";
 
       const { data, error } = await supabase
         .from("community_comments")
         .insert({
           post_id: selectedPost.id,
-          user_id: currentUser.id,
+          user_id: user.id,
           nickname,
           content: trimmedComment,
         })
@@ -768,11 +714,16 @@ export default function Community() {
           <div className={styles.emptyState}>
             <p>{pageError}</p>
 
-            <button type="button" onClick={() => fetchPosts({ reset: true, showLoading: true })}>
+            <button
+              type="button"
+              onClick={() =>
+                fetchPosts({ reset: true, showLoading: true, category: selectedCategory })
+              }
+            >
               다시 불러오기
             </button>
           </div>
-        ) : filteredPosts.length > 0 ? (
+        ) : posts.length > 0 ? (
           <>
             <Masonry
               columns={{
@@ -782,7 +733,7 @@ export default function Community() {
               }}
               spacing={2}
             >
-              {filteredPosts.map((post, index) => (
+              {posts.map((post, index) => (
                 <article
                   key={post.id}
                   className={styles.card}
@@ -885,7 +836,7 @@ export default function Community() {
             {pageError && posts.length > 0 && (
               <div className={styles.loadMoreError}>
                 <span>{pageError}</span>
-                <button type="button" onClick={() => fetchPosts()}>
+                <button type="button" onClick={() => fetchPosts({ category: selectedCategory })}>
                   다시 시도
                 </button>
               </div>
