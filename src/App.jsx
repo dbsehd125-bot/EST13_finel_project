@@ -1,5 +1,6 @@
 import React from "react";
 import { Routes, Route } from "react-router";
+
 import Home from "./pages/Home/Home";
 import CreateAIRecipe from "./pages/CreateAIRecipe/CreateAIRecipe";
 import RegisterRecipe from "./pages/RegistRecipe/RegistRecipe";
@@ -9,6 +10,9 @@ import Community from "./pages/Community/Community";
 import RecipeDetail from "./pages/RecipeDetail/RecipeDetail";
 import Login from "./pages/Auth/Login";
 import SignUp from "./pages/Auth/SignUp";
+
+import GuestRoute from "./components/GuestRoute";
+
 import "./App.css";
 
 export default function App() {
@@ -24,8 +28,25 @@ export default function App() {
       <Route path="/recipes" element={<RecipeList />} />
       <Route path="/recipes/:id" element={<RecipeDetail />} />
       <Route path="/community" element={<Community />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
+
+      {/* 비로그인 사용자만 접근 가능 */}
+      <Route
+        path="/login"
+        element={
+          <GuestRoute>
+            <Login />
+          </GuestRoute>
+        }
+      />
+
+      <Route
+        path="/signup"
+        element={
+          <GuestRoute>
+            <SignUp />
+          </GuestRoute>
+        }
+      />
     </Routes>
   );
 }

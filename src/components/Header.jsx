@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 
-import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../context/AuthContext";
 import "./Header.css";
 
 export default function Header() {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [logoutLoading, setLogoutLoading] = useState(false);
+
+  const { isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
 
   const menuItems = [
     {
@@ -36,42 +35,6 @@ export default function Header() {
     },
   ];
 
-  const isLoggedIn = Boolean(session?.user);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function getCurrentSession() {
-      const {
-        data: { session: currentSession },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error("세션 확인 오류:", error);
-      }
-
-      if (isMounted) {
-        setSession(currentSession);
-        setAuthLoading(false);
-      }
-    }
-
-    getCurrentSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession);
-      setAuthLoading(false);
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
   function closeMenu() {
     setMenuOpen(false);
   }
@@ -79,24 +42,15 @@ export default function Header() {
   async function handleLogout() {
     if (logoutLoading) return;
 
-    try {
-      setLogoutLoading(true);
+    const success = await logout();
 
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        throw error;
-      }
-
-      setSession(null);
-      closeMenu();
-      navigate("/");
-    } catch (error) {
-      console.error("로그아웃 오류:", error);
+    if (!success) {
       alert("로그아웃에 실패했습니다.");
-    } finally {
-      setLogoutLoading(false);
+      return;
     }
+
+    closeMenu();
+    navigate("/");
   }
 
   return (
