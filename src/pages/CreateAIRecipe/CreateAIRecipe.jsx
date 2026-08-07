@@ -1,31 +1,18 @@
+// Library
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+// Components
 import Layout from '../../components/Layout';
+import RecipeResultCard from './RecipeResultCard';
+// CSS
 import styles from './CreateAIRecipe.module.css';
+import { getOpenInteractionType } from '@mui/material/Select';
 
-const DUMMY_MARKDOWN_RESULT = `**요리 제목:** 매콤 크림 닭갈비 파스타
-
-**요리 개요:**
-매콤한 닭갈비 소스와 고소한 크림이 만나 어우러진, 이색적인 퓨전 파스타 요리입니다. 부드럽고 매콤한 맛으로 남녀노소 모두가 조리 시간 약 20분, 난이도는 '하' 수준으로 간편합니다.
-
-**재료 목록:**
-* 닭가슴살: 300g
-* 양파: 1/2개
-* 대파: 1/2대
-* 우유: 200ml
-* 고추장: 1스푼
-* 고춧가루: 1/2스푼
-* 간장: 1/2스푼
-* 다진마늘: 1/2스푼
-
-**조리 과정:**
-1. **재료 손질하기:** 닭가슴살과 양파, 대파는 먹기 좋은 크기로 썰어 준비합니다.
-2. **양념에 볶기:** 양념 재료를 모두 섞어 닭가슴살을 30분간 재웁니다.
-3. **크림 소스 만들기:** 팬에 올리브유를 두르고 손질한 야채를 볶은 후, 재운 닭가슴살을 넣어 볶습니다. 고기가 익으면 우유를 부어 끓여 크림 소스를 만듭니다.
-4. **완성하기:** 삶은 파스타 면을 소스에 넣고 약불에서 소스가 스며들도록 버무려 완성합니다.
-
-요리에 대한 더 자세한 설명이나, 다른 변형 레시피가 궁금하시다면 언제든지 질문해 주세요!`;
+const API_BASE = '/api/v1';
+const ALAN_CLIENT_ID = import.meta.env.VITE_ALAN_CLIENT_ID;
+const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+const FALLBACK_URL = 'https://dummyimage.com/1024x1024/f26b3a/ffffff.png&text=No+Image';
 
 export default function CreateAIRecipe() {
   // Step 1: 프롬프트 입력
@@ -33,10 +20,13 @@ export default function CreateAIRecipe() {
     '집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.',
   );
 
-  // Step 2: 보유 재료 선택
+  // Step 2: 태그 선택
   const [ingredients, setIngredients] = useState(['계란', '양파', '참치', '밥']);
   const [newIngredient, setNewIngredient] = useState('');
-  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [isAddingIngredientTag, setIsAddingIngredientTag] = useState(false);
+  const [excluded, setExcluded] = useState(['우유', '복숭아', '새우', '땅콩']);
+  const [newExcluded, setNewExcluded] = useState('');
+  const [isAddingExcludedTag, setIsAddingExcludedTag] = useState(false);
 
   // Step 3: 조건 선택
   const [conditions, setConditions] = useState({
@@ -44,19 +34,14 @@ export default function CreateAIRecipe() {
     cookingTime: '30분 이내',
     difficulty: '쉬움',
     cuisine: '한식',
-    spiciness: '보통',
-    excluded: '없음',
   });
 
   // Step 4: 결과 생성 옵션
   const [options, setOptions] = useState({
-    title: true,
-    steps: true,
-    substitutes: true,
-    shoppingList: true,
-    summary: true,
     image: true,
+    sidedishes: true,
     nutrition: true,
+    shoppinglist: true,
   });
 
   // 셀렉트 박스 화살표 상태
@@ -74,7 +59,12 @@ export default function CreateAIRecipe() {
   const [refinePrompt, setRefinePrompt] = useState('');
 
   // 로딩 & 결과 상태
-  const [isLoading, setIsLoading] = useState(false);
+  /**
+   * null: 로딩 아님
+   * prompt: 레시피 프롬프트 생성 중
+   * image: 레시피 이미지 생성 중
+   */
+  const [loadingStep, setLoadingStep] = useState(null);
   const [result, setResult] = useState(null);
 
   // 재료 태그 추가
@@ -83,12 +73,26 @@ export default function CreateAIRecipe() {
       setIngredients([...ingredients, newIngredient.trim()]);
       setNewIngredient('');
     }
-    setIsAddingTag(false);
+    setIsAddingIngredientTag(false);
   };
 
   // 재료 태그 삭제
   const handleRemoveIngredient = (tag) => {
     setIngredients(ingredients.filter((item) => item !== tag));
+  };
+
+  // 제외 태그 추가
+  const handleAddExcluded = () => {
+    if (newExcluded.trim() && !excluded.includes(newExcluded.trim())) {
+      setExcluded([...excluded, newExcluded.trim()]);
+      setNewExcluded('');
+    }
+    setIsAddingExcludedTag(false);
+  };
+
+  // 제외 태그 삭제
+  const handleRemoveExcluded = (tag) => {
+    setExcluded(excluded.filter((item) => item !== tag));
   };
 
   // 조건 셀렉트 변경
@@ -101,31 +105,146 @@ export default function CreateAIRecipe() {
     setOptions((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
-  // 레시피 생성 제출
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  /**
+   * 선택된 결과 옵션(options)에 따라 프롬프트 요구사항을 동적으로 생성
+   * @param {Object} options - { image, sidedishes, nutrition, shoppinglist }
+   * @returns {string} 프롬프트에 추가될 요구사항 문자열
+   */
+  const buildOutputOptionsPrompt = (options) => {
+    const requirements = [];
 
-    setTimeout(() => {
-      setIsLoading(false);
-      setResult({
-        image: 'https://dummyimage.com/600x400/000/fff.png&text=dummy+image',
-        markdown: DUMMY_MARKDOWN_RESULT,
-      });
-    }, 1800);
+    if (options.sidedishes) {
+      requirements.push(
+        '- [곁들이기 추천] 이 요리와 잘 어울리는 반찬, 국, 또는 음료/주류 추천 1~2가지를 포함해줘.',
+      );
+    }
+
+    if (options.nutrition) {
+      requirements.push(
+        '- [영양 성분 정보] 1인분 기준 예상 칼로리(kcal)와 주요 영양소 비율(탄수화물g, 단백질g, 지방g, 기타)을 요약해서 작성해줘.',
+      );
+    }
+
+    if (options.shoppinglist) {
+      requirements.push(
+        '- [장보기 체크리스트] 마트에서 바로 살 수 있도록 주재료와 양념류를 구획한 체크리스트(- [ ] 형태)를 마크다운 하단에 작성해줘.',
+      );
+    }
+
+    return requirements.length > 0 ? `\n[결과 옵션]\n${requirements.join('\n')}` : '';
   };
 
-  // 하단 추가 수정 프롬프트 제출
+  // test
+  const handleGenerateRecipe = async (e) => {
+    if (e) e.preventDefault();
+
+    setLoadingStep('prompt');
+    setResult(null);
+
+    try {
+      // [Step 1] Alan AI 텍스트 생성
+      const userPrompt = `
+      다음 조건에 맞는 상세한 요리 레시피를 만들어줘.
+
+      [요청사항]
+      - ${prompt}
+
+      [요리 조건]
+      - 보유/사용 재료: ${ingredients.join(', ')}
+      - 식사 인원: ${conditions.servings}
+      - 조리 시간: ${conditions.cookingTime}
+      - 난이도: ${conditions.difficulty}
+      - 요리 종류: ${conditions.cuisine}
+      - 못 먹는 재료: ${excluded.length > 0 ? excluded.join(', ') : '없음'}
+
+      [출력 포맷 요청]
+      1. 레시피 제목과 간단한 요약 설명
+      2. 정확한 재료 및 양념장 비율 목록
+      3. Step-by-Step 상세 조리 순서 (각 단계별 조리 팁 포함)
+      4. 내용 분기마다 이모지 1개씩 문장 맨 앞에 추가
+
+      ${buildOutputOptionsPrompt(options)}
+
+      위 내용을 읽기 좋은 깔끔한 마크다운(Markdown) 포맷으로 작성해줘.
+    `.trim();
+
+      const queryString = new URLSearchParams({
+        content: userPrompt,
+        client_id: ALAN_CLIENT_ID,
+      }).toString();
+
+      const response = await fetch(`${API_BASE}/question?${queryString}`);
+      if (!response.ok) {
+        throw new Error(`API 요청 실패 (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+      const markdownContent =
+        data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+
+      let base64ImageContent = FALLBACK_URL;
+
+      if (options.image) {
+        // [Step 2] Open AI 이미지 생성
+        setLoadingStep('image');
+
+        const titleMatch = markdownContent.match(/^#\s*(.+)/m);
+        const recipeTitle = titleMatch ? titleMatch[1].trim() : '맛있는 요리';
+
+        try {
+          const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${OPEN_AI_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-image-2',
+              prompt: `A professional studio food photography of ${recipeTitle}, ${conditions.cuisine} cuisine, beautifully plated, delicious look, warm lighting, 4k resolution.`,
+              n: 1,
+              size: '1024x1024',
+              quality: 'low',
+              output_format: 'png',
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const result = await imageResponse.json();
+            const rawBase64 = result?.data?.[0]?.b64_json;
+            base64ImageContent = rawBase64 ? `data:image/png;base64,${rawBase64}` : fallbackUrl;
+          } else {
+            const error = await imageResponse.json();
+            console.error('OpenAI API 에러 상세:', error);
+          }
+        } catch (error) {
+          console.error('이미지 생성 실패 (기본 이미지로 대체):', error);
+        }
+      }
+
+      // [Step 3] 최종 결과 저장
+      setResult({
+        image: base64ImageContent,
+        markdown: markdownContent,
+      });
+    } catch (error) {
+      console.error('Alan AI 에러 상세:', error);
+      alert('레시피를 생성하지 못했습니다. 개발자 도구 콘솔 및 네트워크 탭을 확인해 주세요.');
+    } finally {
+      setLoadingStep(null);
+    }
+  };
+
+  // 하단 추가 수정 프롬프트 제출 (x)
   const handleRefineSubmit = (e) => {
     e.preventDefault();
     if (!refinePrompt.trim()) return;
 
-    setIsLoading(true);
+    setLoadingStep(true);
     setTimeout(() => {
-      setIsLoading(false);
+      setLoadingStep(false);
       setResult((prev) => ({
         ...prev,
-        markdown: prev.markdown + `\n\n> 💡 **추가 반영 요청:** "${refinePrompt}" 내용이 적용된 레시피입니다.`,
+        markdown: prev.markdown + `\n\n> 💡 **전송한 메세지의 내용**이 적용된 레시피입니다.`,
       }));
       setRefinePrompt('');
     }, 1200);
@@ -148,7 +267,7 @@ export default function CreateAIRecipe() {
         {/* 2컬럼 레이아웃 */}
         <div className={styles.mainGrid}>
           {/* 왼쪽: 폼 영역 */}
-          <form className={styles.formSection} onSubmit={handleSubmit}>
+          <form className={styles.formSection} onSubmit={handleGenerateRecipe}>
             {/* Step 1: 무엇을 만들고 싶나요? */}
             <div className={styles.stepCard}>
               <div className={styles.stepTitleRow}>
@@ -184,7 +303,7 @@ export default function CreateAIRecipe() {
                   </span>
                 ))}
 
-                {isAddingTag ? (
+                {isAddingIngredientTag ? (
                   <div className={styles.addTagInputWrapper}>
                     <input
                       type="text"
@@ -200,7 +319,7 @@ export default function CreateAIRecipe() {
                     </button>
                   </div>
                 ) : (
-                  <button type="button" className={styles.addTagBtn} onClick={() => setIsAddingTag(true)}>
+                  <button type="button" className={styles.addTagBtn} onClick={() => setIsAddingIngredientTag(true)}>
                     재료 추가 +
                   </button>
                 )}
@@ -368,84 +487,59 @@ export default function CreateAIRecipe() {
                     </span>
                   </div>
                 </div>
-
-                <div className={styles.selectField}>
-                  <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
-                    매운맛
+              </div>
+              {/* 제외시킬 재료 */}
+              <div>
+                {/* <div className={styles.stepTitleRow}> */}
+                {/* <span className={styles.stepBadge}>2</span> */}
+                <div style={{ paddingTop: '20px', paddingBottom: '16px' }}>
+                  <label className="text-sm" style={{ color: 'var(--brand-gray)' }}>
+                    🚫 제외시킬 재료
                   </label>
-                  <div>
-                    <select
-                      className={styles.selectBox}
-                      value={conditions.spiciness}
-                      onClick={() => toggleSelect('spiciness')}
-                      onBlur={() => closeSelect('spiciness')}
-                      onChange={(e) => {
-                        handleConditionChange('spiciness', e.target.value);
-                        closeSelect('spiciness');
-                      }}
-                    >
-                      <option>순한맛</option>
-                      <option>보통</option>
-                      <option>매운맛</option>
-                      <option>아주 매운맛</option>
-                    </select>
-                    {/* 커스텀 화살표 아이콘 */}
-                    <span className={`${styles.selectArrow} ${openSelects.spiciness ? styles.selectArrowOpen : ''}`}>
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </span>
-                  </div>
                 </div>
-
-                <div className={styles.selectField}>
-                  <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
-                    제외 재료
-                  </label>
-                  <div>
-                    <select
-                      className={styles.selectBox}
-                      value={conditions.excluded}
-                      onClick={() => toggleSelect('excluded')}
-                      onBlur={() => closeSelect('excluded')}
-                      onChange={(e) => {
-                        handleConditionChange('excluded', e.target.value);
-                        closeSelect('excluded');
-                      }}
-                    >
-                      <option>없음</option>
-                      <option>견과류</option>
-                      <option>유제품</option>
-                      <option>해산물</option>
-                      <option>돼지고기</option>
-                    </select>
-                    {/* 커스텀 화살표 아이콘 */}
-                    <span className={`${styles.selectArrow} ${openSelects.excluded ? styles.selectArrowOpen : ''}`}>
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
+                {/* </div> */}
+                <div className={styles.tagList}>
+                  {excluded.map((tag) => (
+                    <span key={tag} className={styles.tagChip}>
+                      {tag}
+                      <button type="button" className={styles.tagDeleteBtn} onClick={() => handleRemoveExcluded(tag)}>
+                        ✕
+                      </button>
                     </span>
-                  </div>
+                  ))}
+
+                  {isAddingExcludedTag ? (
+                    <div className={styles.addTagInputWrapper}>
+                      <input
+                        type="text"
+                        className={styles.addTagInput}
+                        value={newExcluded}
+                        onChange={(e) => setNewExcluded(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddExcluded())}
+                        placeholder="재료명"
+                      />
+                      <button type="button" className={styles.addTagConfirmBtn} onClick={handleAddExcluded}>
+                        추가
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className={styles.addTagBtn} onClick={() => setIsAddingExcludedTag(true)}>
+                      재료 추가 +
+                    </button>
+                  )}
                 </div>
               </div>
+              {/* 보유 재료 태그 리스트 */}
+              {/* <div className={styles.tagContainer}>
+                {ingredients.map((tag) => (
+                  <span key={tag} className={styles.tagBadge}>
+                    {tag}
+                    <button type="button" className={styles.tagDeleteBtn} onClick={() => handleRemoveIngredient(tag)}>
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div> */}
             </div>
 
             {/* Step 4: 결과 생성 옵션 */}
@@ -458,21 +552,6 @@ export default function CreateAIRecipe() {
               </div>
               <div className={styles.optionsGrid}>
                 <label className={styles.checkboxItem}>
-                  <input type="checkbox" checked={options.title} onChange={() => handleOptionToggle('title')} />
-                  <span>레시피 제목 생성</span>
-                </label>
-
-                <label className={styles.checkboxItem}>
-                  <input type="checkbox" checked={options.summary} onChange={() => handleOptionToggle('summary')} />
-                  <span>핵심 조리 과정 요약</span>
-                </label>
-
-                <label className={styles.checkboxItem}>
-                  <input type="checkbox" checked={options.steps} onChange={() => handleOptionToggle('steps')} />
-                  <span>상세 조리 단계 생성</span>
-                </label>
-
-                <label className={styles.checkboxItem}>
                   <input type="checkbox" checked={options.image} onChange={() => handleOptionToggle('image')} />
                   <span>완성 이미지 생성</span>
                 </label>
@@ -480,8 +559,8 @@ export default function CreateAIRecipe() {
                 <label className={styles.checkboxItem}>
                   <input
                     type="checkbox"
-                    checked={options.substitutes}
-                    onChange={() => handleOptionToggle('substitutes')}
+                    checked={options.sidedishes}
+                    onChange={() => handleOptionToggle('sidedishes')}
                   />
                   <span>대체 재료 추천</span>
                 </label>
@@ -494,8 +573,8 @@ export default function CreateAIRecipe() {
                 <label className={styles.checkboxItem}>
                   <input
                     type="checkbox"
-                    checked={options.shoppingList}
-                    onChange={() => handleOptionToggle('shoppingList')}
+                    checked={options.shoppinglist}
+                    onChange={() => handleOptionToggle('shoppinglist')}
                   />
                   <span>장보기 목록 생성</span>
                 </label>
@@ -503,85 +582,85 @@ export default function CreateAIRecipe() {
             </div>
 
             {/* 생성하기 버튼 */}
-            <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-              {isLoading ? '✨ AI가 레시피를 구상 중입니다...' : '🪄 나만의 레시피 만들기'}
+            <button type="submit" className={styles.submitBtn} disabled={loadingStep} onClick={handleGenerateRecipe}>
+              {loadingStep ? '✨ AI가 레시피를 구상 중입니다...' : '🪄 나만의 레시피 만들기'}
             </button>
           </form>
 
           {/* 오른쪽: 미리보기 / 결과 카드 */}
           <div className={styles.resultCard}>
-            {isLoading ? (
+            {loadingStep ? (
               <div className={styles.loadingContainer}>
                 <div className={styles.spinner} />
-                <p className="text-m" style={{ color: 'var(--brand-brown)', marginTop: '16px' }}>
-                  AI가 최고의 레시피를 생성하는 중입니다...
+
+                {/* loadingStep 상태에 따른 텍스트 분기 처리 */}
+                <p className="text-m" style={{ color: 'var(--brand-brown)', marginTop: '16px', fontWeight: 600 }}>
+                  {loadingStep === 'prompt' && '🤖 레시피를 생성 중입니다...'}
+                  {loadingStep === 'image' && '🎨 이미지를 생성 중입니다...'}
+                </p>
+                <p className="text-sm" style={{ color: 'var(--brand-gray)', marginTop: '6px' }}>
+                  {loadingStep === 'prompt' && '입력하신 재료와 조건을 분석하고 있어요.'}
+                  {loadingStep === 'image' && '맛있는 이미지를 그리고 있어요. 곧 완성됩니다!'}
                 </p>
               </div>
             ) : result ? (
-              <div className={styles.resultView}>
-                {/* 헤더 타이틀 */}
-                <div className={styles.resultTitleRow}>
-                  <span className={styles.sparkleIcon}>✨</span>
-                  <h2 className="font-display dtext-2xl" style={{ fontWeight: 600 }}>
-                    완성된 나만의 레시피
-                  </h2>
-                </div>
-
-                {/* 대표 요리 이미지 */}
-                <div className={styles.recipeImageWrapper}>
-                  <img src={result.image} alt="생성된 요리 이미지" className={styles.recipeImage} />
-                </div>
-
-                {/* 크림색 배경 마크다운 본문 박스 */}
-                <div className={styles.markdownCardBox}>
-                  <div className={styles.markdownContent}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.markdown}</ReactMarkdown>
-                  </div>
-
-                  <div className={styles.cardDivider} />
-
-                  {/* 하단 액션 버튼 바 */}
-                  <div className={styles.resultActionBar}>
-                    <div className={styles.leftIcons}>
-                      <button type="button" className={styles.iconCircleBtn} title="다시 생성">
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M21.5 2v6h-6" />
-                          <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-                        </svg>
-                      </button>
-                      <button type="button" className={styles.iconCircleBtn} title="복사하기">
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <button type="button" className={styles.publishBtn}>
-                      <span>➤</span> 게시하기
+              <RecipeResultCard result={result}>
+                {/* 1. 하단 액션 버튼 바 (children 주입) */}
+                <div className={styles.resultActionBar}>
+                  <div className={styles.leftIcons}>
+                    <button
+                      type="button"
+                      className={styles.iconCircleBtn}
+                      title="다시 생성"
+                      onClick={handleGenerateRecipe}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21.5 2v6h-6" />
+                        <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.iconCircleBtn}
+                      title="복사하기"
+                      onClick={() => {
+                        if (result?.markdown) {
+                          navigator.clipboard.writeText(result.markdown);
+                          alert('레시피가 클립보드에 복사되었습니다.');
+                        }
+                      }}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
                     </button>
                   </div>
+
+                  <button type="button" className={styles.publishBtn}>
+                    <span>➤</span> 게시하기
+                  </button>
                 </div>
 
-                {/* 추가 수정 프롬프트 입력창 */}
+                {/* 2. 추가 수정 프롬프트 입력창 (children 주입) */}
                 <form className={styles.refineInputWrapper} onSubmit={handleRefineSubmit}>
                   <input
                     type="text"
@@ -606,7 +685,7 @@ export default function CreateAIRecipe() {
                     </svg>
                   </button>
                 </form>
-              </div>
+              </RecipeResultCard>
             ) : (
               <div className={styles.emptyView}>
                 <div className={styles.emptyIconBadge}>
