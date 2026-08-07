@@ -122,6 +122,7 @@ export default function Community() {
   const [selectedCategory, setSelectedCategory] = useState("최신");
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [pageError, setPageError] = useState("");
@@ -218,22 +219,19 @@ export default function Community() {
     }
   }
 
+  // 커뮤니티 페이지 최초 진입 시에만 전체 스켈레톤 UI 표시
   useEffect(() => {
-    setPosts([]);
-    setHasMorePosts(true);
-    setSelectedPostId(null);
-
     fetchPosts({
       reset: true,
       showLoading: true,
-      category: selectedCategory,
+      category: "최신",
     });
-  }, [selectedCategory]);
+  }, []);
 
   useEffect(() => {
     const target = loadMoreRef.current;
 
-    if (!target || postsLoading || loadingMore || !hasMorePosts || pageError) {
+    if (!target || postsLoading || categoryLoading || loadingMore || !hasMorePosts || pageError) {
       return undefined;
     }
 
@@ -257,7 +255,15 @@ export default function Community() {
     return () => {
       observer.disconnect();
     };
-  }, [posts.length, postsLoading, loadingMore, hasMorePosts, pageError, selectedCategory]);
+  }, [
+    posts.length,
+    postsLoading,
+    categoryLoading,
+    loadingMore,
+    hasMorePosts,
+    pageError,
+    selectedCategory,
+  ]);
 
   useEffect(() => {
     if (!selectedPostId) {
@@ -499,7 +505,7 @@ export default function Community() {
       if (error) throw error;
 
       if (selectedCategory !== submittedCategory) {
-        setSelectedCategory(submittedCategory);
+        await handleCategoryChange(submittedCategory);
       } else {
         await fetchPosts({
           reset: true,
@@ -581,6 +587,29 @@ export default function Community() {
     }
   }
 
+  async function handleCategoryChange(category) {
+    if (category === selectedCategory || categoryLoading) {
+      return;
+    }
+
+    setSelectedCategory(category);
+    setCategoryLoading(true);
+    setHasMorePosts(true);
+    setSelectedPostId(null);
+    setPageError("");
+
+    try {
+      // 카테고리 변경 시에는 기존 카드를 유지한 채 새 데이터를 요청한다.
+      // showLoading을 전달하지 않기 때문에 전체 스켈레톤 UI가 다시 뜨지 않는다.
+      await fetchPosts({
+        reset: true,
+        category,
+      });
+    } finally {
+      setCategoryLoading(false);
+    }
+  }
+
   function renderCategoryButton(category) {
     const isSelected = selectedCategory === category;
 
@@ -589,7 +618,7 @@ export default function Community() {
         key={category}
         type="button"
         variant={isSelected ? "contained" : "outlined"}
-        onClick={() => setSelectedCategory(category)}
+        onClick={() => handleCategoryChange(category)}
         className={styles.categoryButton}
         sx={{
           width: "auto",
