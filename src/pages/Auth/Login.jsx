@@ -22,6 +22,7 @@ export default function Login() {
 
   async function handleEmailLogin(event) {
     event.preventDefault();
+
     setErrorMessage("");
 
     const trimmedEmail = email.trim();
@@ -39,7 +40,7 @@ export default function Login() {
     try {
       setLoading(true);
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password,
       });
@@ -48,7 +49,26 @@ export default function Login() {
         throw error;
       }
 
+      if (!data.session) {
+        throw new Error("로그인 세션을 생성하지 못했습니다.");
+      }
+
+      // Cookie storage에 실제 저장됐는지 확인
+      const {
+        data: { session: storedSession },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      if (!storedSession) {
+        throw new Error("로그인 세션 저장에 실패했습니다.");
+      }
+
       alert("로그인되었습니다.");
+
       navigate("/");
     } catch (error) {
       console.error("이메일 로그인 오류:", error);
