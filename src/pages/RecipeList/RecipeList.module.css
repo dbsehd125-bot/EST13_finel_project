@@ -1,7 +1,24 @@
 .recipe-list-page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 64px 24px;
+}
+
+.page-header {
+  margin-bottom: 40px;
+}
+
+.title-area {
+  margin-bottom: 32px;
+}
+
+.title-h1 {
+  color: var(--brand-brown);
+  margin: 0 0 12px 0;
+}
+
+.title-p {
+  color: var(--brand-gray);
+  margin: 0;
 }
 
 .search-section {
