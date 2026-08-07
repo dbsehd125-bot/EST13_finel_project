@@ -169,6 +169,14 @@ export default function RecipeList() {
   return (
     <Layout activeMenu="레시피 둘러보기">
       <div className={styles['recipe-list-page']}>
+        {/* 페이지 타이틀 헤더 */}
+        <section className={styles['page-header']}>
+          <div className={styles['title-area']}>
+            <h1 className={`font-display dtext-5xl ${styles['title-h1']}`}>레시피 둘러보기</h1>
+            <p className={`text-m ${styles['title-p']}`}>다양한 레시피를 검색하고 나만의 요리 영감을 찾아보세요.</p>
+          </div>
+        </section>
+
         {/* [검색 및 필터 영역: */}
         <div className={styles['search-section']}>
           <div className={styles['main-search-bar']}>

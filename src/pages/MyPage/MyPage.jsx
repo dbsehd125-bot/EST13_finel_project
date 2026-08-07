@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { Layout } from '../../components';
 import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart } from 'lucide-react';
 import styles from './MyPage.module.css';
@@ -15,8 +16,14 @@ function TabButton({ tab, activeTab, onClick }) {
 }
 
 function MyRecipeCard({ recipe }) {
+  const navigate = useNavigate();
+
   return (
-    <div className={styles['recipe-card']}>
+    <div 
+      className={styles['recipe-card']} 
+      onClick={() => navigate(`/recipes/${recipe.id}`)}
+      style={{ cursor: 'pointer' }}
+    >
       <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
         <span className={`text-s ${styles['privacy-badge']} ${recipe.isPublic ? styles['public'] : styles['private']}`}>
           {recipe.isPublic ? '공개' : '비공개'}
@@ -29,8 +36,8 @@ function MyRecipeCard({ recipe }) {
           <span><Heart size={14} /> {recipe.likes}</span>
         </div>
         <div className={styles['recipe-actions']}>
-          <button className={`text-button ${styles['btn-card-action']}`}><Pencil size={14} /> 수정</button>
-          <button className={`text-button ${styles['btn-card-action']}`}>🗑 삭제</button>
+          <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}><Pencil size={14} /> 수정</button>
+          <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}>🗑 삭제</button>
         </div>
       </div>
     </div>
@@ -132,32 +139,68 @@ export default function MyPage() {
           ))}
         </div>
 
-        {/* 내 레시피 검색 및 정렬 */}
-        <div className={styles['toolbar']}>
-          <div className={styles['search-bar']}>
-            <Search size={18} className={styles['search-icon']} />
-            <input
-              type="text"
-              className="text-m"
-              placeholder="내 레시피 검색"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className={styles['toolbar-right']}>
-            <button className={`text-button ${styles['sort-btn']}`}>
-              최신순 <ChevronDown size={16} />
-            </button>
-            <button className={`text-button ${styles['btn-new-recipe']}`}>+ 새 레시피 작성</button>
-          </div>
-        </div>
+        {/* 탭 콘텐츠 영역 */}
+        {activeTab === '내가 작성한 레시피' && (
+          <>
+            <div className={styles['toolbar']}>
+              <div className={styles['search-bar']}>
+                <Search size={18} className={styles['search-icon']} />
+                <input
+                  type="text"
+                  className="text-m"
+                  placeholder="내 레시피 검색"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className={styles['toolbar-right']}>
+                <button className={`text-button ${styles['sort-btn']}`}>
+                  최신순 <ChevronDown size={16} />
+                </button>
+                <button className={`text-button ${styles['btn-new-recipe']}`}>+ 새 레시피 작성</button>
+              </div>
+            </div>
 
-        {/* 레시피 목록 결과 화면 */}
-        <div className={styles['recipe-grid']}>
-          {filteredRecipes.map(recipe => (
-            <MyRecipeCard key={recipe.id} recipe={recipe} />
-          ))}
-        </div>
+            <div className={styles['recipe-grid']}>
+              {filteredRecipes.map(recipe => (
+                <MyRecipeCard key={recipe.id} recipe={recipe} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeTab === '저장한 레시피' && (
+          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+            <p className="text-lg">아직 저장한 레시피가 없습니다.</p>
+            <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 저장해보세요!</p>
+          </div>
+        )}
+
+        {activeTab === '좋아요한 레시피' && (
+          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+            <p className="text-lg">아직 좋아요를 누른 레시피가 없습니다.</p>
+          </div>
+        )}
+
+        {activeTab === '요리 후기' && (
+          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+            <p className="text-lg">작성한 요리 후기가 없습니다.</p>
+          </div>
+        )}
+
+        {activeTab === '주간 식단' && (
+          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+            <p className="text-lg">이번 주 식단이 비어있습니다.</p>
+            <button className={`text-button ${styles['btn-new-recipe']}`} style={{ marginTop: '1rem' }}>+ 식단 계획하기</button>
+          </div>
+        )}
+
+        {activeTab === '장보기 목록' && (
+          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+            <p className="text-lg">장보기 목록이 비어있습니다.</p>
+            <button className={`text-button ${styles['btn-new-recipe']}`} style={{ marginTop: '1rem' }}>+ 품목 추가</button>
+          </div>
+        )}
       </div>
     </Layout>
   );
