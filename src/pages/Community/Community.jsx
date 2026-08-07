@@ -81,6 +81,27 @@ function mapComment(row) {
   };
 }
 
+function preloadImages(posts) {
+  const imageUrls = posts.map(post => post.image).filter(Boolean);
+
+  if (imageUrls.length === 0) {
+    return Promise.resolve();
+  }
+
+  return Promise.all(
+    imageUrls.map(
+      src =>
+        new Promise(resolve => {
+          const image = new Image();
+
+          image.onload = resolve;
+          image.onerror = resolve;
+          image.src = src;
+        }),
+    ),
+  );
+}
+
 function CommunityCardSkeleton({ index }) {
   const imageHeights = [220, 300, 250, 340, 280, 230, 320, 260, 360];
 
@@ -196,6 +217,12 @@ export default function Community() {
       }
 
       const mappedPosts = (data ?? []).map(mapPost);
+
+      // 최초 커뮤니티 진입에서는 첫 페이지 이미지까지 모두 준비한 뒤
+      // 스켈레톤을 제거해 Masonry가 이미지 로딩 때문에 재배치되는 현상을 줄인다.
+      if (reset && showLoading) {
+        await preloadImages(mappedPosts);
+      }
 
       setPosts(previousPosts => {
         if (reset) {
@@ -1021,7 +1048,7 @@ export default function Community() {
                       className={styles.cardImage}
                       src={post.image}
                       alt={post.imageAlt}
-                      loading={index < 3 ? "eager" : "lazy"}
+                      loading="eager"
                       fetchPriority={index === 0 ? "high" : "auto"}
                       decoding="async"
                     />
