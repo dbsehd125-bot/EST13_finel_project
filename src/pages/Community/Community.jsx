@@ -5,6 +5,7 @@ import {
   Bookmark,
   BookmarkBorderOutlined,
   Close,
+  DeleteOutlined,
   EditOutlined,
   Favorite,
   FavoriteBorder,
@@ -138,6 +139,12 @@ export default function Community() {
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [writeError, setWriteError] = useState("");
   const [writeSubmitting, setWriteSubmitting] = useState(false);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [originalPostImageUrl, setOriginalPostImageUrl] = useState("");
+
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [commentActionId, setCommentActionId] = useState(null);
 
   const fileInputRef = useRef(null);
   const loadMoreRef = useRef(null);
@@ -315,6 +322,8 @@ export default function Community() {
   function handleDetailModalClose() {
     setSelectedPostId(null);
     setCommentText("");
+    setEditingCommentId(null);
+    setEditingCommentText("");
   }
 
   function handleLikeToggle(postId) {
@@ -339,6 +348,22 @@ export default function Community() {
     );
   }
 
+  function handlePostEditOpen() {
+    if (!user || !selectedPost || selectedPost.userId !== user.id) return;
+
+    setEditingPostId(selectedPost.id);
+    setOriginalPostImageUrl(selectedPost.image || "");
+    setWriteForm({
+      category: selectedPost.category,
+      content: selectedPost.content,
+      recipeName: selectedPost.recipeName || "",
+      image: selectedPost.image || "",
+    });
+    setSelectedImageFile(null);
+    setWriteError("");
+    setWriteModalOpen(true);
+  }
+
   function handleWriteModalOpen() {
     if (authLoading) return;
 
@@ -347,6 +372,10 @@ export default function Community() {
       return;
     }
 
+    setEditingPostId(null);
+    setOriginalPostImageUrl("");
+    setWriteForm(initialWriteForm);
+    setSelectedImageFile(null);
     setWriteError("");
     setWriteModalOpen(true);
   }
@@ -361,6 +390,8 @@ export default function Community() {
     });
 
     setSelectedImageFile(null);
+    setEditingPostId(null);
+    setOriginalPostImageUrl("");
     setWriteError("");
 
     if (fileInputRef.current) {
@@ -455,6 +486,156 @@ export default function Community() {
     };
   }
 
+  function getStoragePathFromPublicUrl(imageUrl) {
+    if (!imageUrl) return null;
+
+    const marker = `/storage/v1/object/public/${COMMUNITY_BUCKET}/`;
+    const markerIndex = imageUrl.indexOf(marker);
+
+    if (markerIndex === -1) return null;
+
+    return decodeURIComponent(imageUrl.slice(markerIndex + marker.length));
+  }
+
+  async function removeCommunityImageByUrl(imageUrl) {
+    const imagePath = getStoragePathFromPublicUrl(imageUrl);
+    if (!imagePath) return;
+
+    const { error } = await supabase.storage.from(COMMUNITY_BUCKET).remove([imagePath]);
+
+    if (error) {
+      console.error("커뮤니티 이미지 삭제 오류:", error);
+    }
+  }
+
+  async function handlePostDelete() {
+    if (!user || !selectedPost || selectedPost.userId !== user.id) return;
+
+    const shouldDelete = window.confirm("이 게시글을 삭제할까요? 삭제한 글은 복구할 수 없습니다.");
+    if (!shouldDelete) return;
+
+    const postId = selectedPost.id;
+    const imageUrl = selectedPost.image;
+
+    try {
+      const { error } = await supabase
+        .from("community_posts")
+        .delete()
+        .eq("id", postId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      if (imageUrl) {
+        await removeCommunityImageByUrl(imageUrl);
+      }
+
+      setPosts(previousPosts => previousPosts.filter(post => post.id !== postId));
+      handleDetailModalClose();
+    } catch (error) {
+      console.error("게시글 삭제 오류:", error);
+      alert(error.message || "게시글 삭제에 실패했습니다.");
+    }
+  }
+
+  function handleCommentEditStart(comment) {
+    if (!user || comment.userId !== user.id) return;
+
+    setEditingCommentId(comment.id);
+    setEditingCommentText(comment.content);
+  }
+
+  function handleCommentEditCancel() {
+    setEditingCommentId(null);
+    setEditingCommentText("");
+  }
+
+  async function handleCommentEditSave(commentId) {
+    if (!user) return;
+
+    const trimmedContent = editingCommentText.trim();
+    if (!trimmedContent) {
+      alert("댓글 내용을 입력해주세요.");
+      return;
+    }
+
+    try {
+      setCommentActionId(commentId);
+
+      const { data, error } = await supabase
+        .from("community_comments")
+        .update({ content: trimmedContent })
+        .eq("id", commentId)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setComments(previousComments =>
+        previousComments.map(comment =>
+          comment.id === commentId ? { ...comment, content: data.content } : comment,
+        ),
+      );
+
+      handleCommentEditCancel();
+    } catch (error) {
+      console.error("댓글 수정 오류:", error);
+      alert(error.message || "댓글 수정에 실패했습니다.");
+    } finally {
+      setCommentActionId(null);
+    }
+  }
+
+  async function handleCommentDelete(commentId) {
+    if (!user || !selectedPost) return;
+
+    const targetComment = comments.find(comment => comment.id === commentId);
+    if (!targetComment || targetComment.userId !== user.id) return;
+
+    const shouldDelete = window.confirm("이 댓글을 삭제할까요?");
+    if (!shouldDelete) return;
+
+    try {
+      setCommentActionId(commentId);
+
+      const { error } = await supabase
+        .from("community_comments")
+        .delete()
+        .eq("id", commentId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      const nextCommentCount = Math.max(0, selectedPost.comments - 1);
+
+      const { error: countUpdateError } = await supabase
+        .from("community_posts")
+        .update({ comment_count: nextCommentCount })
+        .eq("id", selectedPost.id);
+
+      if (countUpdateError) {
+        console.error("댓글 수 갱신 오류:", countUpdateError);
+      }
+
+      setComments(previousComments => previousComments.filter(comment => comment.id !== commentId));
+      setPosts(previousPosts =>
+        previousPosts.map(post =>
+          post.id === selectedPost.id ? { ...post, comments: nextCommentCount } : post,
+        ),
+      );
+
+      if (editingCommentId === commentId) {
+        handleCommentEditCancel();
+      }
+    } catch (error) {
+      console.error("댓글 삭제 오류:", error);
+      alert(error.message || "댓글 삭제에 실패했습니다.");
+    } finally {
+      setCommentActionId(null);
+    }
+  }
+
   async function handleWriteSubmit(event) {
     event.preventDefault();
 
@@ -482,8 +663,13 @@ export default function Community() {
       setWriteSubmitting(true);
       setWriteError("");
 
-      const { imageUrl, uploadedPath } = await uploadCommunityImage(selectedImageFile, user);
-      uploadedImagePath = uploadedPath;
+      let nextImageUrl = writeForm.image || null;
+
+      if (selectedImageFile) {
+        const { imageUrl, uploadedPath } = await uploadCommunityImage(selectedImageFile, user);
+        nextImageUrl = imageUrl;
+        uploadedImagePath = uploadedPath;
+      }
 
       const nickname =
         user.user_metadata?.nickname ||
@@ -493,13 +679,58 @@ export default function Community() {
 
       const submittedCategory = writeForm.category;
 
+      if (editingPostId) {
+        const { data, error } = await supabase
+          .from("community_posts")
+          .update({
+            category: submittedCategory,
+            content: trimmedContent,
+            recipe_name: trimmedRecipeName || null,
+            image_url: nextImageUrl,
+          })
+          .eq("id", editingPostId)
+          .eq("user_id", user.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const previousImageUrl = originalPostImageUrl;
+
+        setPosts(previousPosts =>
+          previousPosts
+            .map(post => {
+              if (post.id !== editingPostId) return post;
+
+              return {
+                ...post,
+                ...mapPost(data),
+                liked: post.liked,
+                bookmarked: post.bookmarked,
+              };
+            })
+            .filter(post => {
+              if (selectedCategory === "최신" || selectedCategory === "인기") return true;
+              return post.category === selectedCategory;
+            }),
+        );
+
+        if (previousImageUrl && previousImageUrl !== nextImageUrl) {
+          await removeCommunityImageByUrl(previousImageUrl);
+        }
+
+        setWriteModalOpen(false);
+        resetWriteForm();
+        return;
+      }
+
       const { error } = await supabase.from("community_posts").insert({
         user_id: user.id,
         nickname,
         category: submittedCategory,
         content: trimmedContent,
         recipe_name: trimmedRecipeName || null,
-        image_url: imageUrl,
+        image_url: nextImageUrl,
       });
 
       if (error) throw error;
@@ -512,16 +743,20 @@ export default function Community() {
           category: submittedCategory,
         });
       }
+
       setWriteModalOpen(false);
       resetWriteForm();
     } catch (error) {
-      console.error("게시글 등록 오류:", error);
+      console.error(editingPostId ? "게시글 수정 오류:" : "게시글 등록 오류:", error);
 
       if (uploadedImagePath) {
         await supabase.storage.from(COMMUNITY_BUCKET).remove([uploadedImagePath]);
       }
 
-      setWriteError(error.message || "게시글 등록에 실패했습니다.");
+      setWriteError(
+        error.message ||
+          (editingPostId ? "게시글 수정에 실패했습니다." : "게시글 등록에 실패했습니다."),
+      );
     } finally {
       setWriteSubmitting(false);
     }
@@ -948,6 +1183,22 @@ export default function Community() {
                 </div>
 
                 <div className={styles.modalHeaderButtons}>
+                  {user?.id === selectedPost.userId && (
+                    <>
+                      <IconButton
+                        type="button"
+                        aria-label="게시글 수정"
+                        onClick={handlePostEditOpen}
+                      >
+                        <EditOutlined />
+                      </IconButton>
+
+                      <IconButton type="button" aria-label="게시글 삭제" onClick={handlePostDelete}>
+                        <DeleteOutlined />
+                      </IconButton>
+                    </>
+                  )}
+
                   <IconButton type="button" aria-label="닫기" onClick={handleDetailModalClose}>
                     <Close />
                   </IconButton>
@@ -976,12 +1227,61 @@ export default function Community() {
                         <div className={styles.commentProfileImage} />
 
                         <div className={styles.commentContent}>
-                          <div className={styles.commentWriter}>
-                            <strong>{comment.writer}</strong>
-                            <span>{comment.time}</span>
+                          <div className={styles.commentTopRow}>
+                            <div className={styles.commentWriter}>
+                              <strong>{comment.writer}</strong>
+                              <span>{comment.time}</span>
+                            </div>
+
+                            {user?.id === comment.userId && editingCommentId !== comment.id && (
+                              <div className={styles.commentManageButtons}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCommentEditStart(comment)}
+                                  disabled={commentActionId === comment.id}
+                                >
+                                  수정
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCommentDelete(comment.id)}
+                                  disabled={commentActionId === comment.id}
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            )}
                           </div>
 
-                          <p>{comment.content}</p>
+                          {editingCommentId === comment.id ? (
+                            <div className={styles.commentEditArea}>
+                              <textarea
+                                value={editingCommentText}
+                                onChange={event => setEditingCommentText(event.target.value)}
+                                maxLength={300}
+                                disabled={commentActionId === comment.id}
+                              />
+
+                              <div className={styles.commentEditButtons}>
+                                <button
+                                  type="button"
+                                  onClick={handleCommentEditCancel}
+                                  disabled={commentActionId === comment.id}
+                                >
+                                  취소
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCommentEditSave(comment.id)}
+                                  disabled={commentActionId === comment.id}
+                                >
+                                  {commentActionId === comment.id ? "저장 중..." : "저장"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p>{comment.content}</p>
+                          )}
 
                           <div className={styles.commentLike}>
                             <FavoriteBorder fontSize="small" />
@@ -1093,9 +1393,15 @@ export default function Community() {
         <form className={styles.writeModal} onSubmit={handleWriteSubmit}>
           <div className={styles.writeModalHeader}>
             <div>
-              <h2 className="font-display dtext-2xl">커뮤니티 글쓰기</h2>
+              <h2 className="font-display dtext-2xl">
+                {editingPostId ? "커뮤니티 글 수정" : "커뮤니티 글쓰기"}
+              </h2>
 
-              <p className="text-sm">음식과 레시피에 관한 이야기를 남겨보세요.</p>
+              <p className="text-sm">
+                {editingPostId
+                  ? "작성한 게시글 내용을 수정할 수 있습니다."
+                  : "음식과 레시피에 관한 이야기를 남겨보세요."}
+              </p>
             </div>
 
             <IconButton type="button" aria-label="글쓰기 창 닫기" onClick={handleWriteModalClose}>
@@ -1268,7 +1574,13 @@ export default function Community() {
             </button>
 
             <button type="submit" className={styles.submitWriteButton} disabled={writeSubmitting}>
-              {writeSubmitting ? "등록 중..." : "등록하기"}
+              {writeSubmitting
+                ? editingPostId
+                  ? "수정 중..."
+                  : "등록 중..."
+                : editingPostId
+                  ? "수정하기"
+                  : "등록하기"}
             </button>
           </div>
         </form>
