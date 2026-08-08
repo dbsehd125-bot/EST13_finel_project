@@ -1,37 +1,39 @@
-import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router';
 
-import { useAuth } from "../context/AuthContext";
-import "./Header.css";
+import { useAuth } from '../context/AuthContext';
+import './Header.css';
+import AuthGuardModal from '../components/AuthGuardModal';
 
 export default function Header() {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
 
   const menuItems = [
     {
-      id: "home",
-      label: "홈",
-      path: "/",
+      id: 'home',
+      label: '홈',
+      path: '/',
       end: true,
     },
     {
-      id: "recipes",
-      label: "레시피 둘러보기",
-      path: "/recipes",
+      id: 'recipes',
+      label: '레시피 둘러보기',
+      path: '/recipes',
     },
     {
-      id: "ai",
-      label: "AI 레시피",
-      path: "/ai",
+      id: 'ai',
+      label: 'AI 레시피',
+      path: '/ai',
     },
     {
-      id: "community",
-      label: "커뮤니티",
-      path: "/community",
+      id: 'community',
+      label: '커뮤니티',
+      path: '/community',
     },
   ];
 
@@ -45,13 +47,23 @@ export default function Header() {
     const success = await logout();
 
     if (!success) {
-      alert("로그아웃에 실패했습니다.");
+      alert('로그아웃에 실패했습니다.');
       return;
     }
 
     closeMenu();
-    navigate("/");
+    navigate('/');
   }
+
+  const handleRegisterClick = () => {
+    closeMenu();
+
+    if (isLoggedIn) {
+      navigate('/register');
+    } else {
+      setIsModalOpen(true);
+    }
+  };
 
   return (
     <header className="header">
@@ -82,12 +94,12 @@ export default function Header() {
 
           {/* 데스크톱 내비게이션 */}
           <nav className="nav" aria-label="주요 메뉴">
-            {menuItems.map(item => (
+            {menuItems.map((item) => (
               <NavLink
                 key={item.id}
                 to={item.path}
                 end={item.end}
-                className={({ isActive }) => `text-sm ${isActive ? "active" : ""}`}
+                className={({ isActive }) => `text-sm ${isActive ? 'active' : ''}`}
               >
                 {item.label}
               </NavLink>
@@ -135,18 +147,16 @@ export default function Header() {
           </button>
 
           {/* 레시피 등록 */}
-          <Link to="/register" className="btn-create text-button">
+          {/* <Link to="/register" className="btn-create text-button">
             + 레시피 등록하기
-          </Link>
+          </Link> */}
+          <button type="button" className="btn-create text-button" onClick={handleRegisterClick}>
+            + 레시피 등록하기
+          </button>
 
           {/* 로그인 상태일 때만 마이페이지 표시 */}
           {isLoggedIn && (
-            <Link
-              to="/mypage"
-              className="avatar"
-              aria-label="마이페이지로 이동"
-              onClick={closeMenu}
-            >
+            <Link to="/mypage" className="avatar" aria-label="마이페이지로 이동" onClick={closeMenu}>
               <svg
                 width="18"
                 height="18"
@@ -174,7 +184,7 @@ export default function Header() {
                   onClick={handleLogout}
                   disabled={logoutLoading}
                 >
-                  {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+                  {logoutLoading ? '로그아웃 중...' : '로그아웃'}
                 </button>
               ) : (
                 <Link to="/login" className="login-link text-sm">
@@ -186,11 +196,11 @@ export default function Header() {
           {/* 태블릿·모바일 햄버거 버튼 */}
           <button
             type="button"
-            className={`menu-btn ${menuOpen ? "open" : ""}`}
-            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            className={`menu-btn ${menuOpen ? 'open' : ''}`}
+            aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
-            onClick={() => setMenuOpen(previous => !previous)}
+            onClick={() => setMenuOpen((previous) => !previous)}
           >
             <span />
             <span />
@@ -200,14 +210,14 @@ export default function Header() {
       </div>
 
       {/* 태블릿·모바일 펼침 메뉴 */}
-      <div id="mobile-menu" className={`mobile-menu ${menuOpen ? "open" : ""}`}>
+      <div id="mobile-menu" className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         <nav className="mobile-nav" aria-label="모바일 메뉴">
-          {menuItems.map(item => (
+          {menuItems.map((item) => (
             <NavLink
               key={item.id}
               to={item.path}
               end={item.end}
-              className={({ isActive }) => `text-m ${isActive ? "active" : ""}`}
+              className={({ isActive }) => `text-m ${isActive ? 'active' : ''}`}
               onClick={closeMenu}
             >
               {item.label}
@@ -216,9 +226,12 @@ export default function Header() {
         </nav>
 
         <div className="mobile-menu-actions">
-          <Link to="/register" className="mobile-create text-button" onClick={closeMenu}>
+          {/* <Link to="/register" className="mobile-create text-button" onClick={closeMenu}>
             레시피 등록하기
-          </Link>
+          </Link> */}
+          <button type="button" className="mobile-create text-button" onClick={handleRegisterClick}>
+            레시피 등록하기
+          </button>
 
           {!authLoading &&
             (isLoggedIn ? (
@@ -228,7 +241,7 @@ export default function Header() {
                 onClick={handleLogout}
                 disabled={logoutLoading}
               >
-                {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+                {logoutLoading ? '로그아웃 중...' : '로그아웃'}
               </button>
             ) : (
               <Link to="/login" className="mobile-login text-button" onClick={closeMenu}>
@@ -237,6 +250,9 @@ export default function Header() {
             ))}
         </div>
       </div>
+
+      {/* 로그인 안내 공통 모달 렌더링 추가 */}
+      <AuthGuardModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </header>
   );
 }
