@@ -8,6 +8,7 @@ import RecipeResultCard from './RecipeResultCard';
 // CSS
 import styles from './CreateAIRecipe.module.css';
 import { getOpenInteractionType } from '@mui/material/Select';
+import { RecipeJsonToMarkdown } from './RecipeJsonToMarkdown';
 
 const API_BASE = '/api/v1';
 const ALAN_CLIENT_ID = import.meta.env.VITE_ALAN_CLIENT_ID;
@@ -114,9 +115,7 @@ export default function CreateAIRecipe() {
     const requirements = [];
 
     if (options.sidedishes) {
-      requirements.push(
-        '- [곁들이기 추천] 이 요리와 잘 어울리는 반찬, 국, 또는 음료/주류 추천 1~2가지를 포함해줘.',
-      );
+      requirements.push('- [곁들이기 추천] 이 요리와 잘 어울리는 반찬, 국, 또는 음료/주류 추천 1~2가지를 포함해줘.');
     }
 
     if (options.nutrition) {
@@ -143,8 +142,13 @@ export default function CreateAIRecipe() {
 
     try {
       // [Step 1] Alan AI 텍스트 생성
-      const userPrompt = `
-      다음 조건에 맞는 상세한 요리 레시피를 만들어줘.
+      const systemPrompt = `
+      당신은 전문 요리 연구가 AI입니다. 
+      사용자가 제공하는 [요리 조건]과 [요청사항]을 바탕으로 최적의 레시피 데이터를 작성하세요.
+
+      [응답 규칙]
+      1. 반드시 아래의 [JSON Schema] 구조를 엄격히 준수하여 순수한 JSON 객체 하나만 반환해야 합니다.
+      2. 마크다운 문법(\`\`\`json ... \`\`\`), 설명 텍스트, 인사말, 사족은 절대로 포함하지 마세요.
 
       [요청사항]
       - ${prompt}
@@ -157,19 +161,61 @@ export default function CreateAIRecipe() {
       - 요리 종류: ${conditions.cuisine}
       - 못 먹는 재료: ${excluded.length > 0 ? excluded.join(', ') : '없음'}
 
-      [출력 포맷 요청]
-      1. 레시피 제목과 간단한 요약 설명
-      2. 정확한 재료 및 양념장 비율 목록
-      3. Step-by-Step 상세 조리 순서 (각 단계별 조리 팁 포함)
-      4. 내용 분기마다 이모지 1개씩 문장 맨 앞에 추가
+      [JSON Schema]
+      {
+        "title": "레시피 제목 (문자열)",
+        "summary": "레시피 한줄 요약 (문자열)",
+        "cuisine": "${conditions.cuisine || '기타'}",
+        "cooking_time": "${conditions.cookingTime || '30분 이내'}",
+        "difficulty": "${conditions.difficulty || '보통'}",
+        "servings": "${conditions.servings || '2인분'}",
+        "tags": ["태그1", "태그2", "태그3"],
+        "ingredients": [
+          {
+            "name": "재료명 및 수량/분량 (예: 닭가슴살 200g)",
+            "isSubstitutable": true 또는 false,
+            "substituteName": "대체 재료명 (isSubstitutable이 true일 때만 입력, false면 \"\")"
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "title": "단계 제목",
+            "description": "상세 조리 방법 설명",
+            "tip": "조리 팁 (없으면 \"\")"
+          }
+        ]
+      }
+      `.trim();
 
-      ${buildOutputOptionsPrompt(options)}
+      //   const userPrompt = `
+      //   다음 조건에 맞는 상세한 요리 레시피를 만들어줘.
 
-      위 내용을 읽기 좋은 깔끔한 마크다운(Markdown) 포맷으로 작성해줘.
-    `.trim();
+      //   [요청사항]
+      //   - ${prompt}
+
+      //   [요리 조건]
+      //   - 보유/사용 재료: ${ingredients.join(', ')}
+      //   - 식사 인원: ${conditions.servings}
+      //   - 조리 시간: ${conditions.cookingTime}
+      //   - 난이도: ${conditions.difficulty}
+      //   - 요리 종류: ${conditions.cuisine}
+      //   - 못 먹는 재료: ${excluded.length > 0 ? excluded.join(', ') : '없음'}
+
+      //   [출력 포맷 요청]
+      //   1. 레시피 제목과 간단한 요약 설명
+      //   2. 정확한 재료 및 양념장 비율 목록
+      //   3. Step-by-Step 상세 조리 순서 (각 단계별 조리 팁 포함)
+      //   4. 내용 분기마다 이모지 1개씩 문장 맨 앞에 추가
+
+      //   ${buildOutputOptionsPrompt(options)}
+
+      //   위 내용을 읽기 좋은 깔끔한 마크다운(Markdown) 포맷으로 작성해줘.
+      // `.trim();
 
       const queryString = new URLSearchParams({
-        content: userPrompt,
+        // content: userPrompt,
+        content: systemPrompt,
         client_id: ALAN_CLIENT_ID,
       }).toString();
 
@@ -179,8 +225,17 @@ export default function CreateAIRecipe() {
       }
 
       const data = await response.json();
-      const markdownContent =
+      const jsonString =
         data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+      // AI가 붙였을 수도 있는 마크다운 코드블록 메타문자(```json ... ```) 1차 제거
+      const cleanedJsonString = jsonString
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
+      // JSON 객체로 파싱
+      const parsedRecipeJson = JSON.parse(cleanedJsonString);
+      // 파싱 완료된 JSON 객체로 마크다운 생성
+      const markdownContent = RecipeJsonToMarkdown(parsedRecipeJson);
 
       let base64ImageContent = FALLBACK_URL;
 
