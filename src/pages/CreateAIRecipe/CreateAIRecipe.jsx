@@ -1,10 +1,14 @@
 // Library
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 // Components
 import Layout from '../../components/Layout';
+import { useAuth } from '../../context/AuthContext';
 import RecipeResultCard from './RecipeResultCard';
+import { UploadRecipeToSupabase } from './UploadRecipeToSupabase';
+import AuthGuardModal from '../../components/AuthGuardModal';
 // CSS
 import styles from './CreateAIRecipe.module.css';
 import { getOpenInteractionType } from '@mui/material/Select';
@@ -16,6 +20,9 @@ const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 const FALLBACK_URL = 'https://dummyimage.com/1024x1024/f26b3a/ffffff.png&text=No+Image';
 
 export default function CreateAIRecipe() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   // Step 1: 프롬프트 입력
   const [prompt, setPrompt] = useState(
     '집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.',
@@ -47,6 +54,9 @@ export default function CreateAIRecipe() {
   // 셀렉트 박스 화살표 상태
   const [openSelects, setOpenSelects] = useState({});
 
+  // 게시 상태
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const toggleSelect = (field) => {
     setOpenSelects((prev) => ({ ...prev, [field]: !prev[field] }));
   };
@@ -54,6 +64,9 @@ export default function CreateAIRecipe() {
   const closeSelect = (field) => {
     setOpenSelects((prev) => ({ ...prev, [field]: false }));
   };
+
+  // 🔒 로그인 유도 모달 상태 추가
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // 하단 추가 수정 프롬프트 상태
   const [refinePrompt, setRefinePrompt] = useState('');
@@ -154,7 +167,7 @@ export default function CreateAIRecipe() {
     }
   }
 
-  // test
+  // 레시피 생성하기
   const handleGenerateRecipe = async (e) => {
     if (e) e.preventDefault();
 
@@ -247,7 +260,7 @@ export default function CreateAIRecipe() {
         parsedRecipeJson.thumbnail_url = thumbnailUrl;
 
         // 2. 단계별 이미지 순차 생성 (429 Rate Limit 방지를 위한 딜레이 적용)
-        if (options.image || parsedRecipeJson.steps?.length > 0) {
+        if (options.image && parsedRecipeJson.steps?.length > 0) {
           const updatedSteps = [];
 
           for (let i = 0; i < parsedRecipeJson.steps.length; i++) {
@@ -307,6 +320,41 @@ export default function CreateAIRecipe() {
       }));
       setRefinePrompt('');
     }, 1200);
+  };
+
+  // 레시피 Supabase에 등록하기
+  const handlePublish = async () => {
+    if (!result || !result.raw) {
+      alert('저장할 레시피 데이터가 없습니다. 먼저 레시피를 생성해 주세요.');
+      return;
+    }
+
+    // 1. 비회원 처리: AuthGuardModal 팝업
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    // 2. 회원 처리: Supabase 업로드 및 DB Insert 실행
+    try {
+      setIsPublishing(true);
+
+      const response = await UploadRecipeToSupabase(result.raw, user);
+
+      if (response.success && response.savedRecipe) {
+        alert('레시피가 DB 및 스토리지에 성공적으로 등록되었습니다!');
+
+        // 3. 등록 성공 후 '등록하기' 페이지로 라우팅
+        navigate(`/register?id=${response.savedRecipe.id}`);
+      } else {
+        alert(`레시피 등록에 실패했습니다: ${response.detail || response.error}`);
+      }
+    } catch (error) {
+      console.error('게시하기 처리 중 에러:', error);
+      alert('레시피를 게시하는 도중 오류가 발생했습니다.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -709,8 +757,17 @@ export default function CreateAIRecipe() {
                     </button>
                   </div>
 
-                  <button type="button" className={styles.publishBtn}>
-                    <span>➤</span> 게시하기
+                  <button
+                    type="button"
+                    className={styles.publishBtn}
+                    onClick={handlePublish}
+                    disabled={isPublishing}
+                    style={{
+                      cursor: isPublishing ? 'not-allowed' : 'pointer',
+                      opacity: isPublishing ? 0.7 : 1,
+                    }}
+                  >
+                    {isPublishing ? '게시 중...' : '🚀 게시하기'}
                   </button>
                 </div>
 
@@ -767,6 +824,13 @@ export default function CreateAIRecipe() {
           </div>
         </div>
       </div>
+
+      {/* 🔒 비회원 전용 로그인 유도 모달 추가 */}
+      <AuthGuardModal
+        open={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        message="게시하기 기능은 로그인 후 이용하실 수 있습니다."
+      />
     </Layout>
   );
 }
