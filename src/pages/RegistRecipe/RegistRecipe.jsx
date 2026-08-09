@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
+import { supabase } from '../../lib/supabaseClient';
 import Layout from '../../components/Layout';
 import styles from './RegistRecipe.module.css';
 
@@ -68,58 +69,72 @@ function Step1BasicInfo({ formData, updateFormData }) {
         />
       </div>
 
-      {/* 4컬럼 셀렉트 그리드 */}
-      <div className={styles.fourColGrid}>
-        <div className={styles.selectField}>
-          <label className={styles.inputLabel}>카테고리</label>
-          <select
-            className={styles.selectBox}
-            value={formData.category}
-            onChange={(e) => updateFormData('category', e.target.value)}
-          >
-            <option>한식</option>
-            <option>양식</option>
-            <option>일식</option>
-            <option>중식</option>
-            <option>퓨전</option>
-            <option>기타</option>
-          </select>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* 4컬럼 셀렉트 그리드 */}
+        <div className={styles.fourColGrid}>
+          <div className={styles.selectField}>
+            <label className={styles.inputLabel}>카테고리</label>
+            <input
+              type="text"
+              className={styles.textInput}
+              value={formData.category || '한식'}
+              disabled
+              readOnly
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
+            />
+          </div>
+
+          <div className={styles.selectField}>
+            <label className={styles.inputLabel}>조리시간</label>
+            <input
+              type="text"
+              className={styles.textInput}
+              value={formData.cookingTime || '30분 이내'}
+              disabled
+              readOnly
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
+            />
+          </div>
+
+          <div className={styles.selectField}>
+            <label className={styles.inputLabel}>난이도</label>
+            <input
+              type="text"
+              className={styles.textInput}
+              value={formData.difficulty || '보통'}
+              disabled
+              readOnly
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
+            />
+          </div>
+
+          <div className={styles.selectField}>
+            <label className={styles.inputLabel}>인분</label>
+            <input
+              type="text"
+              className={styles.textInput}
+              value={formData.servings || '2인분'}
+              disabled
+              readOnly
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
+            />
+          </div>
         </div>
 
-        <div className={styles.selectField}>
-          <label className={styles.inputLabel}>조리 시간(분)</label>
-          <input
-            type="number"
-            className={styles.textInput}
-            value={formData.cookingTime}
-            onChange={(e) => updateFormData('cookingTime', e.target.value)}
-            placeholder="20"
-          />
-        </div>
-
-        <div className={styles.selectField}>
-          <label className={styles.inputLabel}>난이도</label>
-          <select
-            className={styles.selectBox}
-            value={formData.difficulty}
-            onChange={(e) => updateFormData('difficulty', e.target.value)}
-          >
-            <option>초간단</option>
-            <option>하</option>
-            <option>중</option>
-            <option>상</option>
-          </select>
-        </div>
-
-        <div className={styles.selectField}>
-          <label className={styles.inputLabel}>인분</label>
-          <input
-            type="number"
-            className={styles.textInput}
-            value={formData.servings}
-            onChange={(e) => updateFormData('servings', e.target.value)}
-            placeholder="2"
-          />
+        {/* 🔒 수정 불가 안내 문구 */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '0 12px',
+            color: 'var(--brand-gray, #666)',
+            fontSize: '12px',
+          }}
+        >
+          <span>🔒</span>
+          <span>카테고리, 조리시간, 난이도, 인분 항목은 수정할 수 없습니다.</span>
         </div>
       </div>
 
@@ -166,92 +181,158 @@ function Step1BasicInfo({ formData, updateFormData }) {
    Step 2 컴포넌트: 재료 목록 입력
    ========================================================================== */
 function Step2Ingredients({ formData, updateFormData }) {
-  const [ingredientGroups, setIngredientGroups] = useState(
-    formData.ingredientGroups && formData.ingredientGroups.length > 0
-      ? formData.ingredientGroups
+  // 기본 필수 재료 ID 목록 (삭제 비활성화용)
+  const defaultItemIds = ['item-1', 'item-2', 'item-3'];
+
+  // 1. 기본 재료 목록 상태
+  const [defaultIngredients, setDefaultIngredients] = useState(
+    formData.ingredients && formData.ingredients.length > 0
+      ? formData.ingredients
       : [
-          {
-            id: 'group-1',
-            title: '기본 재료',
-            items: [
-              { id: 'item-1', name: '닭가슴살', isSubstitutable: true },
-              { id: 'item-2', name: '양파', isSubstitutable: false },
-            ],
-          },
-          {
-            id: 'group-2',
-            title: '양념장 재료',
-            items: [{ id: 'item-3', name: '고추장', isSubstitutable: false }],
-          },
+          { id: 'item-1', name: '닭가슴살', isSubstitutable: true, substituteName: '두부' },
+          { id: 'item-2', name: '양파', isSubstitutable: false, substituteName: '' },
+          { id: 'item-3', name: '고추장', isSubstitutable: false, substituteName: '' },
         ],
   );
 
-  const syncWithFormData = (newGroups) => {
-    setIngredientGroups(newGroups);
-    updateFormData('ingredientGroups', newGroups);
+  // 2. 사용자 추천 재료 목록 상태
+  const [customIngredients, setCustomIngredients] = useState(formData.customIngredients || []);
+
+  // 상위 formData와 동기화
+  const syncWithFormData = (newDefault, newCustom) => {
+    setDefaultIngredients(newDefault);
+    setCustomIngredients(newCustom);
+    updateFormData('defaultIngredients', newDefault);
+    updateFormData('customIngredients', newCustom);
   };
 
-  const handleAddGroup = () => {
-    const newGroup = {
-      id: `group-${Date.now()}`,
-      title: `추가 재료`,
-      items: [{ id: `item-${Date.now()}`, name: '', isSubstitutable: false }],
+  // '사용자 추천 재료' 항목 추가
+  const handleAddCustomItem = () => {
+    const newItem = {
+      id: `custom-${Date.now()}`,
+      name: '',
+      isSubstitutable: false,
+      substituteName: '',
     };
-    syncWithFormData([...ingredientGroups, newGroup]);
+    syncWithFormData(defaultIngredients, [...customIngredients, newItem]);
   };
 
-  const handleRemoveGroup = (groupId) => {
-    if (ingredientGroups.length <= 1) {
-      alert('최소 하나의 재료 그룹은 화면에 남아있어야 합니다.');
-      return;
+  // '사용자 추천 재료' 항목 삭제
+  const handleRemoveCustomItem = (itemId) => {
+    syncWithFormData(
+      defaultIngredients,
+      customIngredients.filter((item) => item.id !== itemId),
+    );
+  };
+
+  // 재료 정보 수정 (기본 재료 / 추천 재료 공용)
+  const handleItemChange = (itemId, isCustom, field, value) => {
+    const targetList = isCustom ? customIngredients : defaultIngredients;
+
+    const updatedList = targetList.map((item) => {
+      if (item.id === itemId) {
+        if (field === 'isSubstitutable' && !value) {
+          return { ...item, [field]: value, substituteName: '' };
+        }
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+
+    if (isCustom) {
+      syncWithFormData(defaultIngredients, updatedList);
+    } else {
+      syncWithFormData(updatedList, customIngredients);
     }
-    syncWithFormData(ingredientGroups.filter((g) => g.id !== groupId));
   };
 
-  const handleGroupTitleChange = (groupId, newTitle) => {
-    syncWithFormData(ingredientGroups.map((group) => (group.id === groupId ? { ...group, title: newTitle } : group)));
-  };
+  // 재료 행 및 대체 재료 입력창 공통 렌더링 함수
+  const renderIngredientRows = (items, isCustomGroup = false) => {
+    return items.map((item) => {
+      const isDefaultItem = defaultItemIds.includes(item.id);
 
-  const handleAddItem = (groupId) => {
-    syncWithFormData(
-      ingredientGroups.map((group) => {
-        if (group.id === groupId) {
-          return {
-            ...group,
-            items: [...group.items, { id: `item-${Date.now()}`, name: '', isSubstitutable: false }],
-          };
-        }
-        return group;
-      }),
-    );
-  };
+      return (
+        <React.Fragment key={item.id}>
+          {/* 재료 행 */}
+          <div className={styles.ingredientRow}>
+            {/* 1. 재료명 입력창 */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input
+                type="text"
+                className={styles.textInputWithIcon}
+                value={item.name}
+                onChange={(e) => handleItemChange(item.id, isCustomGroup, 'name', e.target.value)}
+                placeholder="예: 닭가슴살"
+              />
+            </div>
 
-  const handleRemoveItem = (groupId, itemId) => {
-    syncWithFormData(
-      ingredientGroups.map((group) => {
-        if (group.id === groupId) {
-          return {
-            ...group,
-            items: group.items.filter((item) => item.id !== itemId),
-          };
-        }
-        return group;
-      }),
-    );
-  };
+            {/* 2. 대체 가능 여부 체크박스 */}
+            <div style={{ width: '80px', display: 'flex', justifyContent: 'center' }}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={item.isSubstitutable}
+                  onChange={(e) => handleItemChange(item.id, isCustomGroup, 'isSubstitutable', e.target.checked)}
+                />
+              </label>
+            </div>
 
-  const handleItemChange = (groupId, itemId, field, value) => {
-    syncWithFormData(
-      ingredientGroups.map((group) => {
-        if (group.id === groupId) {
-          return {
-            ...group,
-            items: group.items.map((item) => (item.id === itemId ? { ...item, [field]: value } : item)),
-          };
-        }
-        return group;
-      }),
-    );
+            {/* 3. 삭제 버튼 (기본 재료 목록인 경우 비활성화) */}
+            <div style={{ width: '36px', display: 'flex', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className={styles.squareDeleteBtn}
+                onClick={() => isCustomGroup && handleRemoveCustomItem(item.id)}
+                disabled={!isCustomGroup && isDefaultItem}
+                title={!isCustomGroup ? '기본 재료는 삭제할 수 없습니다.' : '재료 삭제'}
+                style={{
+                  opacity: !isCustomGroup && isDefaultItem ? 0.3 : 1,
+                  cursor: !isCustomGroup && isDefaultItem ? 'not-allowed' : 'pointer',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* 4. 대체 가능 체크 시 표시되는 인라인 대체 재료 입력 필드 */}
+          {item.isSubstitutable && (
+            <div
+              className={styles.substituteRow}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                paddingLeft: '16px',
+                marginLeft: '24px',
+                marginRight: '116px',
+                backgroundColor: 'rgba(240, 90, 36, 0.04)',
+                borderRadius: '12px',
+                padding: '8px 12px',
+                marginBottom: '8px',
+              }}
+            >
+              <span
+                style={{
+                  marginRight: '8px',
+                  color: 'var(--brand-primary, #f05a24)',
+                  fontWeight: 'bold',
+                }}
+              >
+                ↳
+              </span>
+              <input
+                type="text"
+                className={styles.textInputWithIcon}
+                style={{ flex: 1, backgroundColor: '#fff' }}
+                value={item.substituteName}
+                onChange={(e) => handleItemChange(item.id, isCustomGroup, 'substituteName', e.target.value)}
+                placeholder="대체 가능한 재료를 입력하세요 (예: 두부, 돼지고기 안심)"
+              />
+            </div>
+          )}
+        </React.Fragment>
+      );
+    });
   };
 
   return (
@@ -262,110 +343,79 @@ function Step2Ingredients({ formData, updateFormData }) {
           🥕 2단계: 재료 목록 입력
         </h3>
         <p className="text-m" style={{ color: 'var(--brand-gray)', marginTop: '8px' }}>
-          필요한 재료와 분량을 기본 재료 및 양념장 재료 그룹별로 입력해 주세요.
+          필요한 재료명과 대체 가능 여부 및 대체 재료를 입력해 주세요.
         </p>
       </div>
 
       <div className={styles.titleDivider} />
 
-      {/* 재료 그룹 목록 */}
-      {ingredientGroups.map((group) => (
-        <div key={group.id} className={styles.groupCard}>
-          {/* 그룹 헤더 (배경 primary / 글자 white) */}
-          <div className={styles.groupHeaderRow}>
-            <div className={styles.groupTitleBadgeWrapper}>
-              <input
-                type="text"
-                className={styles.groupTitleInput}
-                value={group.title}
-                onChange={(e) => handleGroupTitleChange(group.id, e.target.value)}
-                placeholder="그룹명 입력"
-              />
-              <button
-                type="button"
-                className={styles.groupDeleteBtn}
-                onClick={() => handleRemoveGroup(group.id)}
-                title="그룹 삭제"
-              >
-                ✕
-              </button>
-            </div>
-            <button
-              type="button"
-              className={styles.addRowBtnHeader}
-              style={{ width: '100px' }}
-              onClick={() => handleAddItem(group.id)}
-            >
-              재료 추가 +
-            </button>
-          </div>
-
-          {/* 간소화된 테이블 헤더 (재료명 / 대체 가능 여부 / 우측 상단 재료 추가 +) */}
-          <div className={styles.ingredientTableHeader}>
-            <span style={{ flex: 1 }}>재료명</span>
-            <div className={styles.tableHeaderRight}>
-              <span style={{ width: '80px', textAlign: 'center' }}>대체 가능</span>
-              {/* <button
-                type="button"
-                className={styles.addRowBtnHeader}
-                style={{ width: '100px' }}
-                onClick={() => handleAddItem(group.id)}
-              >
-                재료 추가 +
-              </button> */}
-              <span style={{ width: '36px' }}></span>
-            </div>
-          </div>
-
-          {/* 재료 행 목록 */}
-          <div className={styles.ingredientRowsContainer}>
-            {group.items.map((item) => (
-              <div key={item.id} className={styles.ingredientRow}>
-                {/* 1. 재료명 입력창 */}
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <input
-                    type="text"
-                    className={styles.textInputWithIcon}
-                    value={item.name}
-                    onChange={(e) => handleItemChange(group.id, item.id, 'name', e.target.value)}
-                    placeholder="예: 닭가슴살"
-                  />
-                  {/* <span className={styles.pencilIcon}>✏️</span> */}
-                </div>
-
-                {/* 2. 대체 가능 여부 (체크박스) */}
-                <div style={{ width: '80px', display: 'flex', justifyContent: 'center' }}>
-                  <label className={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={item.isSubstitutable}
-                      onChange={(e) => handleItemChange(group.id, item.id, 'isSubstitutable', e.target.checked)}
-                    />
-                  </label>
-                </div>
-
-                {/* 3. 삭제 버튼 (빨간색 둥근 정사각형 X 버튼) */}
-                <div style={{ width: '36px', display: 'flex', justifyContent: 'center' }}>
-                  <button
-                    type="button"
-                    className={styles.squareDeleteBtn}
-                    onClick={() => handleRemoveItem(group.id, item.id)}
-                    title="재료 삭제"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
+      {/* 1. 기본 '재료 목록' 카드 (삭제 비활성화 / 추가 버튼 없음) */}
+      <div className={styles.groupCard}>
+        <div className={styles.groupHeaderRow}>
+          <div className={styles.groupTitleBadgeWrapper}>
+            <span className={styles.groupTitleBadge}>재료 목록</span>
           </div>
         </div>
-      ))}
 
-      {/* 새 그룹 추가 버튼 */}
-      <div style={{ textAlign: 'center', marginTop: '16px' }}>
-        <button type="button" className={styles.addGroupBtn} onClick={handleAddGroup}>
-          + 재료 묶음/그룹 추가하기
-        </button>
+        {/* 테이블 헤더 */}
+        <div className={styles.ingredientTableHeader}>
+          <span style={{ flex: 1 }}>재료명</span>
+          <div className={styles.tableHeaderRight}>
+            <span style={{ width: '80px', textAlign: 'center' }}>대체 가능</span>
+            <span style={{ width: '36px' }}></span>
+          </div>
+        </div>
+
+        {/* 기본 재료 행 목록 */}
+        <div className={styles.ingredientRowsContainer}>{renderIngredientRows(defaultIngredients, false)}</div>
+      </div>
+
+      {/* 2. '사용자 추천 재료' 카드 (재료 추가 버튼 위치) */}
+      <div className={styles.groupCard} style={{ marginTop: '32px' }}>
+        <div className={styles.groupHeaderRow}>
+          <div className={styles.groupTitleBadgeWrapper}>
+            <span className={styles.groupTitleBadge}>사용자 추천 재료</span>
+          </div>
+        </div>
+
+        {/* 테이블 헤더 */}
+        <div className={styles.ingredientTableHeader}>
+          <span style={{ flex: 1 }}>재료명</span>
+          <div className={styles.tableHeaderRight}>
+            <span style={{ width: '80px', textAlign: 'center' }}>대체 가능</span>
+            <span style={{ width: '36px' }}></span>
+          </div>
+        </div>
+
+        {/* 추천 재료 행 목록 또는 기본 텍스트 */}
+        <div className={styles.ingredientRowsContainer}>
+          {customIngredients.length > 0 ? (
+            renderIngredientRows(customIngredients, true)
+          ) : (
+            <div
+              style={{
+                padding: '32px 16px',
+                textAlign: 'center',
+                color: 'var(--brand-gray, #888)',
+                fontSize: '14px',
+              }}
+            >
+              하단의 <strong>'재료 추가 +'</strong> 버튼을 눌러 추천하고 싶은 재료를 자유롭게 추가해 보세요!
+            </div>
+          )}
+        </div>
+
+        {/* 사용자 추천 재료 추가 버튼 */}
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <button
+            type="button"
+            className={styles.addRowBtnHeader}
+            style={{ width: '130px', padding: '10px 16px' }}
+            onClick={handleAddCustomItem}
+          >
+            재료 추가 +
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -411,6 +461,17 @@ function Step3Steps({ formData, updateFormData }) {
     updateFormData('cookingSteps', updatedSteps);
   };
 
+  // 특정 단계의 특정 필드 값 수정
+  const handleStepChange = (index, field, value) => {
+    const updatedSteps = steps.map((step, i) => (i === index ? { ...step, [field]: value } : step));
+    syncSteps(updatedSteps);
+  };
+
+  // 특정 단계의 Tip 내용만 초기화하는 함수
+  const handleResetTip = (index) => {
+    handleTipChange(index, '');
+  };
+
   return (
     <div className={styles.stepContent}>
       {/* 폼 제목 */}
@@ -442,9 +503,35 @@ function Step3Steps({ formData, updateFormData }) {
 
             {/* 단계별 조리 팁 입력 필드 (Nullable) */}
             <div className={styles.inputGroup}>
-              <label className={styles.tipInputLabel}>
-                💡 나만의 조리 팁 <span className={styles.optionalTag}>(선택)</span>
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <label className={styles.tipInputLabel}>
+                  💡 나만의 조리 팁 <span className={styles.optionalTag}>(선택)</span>
+                </label>
+
+                {/* Tip 초기화 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => handleResetTip(idx)}
+                  disabled={!step.tip} // 팁 내용이 없을 때는 비활성화
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: step.tip ? 'var(--brand-primary, #f05a24)' : '#ccc',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    cursor: step.tip ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 6px',
+                  }}
+                  title="팁 내용 초기화"
+                >
+                  <span>❌</span>
+                  <span>삭제</span>
+                </button>
+              </div>
+
               {/* <input
                 type="text"
                 className={styles.textInput}
@@ -719,33 +806,71 @@ export default function RegistRecipe() {
   // URL 쿼리 스트링으로 현재 step 상태 유지 (?step=1)
   const [searchParams, setSearchParams] = useSearchParams();
   const currentStep = parseInt(searchParams.get('step') || '1', 10);
+  const recipeId = searchParams.get('id');
+
+  // 로딩 상태 (프리셋 데이터 불러올 동안 표시)
+  const [isLoadingPreset, setIsLoadingPreset] = useState(false);
 
   // 통합 폼 상태 데이터
   const [formData, setFormData] = useState({
-    title: '매콤 크림 닭갈비 파스타',
-    description:
-      "매콤한 닭갈비 소스와 고소한 크림이 만나 어우러진, 이색적인 퓨전 파스타 요리입니다. 부드럽고 매콤한 맛으로 남녀노소 모두가 조리 시간 약 20분, 난이도는 '하' 수준으로 간편합니다.",
-    category: '퓨전',
-    cookingTime: '20',
-    difficulty: '하',
-    servings: '2',
-    tags: ['#매콤크림파스타', '#퓨전파스타', '#닭갈비파스타', '#20분요리', '#초간단'],
+    title: '',
+    description: '',
+    category: '한식',
+    cookingTime: '10분 이내',
+    difficulty: '초간간',
+    servings: '1인분',
+    tags: [],
     ingredients: [],
     cookingSteps: [],
     images: [],
+    thumbnail_url: '',
     isPublic: true,
   });
 
-  // 상태 업데이트 헬퍼 함수
+  // 💡 URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
+  useEffect(() => {
+    if (!recipeId) return;
+
+    const fetchRecipePreset = async () => {
+      try {
+        setIsLoadingPreset(true);
+
+        const { data, error } = await supabase.from('recipes').select('*').eq('id', recipeId).single();
+
+        if (error) {
+          console.error('레시피 프리셋 조회 실패:', error.message);
+          return;
+        }
+
+        if (data) {
+          setFormData({
+            title: data.title || '',
+            description: data.summary || '',
+            category: data.cuisine || '한식',
+            cookingTime: String(data.cooking_time || '30').replace(/[^0-9]/g, ''), // 숫자만 추출
+            difficulty: data.difficulty || '보통',
+            servings: String(data.servings || '2').replace(/[^0-9]/g, ''),
+            tags: data.tags || [],
+            ingredients: data.ingredients || [],
+            cookingSteps: data.steps || [],
+            images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+            thumbnail_url: data.thumbnail_url || '',
+            isPublic: true,
+          });
+        }
+      } catch (err) {
+        console.error('프리셋 로딩 중 오류:', err);
+      } finally {
+        setIsLoadingPreset(false);
+      }
+    };
+
+    fetchRecipePreset();
+  }, [recipeId]);
+
+  // 상태 업데이트 함수
   const updateFormData = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  // 단계 이동 (URL SearchParam 업데이트로 뒤로가기 내비게이션 대응)
-  const goToStep = (stepNumber) => {
-    if (stepNumber >= 1 && stepNumber <= 6) {
-      setSearchParams({ step: stepNumber });
-    }
   };
 
   const steps = [
@@ -756,8 +881,25 @@ export default function RegistRecipe() {
     { id: 5, label: '미리 보기' },
   ];
 
+  // 단계 이동 (URL SearchParam 업데이트로 뒤로가기 내비게이션 대응)
+  const goToStep = (stepNumber) => {
+    if (stepNumber >= 1 && stepNumber <= steps.length) {
+      const newParams = { step: stepNumber };
+      if (recipeId) newParams.id = recipeId;
+      setSearchParams(newParams);
+    }
+  };
+
   // 현재 단계별 서브 컴포넌트 렌더링 맵
   const renderStepComponent = () => {
+    if (isLoadingPreset) {
+      return (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--brand-gray)' }}>
+          🔄 레시피 데이터를 불러오는 중입니다...
+        </div>
+      );
+    }
+
     switch (currentStep) {
       case 1:
         return <Step1BasicInfo formData={formData} updateFormData={updateFormData} />;
@@ -787,7 +929,7 @@ export default function RegistRecipe() {
           </p>
         </div>
 
-        {/* 6단계 알약 인디케이터 바 */}
+        {/* 5단계 알약 인디케이터 바 */}
         <div className={styles.stepNav}>
           {steps.map((step) => {
             const isActive = currentStep === step.id;
@@ -838,15 +980,15 @@ export default function RegistRecipe() {
               type="button"
               className={styles.nextBtn}
               onClick={() => {
-                if (currentStep === 5) {
+                if (currentStep === steps.length) {
                   alert('레시피가 성공적으로 등록되었습니다!');
                 } else {
                   goToStep(currentStep + 1);
                 }
               }}
-              data-tooltip={currentStep === 5 ? '완성하기' : '다음 단계'}
+              data-tooltip={currentStep === steps.length ? '완성하기' : '다음 단계'}
             >
-              <span className={styles.btnText}>{currentStep === 5 ? '완성하기' : '다음'}</span>
+              <span className={styles.btnText}>{currentStep === steps.length ? '완성하기' : '다음'}</span>
               <span className={styles.btnIcon}>›</span>
             </button>
           </div>

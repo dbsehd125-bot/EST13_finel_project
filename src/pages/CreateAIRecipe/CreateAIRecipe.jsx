@@ -1,13 +1,16 @@
 // Library
 import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useNavigate } from 'react-router';
 // Components
 import Layout from '../../components/Layout';
+import { useAuth } from '../../context/AuthContext';
 import RecipeResultCard from './RecipeResultCard';
+import { UploadRecipeToSupabase } from './UploadRecipeToSupabase';
+import AuthGuardModal from '../../components/AuthGuardModal';
 // CSS
 import styles from './CreateAIRecipe.module.css';
 import { getOpenInteractionType } from '@mui/material/Select';
+import { RecipeJsonToMarkdown } from './RecipeJsonToMarkdown';
 
 const API_BASE = '/api/v1';
 const ALAN_CLIENT_ID = import.meta.env.VITE_ALAN_CLIENT_ID;
@@ -15,6 +18,9 @@ const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 const FALLBACK_URL = 'https://dummyimage.com/1024x1024/f26b3a/ffffff.png&text=No+Image';
 
 export default function CreateAIRecipe() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   // Step 1: 프롬프트 입력
   const [prompt, setPrompt] = useState(
     '집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.',
@@ -38,14 +44,16 @@ export default function CreateAIRecipe() {
 
   // Step 4: 결과 생성 옵션
   const [options, setOptions] = useState({
-    image: true,
-    sidedishes: true,
-    nutrition: true,
-    shoppinglist: true,
+    image: false,
+    substitutes: false,
+    shoppinglist: false,
   });
 
   // 셀렉트 박스 화살표 상태
   const [openSelects, setOpenSelects] = useState({});
+
+  // 게시 상태
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const toggleSelect = (field) => {
     setOpenSelects((prev) => ({ ...prev, [field]: !prev[field] }));
@@ -54,6 +62,9 @@ export default function CreateAIRecipe() {
   const closeSelect = (field) => {
     setOpenSelects((prev) => ({ ...prev, [field]: false }));
   };
+
+  // 🔒 로그인 유도 모달 상태 추가
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // 하단 추가 수정 프롬프트 상태
   const [refinePrompt, setRefinePrompt] = useState('');
@@ -107,22 +118,14 @@ export default function CreateAIRecipe() {
 
   /**
    * 선택된 결과 옵션(options)에 따라 프롬프트 요구사항을 동적으로 생성
-   * @param {Object} options - { image, sidedishes, nutrition, shoppinglist }
+   * @param {Object} options - { image, substitutes, shoppinglist }
    * @returns {string} 프롬프트에 추가될 요구사항 문자열
    */
   const buildOutputOptionsPrompt = (options) => {
     const requirements = [];
 
-    if (options.sidedishes) {
-      requirements.push(
-        '- [곁들이기 추천] 이 요리와 잘 어울리는 반찬, 국, 또는 음료/주류 추천 1~2가지를 포함해줘.',
-      );
-    }
-
-    if (options.nutrition) {
-      requirements.push(
-        '- [영양 성분 정보] 1인분 기준 예상 칼로리(kcal)와 주요 영양소 비율(탄수화물g, 단백질g, 지방g, 기타)을 요약해서 작성해줘.',
-      );
+    if (options.substitutes) {
+      requirements.push('- [곁들이기 추천] 이 요리와 잘 어울리는 반찬, 국, 또는 음료/주류 추천 1~2가지를 포함해줘.');
     }
 
     if (options.shoppinglist) {
@@ -134,7 +137,35 @@ export default function CreateAIRecipe() {
     return requirements.length > 0 ? `\n[결과 옵션]\n${requirements.join('\n')}` : '';
   };
 
-  // test
+  // 헬퍼 함수: OpenAI 이미지 생성 단일 요청
+  async function fetchOpenAIImage(promptText) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${OPEN_AI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-image-2',
+          prompt: promptText,
+          n: 1,
+          size: '1024x1024',
+          quality: 'low',
+          output_format: 'png',
+        }),
+      });
+
+      if (!res.ok) return null;
+      const result = await res.json();
+      const rawBase64 = result?.data?.[0]?.b64_json;
+      return rawBase64 ? `data:image/png;base64,${rawBase64}` : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // 레시피 생성하기
   const handleGenerateRecipe = async (e) => {
     if (e) e.preventDefault();
 
@@ -143,8 +174,13 @@ export default function CreateAIRecipe() {
 
     try {
       // [Step 1] Alan AI 텍스트 생성
-      const userPrompt = `
-      다음 조건에 맞는 상세한 요리 레시피를 만들어줘.
+      const systemPrompt = `
+      당신은 전문 요리 연구가 AI입니다. 
+      사용자가 제공하는 [요리 조건]과 [요청사항]을 바탕으로 최적의 레시피 데이터를 작성하세요.
+
+      [응답 규칙]
+      1. 반드시 아래의 [JSON Schema] 구조를 엄격히 준수하여 순수한 JSON 객체 하나만 반환해야 합니다.
+      2. 마크다운 문법(\`\`\`json ... \`\`\`), 설명 텍스트, 인사말, 사족은 절대로 포함하지 마세요.
 
       [요청사항]
       - ${prompt}
@@ -157,74 +193,108 @@ export default function CreateAIRecipe() {
       - 요리 종류: ${conditions.cuisine}
       - 못 먹는 재료: ${excluded.length > 0 ? excluded.join(', ') : '없음'}
 
-      [출력 포맷 요청]
-      1. 레시피 제목과 간단한 요약 설명
-      2. 정확한 재료 및 양념장 비율 목록
-      3. Step-by-Step 상세 조리 순서 (각 단계별 조리 팁 포함)
-      4. 내용 분기마다 이모지 1개씩 문장 맨 앞에 추가
-
-      ${buildOutputOptionsPrompt(options)}
-
-      위 내용을 읽기 좋은 깔끔한 마크다운(Markdown) 포맷으로 작성해줘.
-    `.trim();
+      [JSON Schema]
+      {
+        "title": "레시피 제목 (문자열)",
+        "summary": "레시피 한줄 요약 (문자열)",
+        "cuisine": "${conditions.cuisine || '기타'}",
+        "cooking_time": "${conditions.cookingTime || '30분 이내'}",
+        "difficulty": "${conditions.difficulty || '보통'}",
+        "servings": "${conditions.servings || '2인분'}",
+        "tags": ["태그1", "태그2", "태그3"],
+        "ingredients": [
+          {
+            "name": "재료명 및 수량/분량 (예: 닭가슴살 200g)",
+            "isSubstitutable": true 또는 false,
+            "substituteName": "대체 재료명 (isSubstitutable이 true일 때만 입력, false면 \"\")"
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "title": "단계 제목",
+            "description": "상세 조리 방법 설명",
+            "tip": "조리 팁 (없으면 \"\")"
+          }
+        ]
+      }
+      `.trim();
 
       const queryString = new URLSearchParams({
-        content: userPrompt,
+        content: systemPrompt,
         client_id: ALAN_CLIENT_ID,
       }).toString();
 
       const response = await fetch(`${API_BASE}/question?${queryString}`);
+
       if (!response.ok) {
         throw new Error(`API 요청 실패 (Status: ${response.status})`);
       }
 
       const data = await response.json();
-      const markdownContent =
+      const jsonString =
         data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+      // AI가 붙였을 수도 있는 마크다운 코드블록 메타문자(```json ... ```) 1차 제거
+      const cleanedJsonString = jsonString
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
+      // JSON 객체로 파싱
+      const parsedRecipeJson = JSON.parse(cleanedJsonString);
+      // 파싱 완료된 JSON 객체로 마크다운 생성
+      const markdownContent = RecipeJsonToMarkdown(parsedRecipeJson);
 
       let base64ImageContent = FALLBACK_URL;
 
-      if (options.image) {
-        // [Step 2] Open AI 이미지 생성
-        setLoadingStep('image');
+      // [Step 2] Open AI 이미지 생성
+      setLoadingStep('image');
 
-        const titleMatch = markdownContent.match(/^#\s*(.+)/m);
-        const recipeTitle = titleMatch ? titleMatch[1].trim() : '맛있는 요리';
+      try {
+        const mainTitle = parsedRecipeJson.title || '요리';
 
-        try {
-          const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${OPEN_AI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: 'gpt-image-2',
-              prompt: `A professional studio food photography of ${recipeTitle}, ${conditions.cuisine} cuisine, beautifully plated, delicious look, warm lighting, 4k resolution.`,
-              n: 1,
-              size: '1024x1024',
-              quality: 'low',
-              output_format: 'png',
-            }),
-          });
+        // 1. 썸네일 생성 프롬프트
+        const thumbnailPrompt = `Professional studio food photography of ${mainTitle}, ${conditions.cuisine} cuisine, beautifully plated, warm lighting, 4k.`;
+        const thumbnailUrl = (await fetchOpenAIImage(thumbnailPrompt)) || FALLBACK_URL;
+        parsedRecipeJson.thumbnail_url = thumbnailUrl;
 
-          if (imageResponse.ok) {
-            const result = await imageResponse.json();
-            const rawBase64 = result?.data?.[0]?.b64_json;
-            base64ImageContent = rawBase64 ? `data:image/png;base64,${rawBase64}` : fallbackUrl;
-          } else {
-            const error = await imageResponse.json();
-            console.error('OpenAI API 에러 상세:', error);
+        // 2. 단계별 이미지 순차 생성 (429 Rate Limit 방지를 위한 딜레이 적용)
+        if (options.image && parsedRecipeJson.steps?.length > 0) {
+          const updatedSteps = [];
+
+          for (let i = 0; i < parsedRecipeJson.steps.length; i++) {
+            const step = parsedRecipeJson.steps[i];
+            // 🛠️ 개선된 단계별 프롬프트 템플릿
+            const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT show the final dish, only this specific preparation step.`;
+            // 딜레이 함수 (요청과 요청 사이 1.5초 대기)
+            if (i > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+            }
+
+            console.log(`[Image Gen] Step ${step.step} 이미지 생성 중...`);
+            const stepImageUrl = await fetchOpenAIImage(stepPrompt);
+
+            updatedSteps.push({
+              ...step,
+              image: stepImageUrl || null,
+            });
           }
-        } catch (error) {
-          console.error('이미지 생성 실패 (기본 이미지로 대체):', error);
+
+          parsedRecipeJson.steps = updatedSteps;
+        } else {
+          parsedRecipeJson.steps = parsedRecipeJson.steps.map((step) => ({
+            ...step,
+            image: null,
+          }));
         }
+      } catch (error) {
+        console.error('단계별 이미지 생성 실패:', error);
       }
 
       // [Step 3] 최종 결과 저장
       setResult({
-        image: base64ImageContent,
+        thumbnail: parsedRecipeJson.thumbnail_url,
         markdown: markdownContent,
+        raw: parsedRecipeJson,
       });
     } catch (error) {
       console.error('Alan AI 에러 상세:', error);
@@ -248,6 +318,41 @@ export default function CreateAIRecipe() {
       }));
       setRefinePrompt('');
     }, 1200);
+  };
+
+  // 레시피 Supabase에 등록하기
+  const handlePublish = async () => {
+    if (!result || !result.raw) {
+      alert('저장할 레시피 데이터가 없습니다. 먼저 레시피를 생성해 주세요.');
+      return;
+    }
+
+    // 1. 비회원 처리: AuthGuardModal 팝업
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    // 2. 회원 처리: Supabase 업로드 및 DB Insert 실행
+    try {
+      setIsPublishing(true);
+
+      const response = await UploadRecipeToSupabase(result.raw, user);
+
+      if (response.success && response.savedRecipe) {
+        alert('레시피가 DB 및 스토리지에 성공적으로 등록되었습니다!');
+
+        // 3. 등록 성공 후 '등록하기' 페이지로 라우팅
+        navigate(`/register?id=${response.savedRecipe.id}`);
+      } else {
+        alert(`레시피 등록에 실패했습니다: ${response.detail || response.error}`);
+      }
+    } catch (error) {
+      console.error('게시하기 처리 중 에러:', error);
+      alert('레시피를 게시하는 도중 오류가 발생했습니다.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -553,21 +658,16 @@ export default function CreateAIRecipe() {
               <div className={styles.optionsGrid}>
                 <label className={styles.checkboxItem}>
                   <input type="checkbox" checked={options.image} onChange={() => handleOptionToggle('image')} />
-                  <span>완성 이미지 생성</span>
+                  <span>단계별 이미지 생성 ⚠️</span>
                 </label>
 
                 <label className={styles.checkboxItem}>
                   <input
                     type="checkbox"
-                    checked={options.sidedishes}
-                    onChange={() => handleOptionToggle('sidedishes')}
+                    checked={options.substitutes}
+                    onChange={() => handleOptionToggle('substitutes')}
                   />
                   <span>대체 재료 추천</span>
-                </label>
-
-                <label className={styles.checkboxItem}>
-                  <input type="checkbox" checked={options.nutrition} onChange={() => handleOptionToggle('nutrition')} />
-                  <span>영양 정보 제공</span>
                 </label>
 
                 <label className={styles.checkboxItem}>
@@ -655,8 +755,17 @@ export default function CreateAIRecipe() {
                     </button>
                   </div>
 
-                  <button type="button" className={styles.publishBtn}>
-                    <span>➤</span> 게시하기
+                  <button
+                    type="button"
+                    className={styles.publishBtn}
+                    onClick={handlePublish}
+                    disabled={isPublishing}
+                    style={{
+                      cursor: isPublishing ? 'not-allowed' : 'pointer',
+                      opacity: isPublishing ? 0.7 : 1,
+                    }}
+                  >
+                    {isPublishing ? '게시 중...' : '🚀 게시하기'}
                   </button>
                 </div>
 
@@ -713,6 +822,13 @@ export default function CreateAIRecipe() {
           </div>
         </div>
       </div>
+
+      {/* 🔒 비회원 전용 로그인 유도 모달 추가 */}
+      <AuthGuardModal
+        open={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        message="게시하기 기능은 로그인 후 이용하실 수 있습니다."
+      />
     </Layout>
   );
 }
