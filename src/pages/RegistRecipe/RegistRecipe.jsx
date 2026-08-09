@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
+import { supabase } from '../../lib/supabaseClient';
 import Layout from '../../components/Layout';
 import styles from './RegistRecipe.module.css';
 
@@ -185,8 +186,8 @@ function Step2Ingredients({ formData, updateFormData }) {
 
   // 1. 기본 재료 목록 상태
   const [defaultIngredients, setDefaultIngredients] = useState(
-    formData.defaultIngredients && formData.defaultIngredients.length > 0
-      ? formData.defaultIngredients
+    formData.ingredients && formData.ingredients.length > 0
+      ? formData.ingredients
       : [
           { id: 'item-1', name: '닭가슴살', isSubstitutable: true, substituteName: '두부' },
           { id: 'item-2', name: '양파', isSubstitutable: false, substituteName: '' },
@@ -805,33 +806,71 @@ export default function RegistRecipe() {
   // URL 쿼리 스트링으로 현재 step 상태 유지 (?step=1)
   const [searchParams, setSearchParams] = useSearchParams();
   const currentStep = parseInt(searchParams.get('step') || '1', 10);
+  const recipeId = searchParams.get('id');
+
+  // 로딩 상태 (프리셋 데이터 불러올 동안 표시)
+  const [isLoadingPreset, setIsLoadingPreset] = useState(false);
 
   // 통합 폼 상태 데이터
   const [formData, setFormData] = useState({
-    title: '매콤 크림 닭갈비 파스타',
-    description:
-      "매콤한 닭갈비 소스와 고소한 크림이 만나 어우러진, 이색적인 퓨전 파스타 요리입니다. 부드럽고 매콤한 맛으로 남녀노소 모두가 조리 시간 약 20분, 난이도는 '하' 수준으로 간편합니다.",
-    category: '퓨전',
-    cookingTime: '20',
-    difficulty: '하',
-    servings: '2',
-    tags: ['#매콤크림파스타', '#퓨전파스타', '#닭갈비파스타', '#20분요리', '#초간단'],
+    title: '',
+    description: '',
+    category: '한식',
+    cookingTime: '10분 이내',
+    difficulty: '초간간',
+    servings: '1인분',
+    tags: [],
     ingredients: [],
     cookingSteps: [],
     images: [],
+    thumbnail_url: '',
     isPublic: true,
   });
 
-  // 상태 업데이트 헬퍼 함수
+  // 💡 URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
+  useEffect(() => {
+    if (!recipeId) return;
+
+    const fetchRecipePreset = async () => {
+      try {
+        setIsLoadingPreset(true);
+
+        const { data, error } = await supabase.from('recipes').select('*').eq('id', recipeId).single();
+
+        if (error) {
+          console.error('레시피 프리셋 조회 실패:', error.message);
+          return;
+        }
+
+        if (data) {
+          setFormData({
+            title: data.title || '',
+            description: data.summary || '',
+            category: data.cuisine || '한식',
+            cookingTime: String(data.cooking_time || '30').replace(/[^0-9]/g, ''), // 숫자만 추출
+            difficulty: data.difficulty || '보통',
+            servings: String(data.servings || '2').replace(/[^0-9]/g, ''),
+            tags: data.tags || [],
+            ingredients: data.ingredients || [],
+            cookingSteps: data.steps || [],
+            images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+            thumbnail_url: data.thumbnail_url || '',
+            isPublic: true,
+          });
+        }
+      } catch (err) {
+        console.error('프리셋 로딩 중 오류:', err);
+      } finally {
+        setIsLoadingPreset(false);
+      }
+    };
+
+    fetchRecipePreset();
+  }, [recipeId]);
+
+  // 상태 업데이트 함수
   const updateFormData = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  // 단계 이동 (URL SearchParam 업데이트로 뒤로가기 내비게이션 대응)
-  const goToStep = (stepNumber) => {
-    if (stepNumber >= 1 && stepNumber <= 6) {
-      setSearchParams({ step: stepNumber });
-    }
   };
 
   const steps = [
@@ -842,8 +881,25 @@ export default function RegistRecipe() {
     { id: 5, label: '미리 보기' },
   ];
 
+  // 단계 이동 (URL SearchParam 업데이트로 뒤로가기 내비게이션 대응)
+  const goToStep = (stepNumber) => {
+    if (stepNumber >= 1 && stepNumber <= steps.length) {
+      const newParams = { step: stepNumber };
+      if (recipeId) newParams.id = recipeId;
+      setSearchParams(newParams);
+    }
+  };
+
   // 현재 단계별 서브 컴포넌트 렌더링 맵
   const renderStepComponent = () => {
+    if (isLoadingPreset) {
+      return (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--brand-gray)' }}>
+          🔄 레시피 데이터를 불러오는 중입니다...
+        </div>
+      );
+    }
+
     switch (currentStep) {
       case 1:
         return <Step1BasicInfo formData={formData} updateFormData={updateFormData} />;
@@ -873,7 +929,7 @@ export default function RegistRecipe() {
           </p>
         </div>
 
-        {/* 6단계 알약 인디케이터 바 */}
+        {/* 5단계 알약 인디케이터 바 */}
         <div className={styles.stepNav}>
           {steps.map((step) => {
             const isActive = currentStep === step.id;
@@ -924,15 +980,15 @@ export default function RegistRecipe() {
               type="button"
               className={styles.nextBtn}
               onClick={() => {
-                if (currentStep === 5) {
+                if (currentStep === steps.length) {
                   alert('레시피가 성공적으로 등록되었습니다!');
                 } else {
                   goToStep(currentStep + 1);
                 }
               }}
-              data-tooltip={currentStep === 5 ? '완성하기' : '다음 단계'}
+              data-tooltip={currentStep === steps.length ? '완성하기' : '다음 단계'}
             >
-              <span className={styles.btnText}>{currentStep === 5 ? '완성하기' : '다음'}</span>
+              <span className={styles.btnText}>{currentStep === steps.length ? '완성하기' : '다음'}</span>
               <span className={styles.btnIcon}>›</span>
             </button>
           </div>

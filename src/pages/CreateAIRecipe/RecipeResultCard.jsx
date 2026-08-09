@@ -17,9 +17,9 @@ export default function RecipeResultCard({ result, children }) {
       </div>
 
       {/* 대표 요리 이미지 */}
-      {result.image && (
+      {result.thumbnail && (
         <div className={styles.recipeImageWrapper}>
-          <img src={result.image} alt="생성된 요리 이미지" className={styles.recipeImage} />
+          <img src={result.thumbnail} alt="생성된 요리 이미지" className={styles.recipeImage} />
         </div>
       )}
 

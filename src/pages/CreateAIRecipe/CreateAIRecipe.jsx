@@ -1,8 +1,6 @@
 // Library
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 // Components
 import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
@@ -223,12 +221,12 @@ export default function CreateAIRecipe() {
       `.trim();
 
       const queryString = new URLSearchParams({
-        // content: userPrompt,
         content: systemPrompt,
         client_id: ALAN_CLIENT_ID,
       }).toString();
 
       const response = await fetch(`${API_BASE}/question?${queryString}`);
+
       if (!response.ok) {
         throw new Error(`API 요청 실패 (Status: ${response.status})`);
       }
