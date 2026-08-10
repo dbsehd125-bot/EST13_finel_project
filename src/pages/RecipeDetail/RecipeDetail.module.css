@@ -605,7 +605,7 @@
    태블릿
 ========================= */
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .hero {
     height: 320px;
   }
@@ -663,7 +663,7 @@
    모바일
 ========================= */
 
-@media (max-width: 599px) {
+@media (max-width: 767px) {
   .hero {
     height: 300px;
     border-radius: 18px;

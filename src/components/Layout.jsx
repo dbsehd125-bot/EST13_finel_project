@@ -1,6 +1,7 @@
 import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
+import BottomNav from "./BottomNav";
 import "./Layout.css";
 
 export default function Layout({ children, activeMenu = "커뮤니티", fullWidth = false }) {
@@ -11,6 +12,7 @@ export default function Layout({ children, activeMenu = "커뮤니티", fullWidt
         {children}
       </main>
       <Footer />
+      <BottomNav />
     </div>
   );
 }

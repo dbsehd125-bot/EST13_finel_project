@@ -23,7 +23,7 @@
   align-items: start;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 768px) {
   .mainGrid {
     grid-template-columns: 1fr 1fr;
   }

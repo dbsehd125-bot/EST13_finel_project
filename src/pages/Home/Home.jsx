@@ -307,7 +307,7 @@ export default function Home() {
 
             {/* 서브 설명글 */}
             <p className="hero-description">
-              남은 재료나 떠오른 메뉴를 입력하면 AI가 나만의 레시피와 완성 이미지<br />
+              남은 재료나 떠오른 메뉴를 입력하면 AI가 나만의 레시피<br className="mobile-br" />와 완성 이미지<br className="desktop-br" />
               를 만들어드려요
             </p>
 
@@ -330,6 +330,13 @@ export default function Home() {
               alt="음식 레시피 대표 이미지" 
               className="hero-image" 
             />
+            {/* 태블릿용 보라색 플로팅 버튼 */}
+            <Link to="/ai" className="fab-btn-purple" aria-label="AI 레시피 액션">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                <path d="m10 9 5 3-5 3z"/>
+              </svg>
+            </Link>
           </div>
 
         </div>
@@ -750,8 +757,8 @@ export default function Home() {
           <div className="cta-banner">
             {/* 텍스트 콘텐츠 */}
             <div className="cta-content">
-              <h2 className="cta-title">나만의 레시피를 공유해보세요.</h2>
-              <p className="cta-desc">사진이 없어도 괜찮아요. AI가 레시피 요약과 완성 이미지를 도와드려요.</p>
+              <h2 className="cta-title">나만의 레시피를<br className="mobile-br" /> 공유해보세요.</h2>
+              <p className="cta-desc">사진이 없어도 괜찮아요. AI가 레시피 요약과<br className="mobile-br" /> 완성 이미지를 도와드려요.</p>
               
               <Link to="/register" className="btn-register">
                 + 레시피 등록하기
