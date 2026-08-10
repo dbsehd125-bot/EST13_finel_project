@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
 import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import styles from './MyPage.module.css';
 
 function TabButton({ tab, activeTab, onClick }) {
@@ -15,7 +17,7 @@ function TabButton({ tab, activeTab, onClick }) {
   );
 }
 
-function MyRecipeCard({ recipe }) {
+function MyRecipeCard({ recipe, onTogglePublic }) {
   const navigate = useNavigate();
 
   return (
@@ -25,7 +27,15 @@ function MyRecipeCard({ recipe }) {
       style={{ cursor: 'pointer' }}
     >
       <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
-        <span className={`text-s ${styles['privacy-badge']} ${recipe.isPublic ? styles['public'] : styles['private']}`}>
+        <span 
+          className={`text-s ${styles['privacy-badge']} ${recipe.isPublic ? styles['public'] : styles['private']}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePublic(recipe.id);
+          }}
+          style={{ cursor: 'pointer' }}
+          title="공개/비공개 전환"
+        >
           {recipe.isPublic ? '공개' : '비공개'}
         </span>
       </div>
@@ -45,7 +55,19 @@ function MyRecipeCard({ recipe }) {
 }
 
 export default function MyPage() {
+  const { user, authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      alert("로그인이 필요한 페이지입니다.");
+      navigate('/login', { state: { from: "/mypage" } });
+    }
+  }, [user, authLoading, navigate]);
+
   const [activeTab, setActiveTab] = useState('내가 작성한 레시피');
+  const [sortOrder, setSortOrder] = useState('최신순');
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   // 디바운스
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,19 +87,66 @@ export default function MyPage() {
     '내가 작성한 레시피', '저장한 레시피', '좋아요한 레시피', '요리 후기', '주간 식단', '장보기 목록'
   ];
 
-  const recipes = [
-    { id: 1, title: '매콤 크림 닭갈비 파스타', views: '18.4k', likes: '1.2k', image: 'https://images.unsplash.com/photo-1645696301019-35adcb18cb4d?auto=format&fit=crop&w=400&q=80', isPublic: true },
-    { id: 2, title: '반숙 계란을 올린 간장 버터밥', views: '12.0k', likes: '982', image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?auto=format&fit=crop&w=400&q=80', isPublic: true },
-    { id: 3, title: '냉장고 채소로 만드는 두부 덮밥', views: '21.0k', likes: '1.5k', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', isPublic: true },
-    { id: 4, title: '매콤한 제육볶음 쌈밥', views: '8.2k', likes: '642', image: 'https://images.unsplash.com/photo-1580651315530-69c8e0026377?auto=format&fit=crop&w=400&q=80', isPublic: true },
-    { id: 5, title: '정갈한 전주식 비빔밥', views: '15.7k', likes: '1.1k', image: 'https://images.unsplash.com/photo-1553163147-622ab57be1c7?auto=format&fit=crop&w=400&q=80', isPublic: true },
-    { id: 6, title: '진한 국물의 명품 갈비탕', views: '24.3k', likes: '2.2k', image: 'https://images.unsplash.com/photo-1520209268518-aec60b8bb5ca?auto=format&fit=crop&w=400&q=80', isPublic: true },
-    { id: 7, title: '해물 듬뿍 바삭 파전', views: '11.2k', likes: '890', image: 'https://images.unsplash.com/photo-1605298135832-6bb5050f2da3?auto=format&fit=crop&w=400&q=80', isPublic: true },
-    { id: 8, title: '나만의 시크릿 레시피', views: '0', likes: '0', image: 'https://images.unsplash.com/photo-1626844131082-256783844137?auto=format&fit=crop&w=400&q=80', isPublic: false },
-  ];
+  const [recipeData, setRecipeData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMyRecipes() {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('recipes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const mappedRecipes = (data || []).map(row => ({
+          id: row.id,
+          title: row.title,
+          views: row.views || 0,
+          likes: row.likes || 0,
+          image: row.thumbnail_url || row.image_url || '',
+          isPublic: row.is_public || false
+        }));
+
+        setRecipeData(mappedRecipes);
+      } catch (err) {
+        console.error('내 레시피 목록 조회 오류:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMyRecipes();
+  }, [user]);
+
+  const togglePublic = async (id) => {
+    // 1. UI 먼저 업데이트 (Optimistic Update)
+    setRecipeData(prev => prev.map(r => r.id === id ? { ...r, isPublic: !r.isPublic } : r));
+
+    // 2. DB 업데이트
+    const targetRecipe = recipeData.find(r => r.id === id);
+    if (!targetRecipe) return;
+    
+    try {
+      const { error } = await supabase
+        .from('recipes')
+        .update({ is_public: !targetRecipe.isPublic })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('공개/비공개 상태 업데이트 오류:', err);
+      // 에러 시 원래 상태로 롤백
+      setRecipeData(prev => prev.map(r => r.id === id ? { ...r, isPublic: targetRecipe.isPublic } : r));
+    }
+  };
 
   // 최종 검색어(debouncedSearchTerm)가 포함된 레시피만 걸러냅니다.
-  const filteredRecipes = recipes.filter(recipe =>
+  const filteredRecipes = recipeData.filter(recipe =>
     recipe.title.includes(debouncedSearchTerm)
   );
 
@@ -90,7 +159,7 @@ export default function MyPage() {
             <div className={styles['profile-avatar']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
             </div>
             <div className={styles['profile-details']}>
-              <h2 className={`font-display dtext-2xl ${styles['profile-name']}`}>정서윤</h2>              <p className={`text-m ${styles['profile-handle']}`}>@SarahCooks</p>
+              <h2 className={`font-display dtext-2xl ${styles['profile-name']}`}>{user?.user_metadata?.nickname || '사용자'}</h2>              <p className={`text-m ${styles['profile-handle']}`}>{user?.email ? `@${user.email.split('@')[0]}` : '@user'}</p>
               <div className={styles['profile-actions']}>
                 <button className={`text-button ${styles['btn-edit-profile']}`}>
                   <Pencil size={14} /> 프로필 수정
@@ -105,24 +174,22 @@ export default function MyPage() {
 
           <div className={styles['profile-stats']}>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-icon']} style={{ color: 'var(--brand-primary)' }}>🍴</span>
-              <span className={`text-lg ${styles['stat-value']}`}>148</span>
-              <span className={`text-sm ${styles['stat-label']}`}>레시피</span>
+              <span className={`font-display dtext-xl ${styles['stat-number']}`}>{recipeData.length}</span>
+              <span className={`text-s ${styles['stat-label']}`}>레시피</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-icon']} style={{ color: 'var(--brand-primary)' }}>👥</span>
-              <span className={`text-lg ${styles['stat-value']}`}>2.1k</span>
-              <span className={`text-sm ${styles['stat-label']}`}>팔로워</span>
+              <span className={`font-display dtext-xl ${styles['stat-number']}`}>0</span>
+              <span className={`text-s ${styles['stat-label']}`}>팔로워</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-icon']} style={{ color: 'var(--brand-primary)' }}>👤+</span>
-              <span className={`text-lg ${styles['stat-value']}`}>695</span>
-              <span className={`text-sm ${styles['stat-label']}`}>팔로잉</span>
+              <span className={`font-display dtext-xl ${styles['stat-number']}`}>0</span>
+              <span className={`text-s ${styles['stat-label']}`}>팔로잉</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-icon']} style={{ color: 'var(--brand-primary)' }}>❤️</span>
-              <span className={`text-lg ${styles['stat-value']}`}>9.4k</span>
-              <span className={`text-sm ${styles['stat-label']}`}>좋아요</span>
+              <span className={`font-display dtext-xl ${styles['stat-number']}`}>
+                {recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0).toLocaleString()}
+              </span>
+              <span className={`text-s ${styles['stat-label']}`}>좋아요</span>
             </div>
           </div>
         </div>
@@ -153,17 +220,68 @@ export default function MyPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className={styles['toolbar-right']}>
-                <button className={`text-button ${styles['sort-btn']}`}>
-                  최신순 <ChevronDown size={16} />
+              <div className={styles['toolbar-right']} style={{ position: 'relative' }}>
+                <button 
+                  className={`text-button ${styles['sort-btn']}`}
+                  onClick={() => setIsSortOpen(!isSortOpen)}
+                >
+                  {sortOrder} <ChevronDown size={16} />
                 </button>
-                <button className={`text-button ${styles['btn-new-recipe']}`}>+ 새 레시피 작성</button>
+                
+                {isSortOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    border: '1px solid #eee',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    zIndex: 10,
+                    marginTop: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden'
+                  }}>
+                    {['최신순', '인기순', '조회순', '좋아요순'].map(option => (
+                      <button 
+                        key={option} 
+                        className="text-m"
+                        style={{
+                          padding: '10px', 
+                          cursor: 'pointer',
+                          backgroundColor: sortOrder === option ? '#f8f9fa' : 'white',
+                          border: 'none',
+                          textAlign: 'center',
+                          width: '100%',
+                          color: 'var(--brand-black)'
+                        }}
+                        onClick={() => {
+                          setSortOrder(option);
+                          setIsSortOpen(false);
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = sortOrder === option ? '#f8f9fa' : 'white'}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <button 
+                  className={`text-button ${styles['btn-new-recipe']}`}
+                  onClick={() => navigate('/register')}
+                >
+                  + 새 레시피 작성
+                </button>
               </div>
             </div>
 
             <div className={styles['recipe-grid']}>
               {filteredRecipes.map(recipe => (
-                <MyRecipeCard key={recipe.id} recipe={recipe} />
+                <MyRecipeCard key={recipe.id} recipe={recipe} onTogglePublic={togglePublic} />
               ))}
             </div>
           </>
