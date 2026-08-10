@@ -1,6 +1,8 @@
 import {
   AccessTimeOutlined,
+  Bookmark,
   BookmarkBorderOutlined,
+  Favorite,
   FavoriteBorderOutlined,
   GroupOutlined,
   LightbulbOutlined,
@@ -16,16 +18,28 @@ import { useNavigate, useParams } from "react-router";
 import styles from "./RecipeDetail.module.css";
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabaseClient";
+import { useAuth } from "../../context/AuthContext";
 
 export default function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const { user, authLoading } = useAuth();
 
   const [recipe, setRecipe] = useState(null);
   const [relatedRecipes, setRelatedRecipes] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // 좋아요 / 즐겨찾기
+  const [liked, setLiked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+
+  // 중복 클릭 방지
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   // 다른 레시피로 이동할 때 스크롤 맨 위로
   useEffect(() => {
@@ -42,6 +56,11 @@ export default function RecipeDetail() {
         setErrorMessage("");
         setRelatedRecipes([]);
 
+        // 다른 레시피 이동 시 이전 반응 상태 초기화
+        setLiked(false);
+        setBookmarked(false);
+        setLikeCount(0);
+
         /* =========================
            현재 레시피 조회
         ========================= */
@@ -57,6 +76,9 @@ export default function RecipeDetail() {
         }
 
         setRecipe(recipeData);
+
+        // DB의 좋아요 수
+        setLikeCount(recipeData.like_count ?? 0);
 
         /* =========================
            연관 레시피 조회
@@ -108,6 +130,191 @@ export default function RecipeDetail() {
 
     fetchRecipeData();
   }, [id]);
+
+  /**
+   * 현재 로그인한 사용자가
+   * 이 레시피에 좋아요 / 즐겨찾기를 했는지 조회
+   */
+  useEffect(() => {
+    if (authLoading || !recipe?.id) {
+      return;
+    }
+
+    // 비로그인 상태
+    if (!user) {
+      setLiked(false);
+      setBookmarked(false);
+      return;
+    }
+
+    const loadMyReactions = async () => {
+      try {
+        const [likeResult, bookmarkResult] = await Promise.all([
+          supabase
+            .from("recipe_likes")
+            .select("id")
+            .eq("recipe_id", recipe.id)
+            .eq("user_id", user.id)
+            .maybeSingle(),
+
+          supabase
+            .from("recipe_bookmarks")
+            .select("id")
+            .eq("recipe_id", recipe.id)
+            .eq("user_id", user.id)
+            .maybeSingle(),
+        ]);
+
+        if (likeResult.error) {
+          console.error("레시피 좋아요 상태 조회 오류:", likeResult.error);
+        } else {
+          setLiked(Boolean(likeResult.data));
+        }
+
+        if (bookmarkResult.error) {
+          console.error("레시피 즐겨찾기 상태 조회 오류:", bookmarkResult.error);
+        } else {
+          setBookmarked(Boolean(bookmarkResult.data));
+        }
+      } catch (error) {
+        console.error("좋아요/즐겨찾기 상태 조회 오류:", error);
+      }
+    };
+
+    loadMyReactions();
+  }, [authLoading, user?.id, recipe?.id]);
+
+  /**
+   * 로그인 페이지 이동
+   */
+  const moveToLogin = () => {
+    navigate("/login", {
+      state: {
+        from: `/recipes/${recipe.id}`,
+      },
+    });
+  };
+
+  /**
+   * 좋아요 토글
+   */
+  const handleLikeToggle = async () => {
+    if (authLoading || likeLoading || !recipe) {
+      return;
+    }
+
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    try {
+      setLikeLoading(true);
+
+      /**
+       * 현재 좋아요 상태라면 삭제,
+       * 아니라면 새로 추가
+       */
+      if (liked) {
+        const { error } = await supabase
+          .from("recipe_likes")
+          .delete()
+          .eq("recipe_id", recipe.id)
+          .eq("user_id", user.id);
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        const { error } = await supabase.from("recipe_likes").insert({
+          recipe_id: recipe.id,
+          user_id: user.id,
+        });
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      const nextLikeCount = liked ? Math.max(0, likeCount - 1) : likeCount + 1;
+
+      /**
+       * recipes.like_count도 갱신
+       * 인기순 정렬 등에 활용 가능
+       */
+      const { error: countUpdateError } = await supabase
+        .from("recipes")
+        .update({
+          like_count: nextLikeCount,
+        })
+        .eq("id", recipe.id);
+
+      if (countUpdateError) {
+        throw countUpdateError;
+      }
+
+      setLiked(!liked);
+      setLikeCount(nextLikeCount);
+
+      setRecipe(previousRecipe => ({
+        ...previousRecipe,
+        like_count: nextLikeCount,
+      }));
+    } catch (error) {
+      console.error("레시피 좋아요 처리 오류:", error);
+
+      alert(error.message || "좋아요 처리에 실패했습니다.");
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  /**
+   * 즐겨찾기 토글
+   */
+  const handleBookmarkToggle = async () => {
+    if (authLoading || bookmarkLoading || !recipe) {
+      return;
+    }
+
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    try {
+      setBookmarkLoading(true);
+
+      if (bookmarked) {
+        const { error } = await supabase
+          .from("recipe_bookmarks")
+          .delete()
+          .eq("recipe_id", recipe.id)
+          .eq("user_id", user.id);
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        const { error } = await supabase.from("recipe_bookmarks").insert({
+          recipe_id: recipe.id,
+          user_id: user.id,
+        });
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      setBookmarked(!bookmarked);
+    } catch (error) {
+      console.error("레시피 즐겨찾기 처리 오류:", error);
+
+      alert(error.message || "즐겨찾기 처리에 실패했습니다.");
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
 
   /**
    * Supabase created_at 날짜
@@ -198,10 +405,7 @@ export default function RecipeDetail() {
             <div className={styles.authorImage} />
 
             <div>
-              {/*
-                작성자 프로필 연결 전까지 임시
-              */}
-              <p className={`text-sm ${styles.authorName}`}>요리하는정원</p>
+              <p className={`text-sm ${styles.authorName}`}>{recipe.nickname || "사용자"}</p>
 
               <p className={`text-s ${styles.date}`}>{formatDate(recipe.created_at)}</p>
             </div>
@@ -276,22 +480,37 @@ export default function RecipeDetail() {
       ========================= */}
 
       <section className={styles.actions}>
-        {/*
-          recipe_likes 연결 전까지 임시
-        */}
-        <button type="button" className="text-sm">
-          <FavoriteBorderOutlined />
-          좋아요 1,248
+        {/* 좋아요 */}
+        <button
+          type="button"
+          className="text-sm"
+          onClick={handleLikeToggle}
+          disabled={likeLoading}
+          aria-pressed={liked}
+          style={{
+            color: liked ? "var(--brand-primary)" : undefined,
+          }}
+        >
+          {liked ? <Favorite /> : <FavoriteBorderOutlined />}
+          좋아요 {likeCount}
         </button>
 
-        {/*
-          recipe_bookmarks 연결 전까지 임시
-        */}
-        <button type="button" className="text-sm">
-          <BookmarkBorderOutlined />
+        {/* 즐겨찾기 */}
+        <button
+          type="button"
+          className="text-sm"
+          onClick={handleBookmarkToggle}
+          disabled={bookmarkLoading}
+          aria-pressed={bookmarked}
+          style={{
+            color: bookmarked ? "var(--brand-primary)" : undefined,
+          }}
+        >
+          {bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
           즐겨찾기
         </button>
 
+        {/* 공유 */}
         <button type="button" className="text-sm">
           <ShareOutlined />
           공유
@@ -338,10 +557,6 @@ export default function RecipeDetail() {
               >
                 {/* =========================
                       단계 이미지
-
-                      CreateAIRecipe에서 생성되고
-                      Supabase Storage에 저장된
-                      steps[].image를 그대로 출력
                   ========================= */}
 
                 {step.image && (
@@ -367,10 +582,6 @@ export default function RecipeDetail() {
                       <h3 className="text-lg">{step.title}</h3>
                     </div>
 
-                    {/*
-                        나중에 steps[].time을
-                        생성하도록 바꾸면 자동 표시 가능
-                      */}
                     {step.time && <span className={`text-s ${styles.stepTime}`}>{step.time}</span>}
                   </div>
 
@@ -499,7 +710,8 @@ export default function RecipeDetail() {
                   <span className={`text-s ${styles.relatedTag}`}>{relatedRecipe.cuisine}</span>
 
                   {/*
-                      북마크 기능 연결 전
+                      연관 레시피 카드의 즐겨찾기는
+                      다음 단계에서 별도로 연결 가능
                     */}
                   <button
                     type="button"
