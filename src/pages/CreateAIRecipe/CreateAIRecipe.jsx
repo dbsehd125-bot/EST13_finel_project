@@ -11,6 +11,7 @@ import AuthGuardModal from '../../components/AuthGuardModal';
 import styles from './CreateAIRecipe.module.css';
 import { getOpenInteractionType } from '@mui/material/Select';
 import { RecipeJsonToMarkdown } from './RecipeJsonToMarkdown';
+import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from '../../utils/AlanApi';
 
 const API_BASE = '/api/v1';
 const ALAN_CLIENT_ID = import.meta.env.VITE_ALAN_CLIENT_ID;
@@ -174,66 +175,59 @@ export default function CreateAIRecipe() {
 
     try {
       // [Step 1] Alan AI 텍스트 생성
-      const systemPrompt = `
-      당신은 전문 요리 연구가 AI입니다. 
-      사용자가 제공하는 [요리 조건]과 [요청사항]을 바탕으로 최적의 레시피 데이터를 작성하세요.
+      // 💡 백틱 내부의 들여쓰기와 줄바꿈을 완벽히 제거한 1줄 프롬프트
+      const systemPrompt =
+        `You are a professional chef AI. Create a recipe in pure JSON format matching user conditions. [Rules] 1.Return ONLY a single valid JSON object. Do NOT include markdown blocks (\`\`\`json), greetings, or extra explanations. 2.JSON field values MUST be in KOREAN. [User Request] ${prompt} [Conditions] Ingredients: ${ingredients.join(', ')} / Servings: ${conditions.servings} / Time: ${conditions.cookingTime} / Difficulty: ${conditions.difficulty} / Cuisine: ${conditions.cuisine} / Exclude: ${excluded.length > 0 ? excluded.join(', ') : 'None'} [JSON Schema] {"title":"Korean Title","summary":"Korean Summary","cuisine":"${conditions.cuisine || '기타'}","cooking_time":"${conditions.cookingTime || '30분 이내'}","difficulty":"${conditions.difficulty || '보통'}","servings":"${conditions.servings || '2인분'}","tags":["Tag1","Tag2"],"ingredients":[{"name":"Korean Ingredient and amount","isSubstitutable":false,"substituteName":""}],"steps":[{"step":1,"title":"Korean Title","description":"Korean Description","tip":""}]}`
+          .replace(/\s+/g, ' ')
+          .trim();
 
-      [응답 규칙]
-      1. 반드시 아래의 [JSON Schema] 구조를 엄격히 준수하여 순수한 JSON 객체 하나만 반환해야 합니다.
-      2. 마크다운 문법(\`\`\`json ... \`\`\`), 설명 텍스트, 인사말, 사족은 절대로 포함하지 마세요.
+      let alanClientId = getCurrentAlanClientId();
+      let response = null;
 
-      [요청사항]
-      - ${prompt}
+      while (alanClientId) {
+        const queryString = new URLSearchParams({
+          content: systemPrompt,
+          client_id: alanClientId,
+        }).toString();
 
-      [요리 조건]
-      - 보유/사용 재료: ${ingredients.join(', ')}
-      - 식사 인원: ${conditions.servings}
-      - 조리 시간: ${conditions.cookingTime}
-      - 난이도: ${conditions.difficulty}
-      - 요리 종류: ${conditions.cuisine}
-      - 못 먹는 재료: ${excluded.length > 0 ? excluded.join(', ') : '없음'}
+        let res = null;
 
-      [JSON Schema]
-      {
-        "title": "레시피 제목 (문자열)",
-        "summary": "레시피 한줄 요약 (문자열)",
-        "cuisine": "${conditions.cuisine || '기타'}",
-        "cooking_time": "${conditions.cookingTime || '30분 이내'}",
-        "difficulty": "${conditions.difficulty || '보통'}",
-        "servings": "${conditions.servings || '2인분'}",
-        "tags": ["태그1", "태그2", "태그3"],
-        "ingredients": [
-          {
-            "name": "재료명 및 수량/분량 (예: 닭가슴살 200g)",
-            "isSubstitutable": true 또는 false,
-            "substituteName": "대체 재료명 (isSubstitutable이 true일 때만 입력, false면 \"\")"
-          }
-        ],
-        "steps": [
-          {
-            "step": 1,
-            "title": "단계 제목",
-            "description": "상세 조리 방법 설명",
-            "tip": "조리 팁 (없으면 \"\")"
-          }
-        ]
+        // 1. 네트워크 통신 시도 (네트워크 끊김 시에만 ALAN CLIENT ID 전환)
+        try {
+          res = await fetch(`${API_BASE}/question?${queryString}`);
+        } catch (netErr) {
+          console.warn(`[Alan AI] 네트워크 통신 에러 발생. 다음 Client ID로 전환합니다.`, netErr);
+          alanClientId = getNextAlanClientId();
+          continue;
+        }
+
+        // 2. 성공 응답 처리
+        if (res.ok) {
+          response = res;
+          break;
+        }
+
+        // 3. Status 코드별 분기 처리
+        // 💡 401, 500일 때만 키 전환 후 다음 루프 실행
+        if (isFailoverError(res.status)) {
+          console.warn(
+            `[Alan AI] Status ${res.status} 감지 (Client ID: ${alanClientId}). 다음 Client ID로 전환합니다.`,
+          );
+          alanClientId = getNextAlanClientId();
+        } else {
+          // 💡 401, 500이 아닌 기타 에러 발생 시 전체 실행을 중단합니다.
+          throw new Error(`Alan API 요청 실패 (Status: ${res.status})`);
+        }
       }
-      `.trim();
 
-      const queryString = new URLSearchParams({
-        content: systemPrompt,
-        client_id: ALAN_CLIENT_ID,
-      }).toString();
-
-      const response = await fetch(`${API_BASE}/question?${queryString}`);
-
-      if (!response.ok) {
-        throw new Error(`API 요청 실패 (Status: ${response.status})`);
+      if (!response) {
+        throw new Error('모든 Alan Client ID 할당량이 소진되었거나 요청에 실패했습니다.');
       }
 
       const data = await response.json();
       const jsonString =
         data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+
       // AI가 붙였을 수도 있는 마크다운 코드블록 메타문자(```json ... ```) 1차 제거
       const cleanedJsonString = jsonString
         .replace(/```json/gi, '')
