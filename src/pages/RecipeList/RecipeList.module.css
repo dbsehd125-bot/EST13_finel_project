@@ -95,17 +95,14 @@
   gap: 40px;
 }
 
-@media (min-width: 1024px) {
-  .content-area {
-    flex-direction: row;
-  }
-}
-
 .sidebar {
   width: 100%;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
+  .content-area {
+    flex-direction: row;
+  }
   .sidebar {
     width: 240px;
     flex-shrink: 0;
@@ -215,7 +212,7 @@
   margin-bottom: 40px;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .recipe-grid-2col {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -224,10 +221,7 @@
   }
 }
 
-@media (min-width: 1024px) {
-  .recipe-grid-2col {
-    grid-template-columns: repeat(2, 1fr);
-  }
+@media (min-width: 1280px) {
   .recipe-grid-3col {
     grid-template-columns: repeat(3, 1fr);
   }

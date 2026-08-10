@@ -1,4 +1,8 @@
 /* === 히어로 섹션 === */
+.mobile-br {
+  display: none;
+}
+
 
 /* 1280px 섹션 컨테이너 */
 .hero-section {
@@ -112,6 +116,7 @@
   flex: 1;
   max-width: 530px;
   height: 400px;
+  position: relative; /* FAB 버튼의 절대 위치 기준점 */
 }
 
 .hero-image {
@@ -119,6 +124,11 @@
   height: 100%;
   object-fit: cover;
   border-radius: 20px; /* 이미지 모서리 둥글게 */
+}
+
+/* 데스크탑에서는 보라색 플로팅 버튼 숨김 */
+.fab-btn-purple {
+  display: none;
 }
 
 
@@ -1180,8 +1190,10 @@
 
 /* === 반응형 미디어 쿼리 === */
 
-/* 반응형 (해상도가 1280px 미만일 때) */
-@media (max-width: 1280px) {
+/* === 반응형 미디어 쿼리 === */
+
+/* 태블릿 & 모바일 공통 (1279px 이하) */
+@media (max-width: 1279px) {
   .hero-section {
     width: 100%;
     padding: 40px 24px;
@@ -1190,85 +1202,428 @@
   .hero-container {
     flex-direction: column;
     align-items: flex-start;
+    gap: 32px;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .hero-badge {
+    margin-bottom: 20px;
+  }
+
+  .hero-title {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+
+  .hero-description {
+    font-size: 15px;
+    margin-bottom: 28px;
+    word-break: keep-all;
+  }
+
+  /* 데스크탑용 줄바꿈 숨김 */
+  .desktop-br {
+    display: none;
+  }
+
+  .hero-buttons {
+    flex-wrap: wrap;
   }
 
   .hero-image-wrapper {
     width: 100%;
     max-width: 100%;
-    height: 350px;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  /* 태블릿 시안에 맞춘 보라색 플로팅 버튼 노출 및 배치 */
+  .fab-btn-purple {
+    display: flex;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #B588F7, #8B5CF6);
+    border: none;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .fab-btn-purple:hover {
+    transform: scale(1.05);
+  }
+
+  .recipe-section {
+    padding: 40px 16px;
   }
 
   .recipe-container {
     width: 100%;
   }
+
+  .recipe-section .main-title {
+    font-size: 24px;
+  }
+
+  .recipe-section .sub-title {
+    font-size: 14px;
+  }
+
+  .category-filters {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .category-filters .filter-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
   
   .recipe-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 
-  .editor-pick-container {
+  .recipe-card .card-info {
+    padding: 16px;
+  }
+
+  .recipe-card .card-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .editor-pick-container,
+  .ai-fridge-container,
+  .meal-plan-container,
+  .user-review-container,
+  .cta-banner-container {
     width: 100%;
   }
 
-  .ai-fridge-container {
-    width: 100%;
+  /* 태블릿 사이즈에서는 식단 그리드가 가로 스크롤 가능하도록 변경 */
+  .meal-plan-section {
+    padding: 40px 16px;
   }
 
   .meal-plan-container {
     width: 100%;
   }
 
-  .user-review-container {
-    width: 100%;
+  .meal-plan-section .plan-header {
+    align-items: center;
+  }
+  
+  .meal-plan-section .main-title {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  
+  .meal-plan-section .sub-desc {
+    font-size: 13px;
   }
 
-  .cta-banner-container {
-    width: 100%;
+  .ai-plan-btn {
+    font-size: 13px;
+    padding: 10px 16px;
   }
-}
 
-@media (max-width: 1024px) {
-  /* 태블릿 사이즈에서는 스크롤이 가능하도록 변경 */
   .plan-grid {
     display: flex;
+    flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 20px;
+    gap: 12px;
+    padding-bottom: 12px;
     scroll-snap-type: x mandatory;
-    gap: 16px;
+    -webkit-overflow-scrolling: touch;
   }
+
+  .plan-grid::-webkit-scrollbar {
+    display: none;
+  }
+
   .plan-card {
-    min-width: 160px;
+    flex: 0 0 200px;
+    min-width: 0;
     scroll-snap-align: start;
   }
-}
 
-@media (max-width: 992px) {
-  /* 태블릿 사이즈에서는 2열 레이아웃으로 변경 */
+  .plan-card .card-body {
+    padding: 14px;
+  }
+
+  .plan-card .recipe-title {
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+
+  /* 태블릿 사이즈에서는 에디터 추천 2열 레이아웃 */
+  .editor-pick-section {
+    padding: 40px 16px;
+  }
+
+  .editor-pick-section .main-title {
+    font-size: 20px;
+  }
+
+  .editor-pick-section .sub-title {
+    font-size: 13px;
+  }
+
   .editor-grid {
     grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: 280px;
+    grid-auto-rows: 240px;
+    gap: 16px;
   }
+
   .card-large {
     grid-column: span 2;
-    grid-row: span 1; /* 큰 카드의 세로 크기를 줄임 */
+    grid-row: span 1;
+  }
+
+  .card-large .title {
+    font-size: 22px;
+  }
+  
+  .card-large .desc {
+    font-size: 14px;
+  }
+
+  .card-overlay {
+    padding: 20px !important;
+  }
+
+  .editor-card .title {
+    font-size: 16px;
+  }
+
+  .ai-fridge-section {
+    padding: 40px 16px;
   }
 
   .ai-fridge-container {
     flex-direction: column;
     align-items: stretch;
+    gap: 24px;
   }
+  
   .fridge-content, .fridge-preview {
     max-width: 100%;
+    width: 100%;
+  }
+
+  .ai-fridge-section .main-title {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .ai-fridge-section .sub-desc {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .ai-fridge-section .input-box,
+  .fridge-preview {
+    padding: 20px;
+  }
+
+  .user-review-section {
+    padding: 40px 16px;
+  }
+
+  .user-review-section .main-title {
+    font-size: 24px;
+  }
+
+  .user-review-section .sub-desc {
+    font-size: 14px;
   }
 
   .review-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .review-card .card-content {
+    padding: 16px;
+  }
+
+  .cta-banner-section {
+    padding: 40px 16px;
+  }
+
+  .cta-banner-container {
+    width: 100%;
+  }
+
+  .cta-banner {
+    padding: 40px 32px;
+    min-height: 200px;
+    background-image: 
+      linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%),
+      url('https://images.unsplash.com/photo-1490818387583-1b5ba2614794?q=80&w=1280&auto=format&fit=crop'); 
+  }
+  
+  .cta-title {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+  
+  .cta-desc {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .cta-banner .btn-register {
+    font-size: 14px;
+    padding: 10px 20px;
   }
 }
 
-@media (max-width: 768px) {
+/* 모바일 (767px 이하) */
+@media (max-width: 767px) {
+  /* 모바일 히어로 스타일 */
+  .hero-section {
+    padding: 32px 16px;
+  }
+  
+  .hero-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-badge {
+    font-size: 13px;
+    padding: 6px 12px;
+    margin-bottom: 16px;
+  }
+
+  .hero-title {
+    font-size: 32px;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .hero-description {
+    font-size: 14px;
+    margin-bottom: 24px;
+    word-break: keep-all;
+  }
+  
+  .mobile-br {
+    display: block;
+  }
+
+  .desktop-br {
+    display: none;
+  }
+
+  .hero-buttons {
+    gap: 8px;
+  }
+
+  .hero-buttons .btn {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .btn-primary .btn-icon {
+    font-size: 12px;
+  }
+
+  .hero-image-wrapper {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+  }
+
+  .fab-btn-purple {
+    display: flex !important;
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #B588F7, #8B5CF6);
+    border: none;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    cursor: pointer;
+  }
+
+  .recipe-section {
+    padding: 32px 16px;
+  }
+  
+  .recipe-section .section-header {
+    margin-bottom: 16px;
+  }
+
+  .recipe-section .main-title {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .recipe-section .sub-title {
+    font-size: 13px;
+  }
+
+  .category-filters {
+    flex-wrap: nowrap; 
+    overflow-x: auto;
+    gap: 8px;
+    margin-bottom: 24px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .category-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-filters .filter-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
   .recipe-grid {
     grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .recipe-card .card-info {
+    padding: 16px;
+  }
+
+  .recipe-card .card-title {
+    font-size: 17px;
+    margin-bottom: 12px;
+  }
+  
+  .recipe-card .author-info,
+  .recipe-card .meta-info,
+  .recipe-card .stats-info {
+    font-size: 12px;
   }
   
   .fab-btn {
@@ -1277,42 +1632,303 @@
     height: 48px;
   }
 
+  .meal-plan-section {
+    padding: 32px 16px;
+  }
+
   .plan-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .meal-plan-section .main-title {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  
+  .meal-plan-section .sub-desc {
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+
+  .ai-plan-btn {
+    font-size: 13px;
+    padding: 8px 14px;
+    margin-top: 4px;
+  }
+
+  .plan-grid {
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+
+  .plan-card {
+    flex: 0 0 148px;
+  }
+
+  .plan-card .card-body {
+    padding: 12px;
+  }
+  
+  .plan-card .card-meta {
+    margin-bottom: 8px;
+  }
+
+  .plan-card .day {
+    font-size: 13px;
+  }
+  
+  .plan-card .meal-type {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .plan-card .recipe-title {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  
+  .plan-card .replace-btn {
+    font-size: 12px;
+  }
+
+  .cta-banner-section {
+    padding: 32px 16px;
   }
 
   .cta-banner {
-    padding: 40px 30px; /* 모바일에서는 여백을 줄임 */
-    min-height: auto;
-    
-    /* 모바일에서는 텍스트가 더 잘 보이도록 그라데이션 범위를 늘림 */
+    padding: 32px 20px;
+    min-height: 420px;
+    align-items: flex-end;
     background-image: 
-      linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 70%, transparent 100%),
-      url('https://images.unsplash.com/photo-1490818387583-1b5ba2614794?q=80&w=1280&auto=format&fit=crop'); 
+      linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%),
+      url('https://images.unsplash.com/photo-1490818387583-1b5ba2614794?q=80&w=600&auto=format&fit=crop');
   }
-  
+
+  .cta-content {
+    width: 100%;
+  }
+
   .cta-title {
-    font-size: 24px;
+    font-size: 26px;
+    line-height: 1.3;
+    margin-bottom: 12px;
   }
   
   .cta-desc {
     font-size: 14px;
+    line-height: 1.5;
     margin-bottom: 24px;
   }
-}
 
-@media (max-width: 576px) {
-  /* 모바일 사이즈에서는 1열 레이아웃으로 변경 */
-  .editor-grid {
-    grid-template-columns: 1fr;
+  .cta-banner .btn-register {
+    font-size: 14px;
+    padding: 12px 20px;
   }
+
+  /* 모바일 에디터 추천 스타일 */
+  .editor-pick-section {
+    padding: 32px 16px;
+  }
+
+  .editor-pick-section .section-header {
+    margin-bottom: 20px;
+  }
+
+  .editor-pick-section .main-title {
+    font-size: 22px;
+  }
+
+  .editor-pick-section .sub-title {
+    font-size: 13px;
+  }
+
+  .editor-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    grid-auto-rows: auto;
+  }
+
+  .editor-card {
+    height: 180px;
+  }
+
   .card-large {
-    grid-column: span 1;
+    grid-column: span 2;
+    height: 220px;
+  }
+
+  .card-overlay {
+    padding: 16px !important;
+  }
+
+  .editor-card:not(.card-large) .card-overlay {
+    padding: 12px !important;
+  }
+
+  .editor-card .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    margin-bottom: 8px;
+  }
+
+  .card-large .title {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .card-large .desc {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  .editor-card .title {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .user-review-section {
+    padding: 32px 16px;
+  }
+
+  .user-review-section .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  
+  .user-review-section .main-title {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  
+  .user-review-section .sub-desc {
+    font-size: 13px;
+    word-break: keep-all;
+  }
+
+  .user-review-section .more-link {
+    font-size: 13px;
+    margin-top: 4px;
   }
 
   .review-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .review-card .card-img {
+    aspect-ratio: 16 / 9;
+  }
+
+  .review-card .card-content {
+    padding: 16px;
+  }
+
+  .review-card .avatar {
+    width: 20px;
+    height: 20px;
+  }
+
+  .review-card .username {
+    font-size: 13px;
+  }
+
+  .review-card .time {
+    font-size: 12px;
+  }
+
+  .review-card .review-text {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .review-card .recipe-link {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .review-card .card-stats {
+    padding-top: 12px;
+  }
+
+  .review-card .stat {
+    font-size: 12px;
+  }
+
+  /* 모바일 AI 냉장고 털기 스타일 */
+  .ai-fridge-section {
+    padding: 32px 16px;
+  }
+
+  .ai-fridge-container {
+    gap: 20px;
+  }
+
+  .ai-fridge-section .ai-badge {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .ai-fridge-section .main-title {
+    font-size: 24px;
+    line-height: 1.35;
+    margin-bottom: 12px;
+  }
+
+  .ai-fridge-section .sub-desc {
+    font-size: 14px;
+    margin-bottom: 24px;
+    word-break: keep-all;
+  }
+
+  .ai-fridge-section .input-box, 
+  .fridge-preview {
+    padding: 16px;
+  }
+
+  .tag-list {
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .tag, .add-tag-btn {
+    font-size: 13px;
+    padding: 6px 14px;
+  }
+
+  .action-buttons {
+    gap: 8px;
+  }
+
+  .btn-upload, .btn-recommend {
+    font-size: 12px;
+    padding: 10px 14px;
+  }
+
+  .preview-img {
+    aspect-ratio: 16 / 9;
+    margin-bottom: 16px;
+  }
+
+  .preview-title {
+    font-size: 16px;
+  }
+
+  .preview-desc {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .preview-meta {
+    font-size: 12px;
+    margin-top: 4px;
   }
 }
