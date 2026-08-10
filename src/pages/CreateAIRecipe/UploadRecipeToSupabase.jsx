@@ -10,6 +10,7 @@ function decodeBase64(base64) {
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index);
   }
+
   return bytes;
 }
 
@@ -32,7 +33,7 @@ async function uploadImageToStorage(base64Data, folderName) {
     const datePrefix = new Date().toISOString().slice(0, 10);
     const imagePath = `${datePrefix}/${folderName}/${crypto.randomUUID()}.png`;
 
-    // 3. Supabase Storage 'recipe' 버킷에 바이너리 업로드
+    // 3. Supabase Storage 'recipe-images' 버킷에 바이너리 업로드
     const { error: uploadError } = await supabase.storage
       .from("recipe-images")
       .upload(imagePath, imageBytes, {
@@ -69,8 +70,16 @@ export async function UploadRecipeToSupabase(recipeRawData, user) {
   try {
     const userId = user.id;
 
+    // 작성자 닉네임
+    const nickname =
+      user.user_metadata?.nickname ||
+      user.user_metadata?.full_name ||
+      user.email?.split("@")[0] ||
+      "사용자";
+
     // 1. 대표 썸네일 Storage 업로드
     let thumbnailUrl = null;
+
     if (recipeRawData.thumbnail_url) {
       thumbnailUrl = await uploadImageToStorage(
         recipeRawData.thumbnail_url,
@@ -82,9 +91,11 @@ export async function UploadRecipeToSupabase(recipeRawData, user) {
     const updatedSteps = await Promise.all(
       (recipeRawData.steps || []).map(async step => {
         let stepImageUrl = null;
+
         if (step.image) {
           stepImageUrl = await uploadImageToStorage(step.image, `steps/${userId}`);
         }
+
         return {
           ...step,
           image: stepImageUrl, // Base64 대신 Public URL로 대체
@@ -95,6 +106,7 @@ export async function UploadRecipeToSupabase(recipeRawData, user) {
     // 3. DB 스키마 컬럼에 맞추어 Insert 객체 구성
     const dbPayload = {
       user_id: userId,
+      nickname,
       title: recipeRawData.title,
       summary: recipeRawData.summary,
       cuisine: recipeRawData.cuisine,
@@ -116,6 +128,7 @@ export async function UploadRecipeToSupabase(recipeRawData, user) {
 
     if (insertError) {
       console.error("Database Insert 실패:", insertError.message);
+
       return {
         success: false,
         error: "database_insert_failed",
@@ -124,9 +137,14 @@ export async function UploadRecipeToSupabase(recipeRawData, user) {
     }
 
     console.log("DB 저장 성공:", insertData);
-    return { success: true, savedRecipe: insertData };
+
+    return {
+      success: true,
+      savedRecipe: insertData,
+    };
   } catch (error) {
     console.error("레시피 저장 전체 과정 에러:", error);
+
     return {
       success: false,
       error: "server_error",
