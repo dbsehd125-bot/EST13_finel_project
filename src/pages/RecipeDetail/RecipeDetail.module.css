@@ -1,19 +1,37 @@
 /* =========================
+   로딩 / 에러
+========================= */
+
+.stateMessage {
+  display: flex;
+  min-height: 400px;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--brand-gray);
+}
+
+/* =========================
    대표 이미지
 ========================= */
 
 .hero {
   width: 100%;
   height: 420px;
+
   overflow: hidden;
+
   border-radius: 24px;
+
   background: var(--brand-light-gray);
 }
 
 .hero img {
   display: block;
+
   width: 100%;
   height: 100%;
+
   object-fit: cover;
   object-position: center;
 }
@@ -28,16 +46,19 @@
 
 .category {
   margin: 0 0 8px;
+
   color: var(--brand-primary);
 }
 
 .title {
   margin: 0;
+
   color: var(--brand-brown);
 }
 
 .description {
   margin: 10px 0 20px;
+
   color: var(--brand-gray);
 }
 
@@ -56,8 +77,11 @@
 .authorImage {
   width: 42px;
   height: 42px;
+
   flex-shrink: 0;
+
   border-radius: 50%;
+
   background: var(--brand-light-gray);
 }
 
@@ -68,11 +92,13 @@
 
 .authorName {
   color: var(--brand-brown);
+
   font-weight: 600;
 }
 
 .date {
   margin-top: 4px;
+
   color: var(--brand-gray);
 }
 
@@ -80,6 +106,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+
   color: var(--brand-brown);
 }
 
@@ -87,6 +114,7 @@
 .reviewStars {
   display: flex;
   align-items: center;
+
   color: var(--brand-primary);
 }
 
@@ -97,10 +125,13 @@
 .recipeInfo {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+
   margin-top: 24px;
   padding: 18px 24px;
+
   border: 1px solid var(--brand-divider);
   border-radius: 16px;
+
   background: #fff;
 }
 
@@ -109,6 +140,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+
   color: var(--brand-primary);
 }
 
@@ -132,6 +164,7 @@
 
 .infoItem strong {
   color: var(--brand-brown);
+
   font-weight: 500;
 }
 
@@ -142,6 +175,7 @@
 .actions {
   display: flex;
   gap: 8px;
+
   margin-top: 16px;
 }
 
@@ -151,21 +185,32 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+
   padding: 8px 14px;
 
   color: var(--brand-brown);
+
   background: #fff;
+
   border: 1px solid var(--brand-divider);
   border-radius: 999px;
 
   font: inherit;
+
   cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .actions button:hover,
 .outlineButton:hover {
   color: var(--brand-primary);
+
   border-color: var(--brand-primary);
+
   background: var(--brand-cream);
 }
 
@@ -174,7 +219,7 @@
 }
 
 /* =========================
-   AI 요약
+   AI 핵심 조리 과정
 ========================= */
 
 .aiSummary {
@@ -182,6 +227,7 @@
   padding: 24px;
 
   border: 1px solid color-mix(in srgb, var(--brand-ai) 40%, transparent);
+
   border-radius: 16px;
 
   background: color-mix(in srgb, var(--brand-ai) 12%, #fff);
@@ -189,13 +235,14 @@
 
 .aiSummary h2 {
   margin: 0 0 16px;
+
   color: var(--brand-brown);
 }
 
 .aiSummary ol {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 
   margin: 0;
   padding: 0;
@@ -205,23 +252,36 @@
 
 .aiSummary li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 
   color: var(--brand-brown);
 }
 
-.aiSummary li span {
+.aiSummary li > span {
   display: inline-flex;
+
   width: 22px;
   height: 22px;
+
   flex-shrink: 0;
+
   align-items: center;
   justify-content: center;
 
+  margin-top: 1px;
+
   color: #fff;
+
   background: var(--brand-ai);
+
   border-radius: 50%;
+}
+
+.aiSummary li p {
+  margin: 0;
+
+  line-height: 1.6;
 }
 
 /* =========================
@@ -237,6 +297,7 @@
 
 .sectionTitle {
   margin: 0 0 24px;
+
   color: var(--brand-brown);
 }
 
@@ -247,128 +308,193 @@
 .steps {
   display: flex;
   flex-direction: column;
+
   gap: 48px;
 }
 
+/*
+  데스크톱
+
+  1단계
+  [이미지] [내용]
+
+  2단계
+  [내용] [이미지]
+
+  순서로 지그재그 배치
+*/
+
 .step {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  align-items: start;
-  gap: 20px;
+
+  grid-template-columns:
+    minmax(220px, 280px)
+    minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 28px;
+
+  min-width: 0;
 }
 
+/* 짝수 번째 단계는 반대로 */
 .stepReverse {
-  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(220px, 280px);
 }
 
-.stepReverse .stepImage {
+/* =========================
+   이미지 영역
+========================= */
+
+.stepImageArea {
+  width: 100%;
+
+  overflow: hidden;
+
+  border-radius: 16px;
+
+  background: var(--brand-light-gray);
+}
+
+.stepImage {
+  display: block;
+
+  width: 100%;
+
+  aspect-ratio: 4 / 3;
+
+  object-fit: cover;
+  object-position: center;
+}
+
+/*
+  짝수 단계에서는
+  이미지가 오른쪽
+*/
+
+.stepReverse .stepImageArea {
   grid-column: 2;
   grid-row: 1;
 }
+
+/*
+  짝수 단계에서는
+  내용이 왼쪽
+*/
 
 .stepReverse .stepContent {
   grid-column: 1;
   grid-row: 1;
 }
 
-.stepImage {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 3;
+/* =========================
+   이미지 없는 단계
+========================= */
 
-  object-fit: cover;
-  object-position: center;
-
-  border-radius: 16px;
+.stepWithoutImage,
+.stepReverse.stepWithoutImage {
+  grid-template-columns: 1fr;
 }
+
+.stepWithoutImage .stepContent,
+.stepReverse.stepWithoutImage .stepContent {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* =========================
+   단계 내용
+========================= */
 
 .stepContent {
   min-width: 0;
-  padding-top: 4px;
 }
 
 .stepHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 16px;
 }
 
 .stepTitle {
   display: flex;
   align-items: center;
+
   gap: 10px;
+
+  min-width: 0;
 }
 
 .stepTitle > span {
   display: inline-flex;
+
   width: 30px;
   height: 30px;
+
   flex-shrink: 0;
+
   align-items: center;
   justify-content: center;
 
   color: #fff;
+
   background: var(--brand-primary);
+
   border-radius: 50%;
 }
 
 .stepTitle h3 {
   margin: 0;
+
   color: var(--brand-brown);
 }
 
 .stepTime {
   flex-shrink: 0;
+
   color: var(--brand-gray);
 }
 
 .stepDescription {
   margin: 12px 0;
+
   color: var(--brand-brown);
+
+  line-height: 1.7;
 }
+
+/* =========================
+   단계 팁
+========================= */
 
 .stepTip {
   display: flex;
   align-items: center;
+
   gap: 8px;
 
   width: 100%;
+
   padding: 11px 14px;
 
   color: var(--brand-brown);
+
   background: var(--brand-cream);
+
   border-radius: 999px;
+
+  line-height: 1.5;
 }
 
 .stepTip svg {
   flex-shrink: 0;
+
   color: var(--brand-primary);
-}
-
-/* =========================
-   작성자 팁
-========================= */
-
-.writerTip {
-  margin-top: 48px;
-  padding: 24px;
-
-  border: 1px solid color-mix(in srgb, var(--brand-green) 35%, transparent);
-  border-radius: 16px;
-
-  background: color-mix(in srgb, var(--brand-green) 10%, #fff);
-}
-
-.writerTip h2 {
-  margin: 0 0 12px;
-  color: var(--brand-brown);
-}
-
-.writerTip p {
-  margin: 0;
-  color: var(--brand-brown);
 }
 
 /* =========================
@@ -379,6 +505,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 20px;
 }
 
@@ -389,13 +516,16 @@
 .reviewList {
   display: flex;
   flex-direction: column;
+
   gap: 16px;
 }
 
 .review {
   padding: 24px;
+
   border: 1px solid var(--brand-divider);
   border-radius: 16px;
+
   background: #fff;
 }
 
@@ -403,12 +533,15 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 16px;
 }
 
 .reviewName {
   margin: 0 0 8px;
+
   color: var(--brand-brown);
+
   font-weight: 600;
 }
 
@@ -418,23 +551,29 @@
 
 .review > p {
   margin: 14px 0;
+
   color: var(--brand-brown);
 }
 
 .review > img {
   display: block;
+
   width: 140px;
   height: 110px;
+
   object-fit: cover;
+
   border-radius: 12px;
 }
 
 .reviewLike {
   display: flex;
   align-items: center;
+
   gap: 4px;
 
   margin-top: 10px;
+
   color: var(--brand-gray);
 }
 
@@ -445,20 +584,26 @@
 .commentForm {
   display: flex;
   align-items: center;
+
   gap: 12px;
 }
 
 .commentForm input {
   min-width: 0;
+
   flex: 1;
+
   padding: 14px 18px;
 
   color: var(--brand-brown);
+
   background: var(--brand-cream);
+
   border: 1px solid transparent;
   border-radius: 999px;
 
   font: inherit;
+
   outline: none;
 }
 
@@ -472,14 +617,18 @@
 
 .commentForm button {
   flex-shrink: 0;
+
   padding: 12px 22px;
 
   color: #fff;
+
   background: var(--brand-primary);
+
   border: 0;
   border-radius: 999px;
 
   font: inherit;
+
   cursor: pointer;
 }
 
@@ -493,63 +642,89 @@
 
 .relatedTitle {
   margin: 0 0 24px;
+
   color: var(--brand-brown);
 }
 
 .relatedList {
   display: grid;
+
   grid-template-columns: repeat(4, minmax(0, 1fr));
+
   gap: 16px;
 }
 
 .relatedCard {
   min-width: 0;
+
   overflow: hidden;
 
   border: 1px solid var(--brand-divider);
   border-radius: 16px;
 
   background: #fff;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.relatedCard:hover {
+  transform: translateY(-2px);
 }
 
 .relatedImageArea {
   position: relative;
+
   height: 190px;
+
   overflow: hidden;
 }
 
 .relatedImageArea > img {
   display: block;
+
   width: 100%;
   height: 100%;
+
   object-fit: cover;
 }
 
 .relatedTag {
   position: absolute;
+
   top: 12px;
   left: 12px;
 
   padding: 5px 10px;
 
   color: #fff;
+
   background: color-mix(in srgb, var(--brand-brown) 76%, transparent);
+
   border-radius: 999px;
 }
 
 .cardFavorite {
   position: absolute;
+
   top: 10px;
   right: 10px;
 
   display: inline-flex;
+
   width: 34px;
   height: 34px;
+
   align-items: center;
   justify-content: center;
 
   color: var(--brand-brown);
+
   background: var(--background-header);
+
   border: 0;
   border-radius: 50%;
 
@@ -562,6 +737,7 @@
 
 .relatedContent h3 {
   margin: 0;
+
   overflow: hidden;
 
   color: var(--brand-brown);
@@ -570,40 +746,38 @@
   white-space: nowrap;
 }
 
-.relatedContent > p {
-  margin: 8px 0 14px;
-  color: var(--brand-gray);
-}
-
-.relatedMeta,
-.relatedStats {
+.relatedMeta {
   display: flex;
   align-items: center;
+
   gap: 12px;
+
+  margin-top: 14px;
 
   color: var(--brand-gray);
 }
 
-.relatedMeta span,
-.relatedStats span {
+.relatedMeta span {
   display: inline-flex;
   align-items: center;
+
   gap: 4px;
 }
 
-.relatedStats {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--brand-divider);
-}
-
-.relatedRating {
-  color: var(--brand-primary);
-}
-
-/* =========================
+/* =========================================================
    태블릿
-========================= */
+   600px ~ 1023px
+
+   이미지
+   ↓
+   단계 제목
+   ↓
+   설명
+   ↓
+   팁
+
+   전부 가운데 정렬
+========================================================= */
 
 @media (max-width: 1279px) {
   .hero {
@@ -614,37 +788,99 @@
     padding: 18px 12px;
   }
 
+  /* =========================
+     조리 과정
+  ========================= */
+
   .steps {
-    gap: 40px;
+    gap: 48px;
   }
 
   .step,
-  .stepReverse {
+  .stepReverse,
+  .stepWithoutImage,
+  .stepReverse.stepWithoutImage {
     display: flex;
+
     flex-direction: column;
-    gap: 16px;
+
+    align-items: center;
+
+    gap: 18px;
+  }
+
+  /*
+    무조건 이미지가 가장 먼저
+  */
+
+  .stepImageArea,
+  .stepReverse .stepImageArea {
+    order: 0;
+
+    width: min(100%, 520px);
+
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .stepImage,
   .stepReverse .stepImage {
-    order: 0;
     width: 100%;
-    height: auto;
+
     aspect-ratio: 16 / 9;
   }
 
+  /*
+    이미지 다음 내용
+  */
+
   .stepContent,
-  .stepReverse .stepContent {
+  .stepReverse .stepContent,
+  .stepWithoutImage .stepContent,
+  .stepReverse.stepWithoutImage .stepContent {
     order: 1;
-    width: 100%;
+
+    width: min(100%, 640px);
+
+    grid-column: auto;
+    grid-row: auto;
+
+    text-align: center;
   }
+
+  .stepHeader {
+    justify-content: center;
+  }
+
+  .stepTitle {
+    justify-content: center;
+  }
+
+  .stepDescription {
+    text-align: center;
+  }
+
+  .stepTip {
+    justify-content: center;
+
+    margin-inline: auto;
+
+    text-align: center;
+  }
+
+  /* =========================
+     연관 레시피
+  ========================= */
 
   .relatedList {
     display: flex;
+
     gap: 16px;
 
     overflow-x: auto;
+
     scroll-snap-type: x mandatory;
+
     scrollbar-width: none;
   }
 
@@ -654,20 +890,32 @@
 
   .relatedCard {
     width: 250px;
+
     flex: 0 0 250px;
+
     scroll-snap-align: start;
   }
 }
 
-/* =========================
+/* =========================================================
    모바일
-========================= */
+   0 ~ 599px
+========================================================= */
 
-@media (max-width: 767px) {
+@media (max-width: 599px) {
+  /* =========================
+     대표 이미지
+  ========================= */
+
   .hero {
     height: 300px;
+
     border-radius: 18px;
   }
+
+  /* =========================
+     기본 정보
+  ========================= */
 
   .intro {
     margin-top: 18px;
@@ -676,6 +924,7 @@
   .authorRow {
     align-items: flex-start;
     justify-content: space-between;
+
     gap: 16px;
   }
 
@@ -683,14 +932,21 @@
     display: none;
   }
 
+  /* =========================
+     레시피 요약 정보
+  ========================= */
+
   .recipeInfo {
     grid-template-columns: repeat(2, 1fr);
+
     gap: 18px 0;
+
     padding: 18px 12px;
   }
 
   .infoItem {
     justify-content: flex-start;
+
     padding-left: 10px;
   }
 
@@ -698,14 +954,23 @@
     border-right: 0;
   }
 
+  /* =========================
+     액션
+  ========================= */
+
   .actions {
     display: grid;
+
     grid-template-columns: repeat(3, 1fr);
   }
 
   .actions button {
     padding-inline: 6px;
   }
+
+  /* =========================
+     AI 요약
+  ========================= */
 
   .aiSummary {
     padding: 18px 16px;
@@ -714,6 +979,10 @@
   .aiSummary li {
     align-items: flex-start;
   }
+
+  /* =========================
+     공통 섹션
+  ========================= */
 
   .processSection,
   .reviewSection,
@@ -726,43 +995,99 @@
     margin-bottom: 18px;
   }
 
+  /* =========================
+     조리 과정
+
+     사진
+     단계
+     설명
+     팁
+
+     가운데 정렬
+  ========================= */
+
   .steps {
-    gap: 32px;
+    gap: 40px;
   }
 
   .step,
-  .stepReverse {
-    gap: 12px;
+  .stepReverse,
+  .stepWithoutImage,
+  .stepReverse.stepWithoutImage {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 14px;
+  }
+
+  .stepImageArea,
+  .stepReverse .stepImageArea {
+    order: 0;
+
+    width: 100%;
+
+    border-radius: 14px;
   }
 
   .stepImage,
   .stepReverse .stepImage {
+    width: 100%;
+
     aspect-ratio: 16 / 10;
   }
 
+  .stepContent,
+  .stepReverse .stepContent,
+  .stepWithoutImage .stepContent,
+  .stepReverse.stepWithoutImage .stepContent {
+    order: 1;
+
+    width: 100%;
+
+    text-align: center;
+  }
+
+  .stepHeader {
+    justify-content: center;
+  }
+
   .stepTitle {
+    justify-content: center;
+
     gap: 8px;
   }
 
   .stepTitle > span {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
   }
 
   .stepDescription {
-    margin-block: 8px;
+    margin: 10px 0;
+
+    text-align: center;
   }
 
   .stepTip {
-    align-items: flex-start;
-    padding: 10px 12px;
-    border-radius: 12px;
+    justify-content: center;
+
+    width: 100%;
+
+    margin-inline: auto;
+
+    padding: 11px 14px;
+
+    border-radius: 14px;
+
+    text-align: center;
   }
 
-  .writerTip {
-    margin-top: 36px;
-    padding: 20px 16px;
-  }
+  /* =========================
+     후기
+  ========================= */
 
   .sectionHeader {
     align-items: center;
@@ -781,6 +1106,10 @@
     height: 90px;
   }
 
+  /* =========================
+     댓글
+  ========================= */
+
   .commentForm {
     gap: 8px;
   }
@@ -793,8 +1122,13 @@
     padding: 10px 18px;
   }
 
+  /* =========================
+     연관 레시피
+  ========================= */
+
   .relatedCard {
     width: 230px;
+
     flex-basis: 230px;
   }
 

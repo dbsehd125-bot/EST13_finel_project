@@ -1,7 +1,8 @@
 import {
   AccessTimeOutlined,
+  Bookmark,
   BookmarkBorderOutlined,
-  ChatBubbleOutlineOutlined,
+  Favorite,
   FavoriteBorderOutlined,
   GroupOutlined,
   LightbulbOutlined,
@@ -11,122 +12,408 @@ import {
   Star,
 } from "@mui/icons-material";
 
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
+
 import styles from "./RecipeDetail.module.css";
 import Layout from "../../components/Layout";
-
-const cookingSteps = [
-  {
-    id: 1,
-    title: "재료 손질하기",
-    time: "5분",
-    description: "닭다리살은 한 입 크기로 자르고, 양파는 채썰어 준비합니다.",
-    tip: "닭고기는 키친타월로 물기를 제거하면 잡내가 줄어요.",
-    image: "https://picsum.photos/seed/recipe-step-1/700/500",
-  },
-  {
-    id: 2,
-    title: "양념에 볶기",
-    time: "8분",
-    description: "달군 팬에 닭고기와 양념을 넣고 겉면이 익을 때까지 충분히 볶습니다.",
-    tip: "센 불에서 빠르게 볶아야 육즙이 살아있어요.",
-    image: "https://picsum.photos/seed/recipe-step-2/700/500",
-  },
-  {
-    id: 3,
-    title: "크림소스 만들기",
-    time: "7분",
-    description: "생크림과 삶은 면을 넣고 소스가 면에 배도록 졸입니다.",
-    tip: "면수를 조금씩 넣어 농도를 맞추세요.",
-    image: "https://picsum.photos/seed/recipe-step-3/700/500",
-  },
-  {
-    id: 4,
-    title: "완성하기",
-    time: "3분",
-    description: "치즈와 파슬리를 올리고 한소끔 더 익힌 뒤 그릇에 담습니다.",
-    image: "https://picsum.photos/seed/recipe-step-4/700/500",
-  },
-];
-
-const relatedRecipes = [
-  {
-    id: 1,
-    tag: "양식",
-    title: "레몬 버터 연어 스테이크",
-    author: "주말의셰프",
-    image: "https://picsum.photos/seed/related-1/500/380",
-    rating: "4.9",
-    likes: "2,104",
-    comments: "341",
-    time: "30분",
-    level: "보통",
-  },
-  {
-    id: 2,
-    tag: "디저트",
-    title: "꾸덕한 초코 바나나 오트밀",
-    author: "달콤한아침",
-    image: "https://picsum.photos/seed/related-2/500/380",
-    rating: "4.8",
-    likes: "1,120",
-    comments: "173",
-    time: "10분",
-    level: "매우 쉬움",
-  },
-  {
-    id: 3,
-    tag: "양식",
-    title: "든든한 감자 로즈마리 스튜",
-    author: "느린부엌",
-    image: "https://picsum.photos/seed/related-3/500/380",
-    rating: "4.7",
-    likes: "856",
-    comments: "121",
-    time: "40분",
-    level: "보통",
-  },
-  {
-    id: 4,
-    tag: "양식",
-    title: "봉골레 오일 파스타",
-    author: "미드나잇키친",
-    image: "https://picsum.photos/seed/related-4/500/380",
-    rating: "4.8",
-    likes: "1,330",
-    comments: "202",
-    time: "20분",
-    level: "보통",
-  },
-];
+import { supabase } from "../../lib/supabaseClient";
+import { useAuth } from "../../context/AuthContext";
 
 export default function RecipeDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const { user, authLoading } = useAuth();
+
+  const [recipe, setRecipe] = useState(null);
+  const [relatedRecipes, setRelatedRecipes] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // 좋아요 / 즐겨찾기
+  const [liked, setLiked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+
+  // 중복 클릭 방지
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+
+  // 다른 레시피로 이동할 때 스크롤 맨 위로
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  /**
+   * 레시피 상세 + 연관 레시피 조회
+   */
+  useEffect(() => {
+    const fetchRecipeData = async () => {
+      try {
+        setLoading(true);
+        setErrorMessage("");
+        setRelatedRecipes([]);
+
+        // 다른 레시피 이동 시 이전 반응 상태 초기화
+        setLiked(false);
+        setBookmarked(false);
+        setLikeCount(0);
+
+        /* =========================
+           현재 레시피 조회
+        ========================= */
+
+        const { data: recipeData, error: recipeError } = await supabase
+          .from("recipes")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (recipeError) {
+          throw recipeError;
+        }
+
+        setRecipe(recipeData);
+
+        // DB의 좋아요 수
+        setLikeCount(recipeData.like_count ?? 0);
+
+        /* =========================
+           연관 레시피 조회
+           같은 cuisine의 다른 레시피
+        ========================= */
+
+        try {
+          const { data: relatedData, error: relatedError } = await supabase
+            .from("recipes")
+            .select(
+              `
+              id,
+              thumbnail_url,
+              cuisine,
+              title,
+              cooking_time,
+              difficulty
+            `,
+            )
+            .eq("cuisine", recipeData.cuisine)
+            .neq("id", recipeData.id)
+            .limit(4);
+
+          if (relatedError) {
+            throw relatedError;
+          }
+
+          setRelatedRecipes(relatedData || []);
+        } catch (relatedError) {
+          /**
+           * 연관 레시피 조회 실패 때문에
+           * 상세페이지 전체가 깨지지 않도록
+           * 별도로 처리
+           */
+          console.error("연관 레시피 조회 실패:", relatedError);
+
+          setRelatedRecipes([]);
+        }
+      } catch (error) {
+        console.error("레시피 조회 실패:", error);
+
+        setRecipe(null);
+
+        setErrorMessage("레시피를 불러오지 못했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipeData();
+  }, [id]);
+
+  /**
+   * 현재 로그인한 사용자가
+   * 이 레시피에 좋아요 / 즐겨찾기를 했는지 조회
+   */
+  useEffect(() => {
+    if (authLoading || !recipe?.id) {
+      return;
+    }
+
+    // 비로그인 상태
+    if (!user) {
+      setLiked(false);
+      setBookmarked(false);
+      return;
+    }
+
+    const loadMyReactions = async () => {
+      try {
+        const [likeResult, bookmarkResult] = await Promise.all([
+          supabase
+            .from("recipe_likes")
+            .select("id")
+            .eq("recipe_id", recipe.id)
+            .eq("user_id", user.id)
+            .maybeSingle(),
+
+          supabase
+            .from("recipe_bookmarks")
+            .select("id")
+            .eq("recipe_id", recipe.id)
+            .eq("user_id", user.id)
+            .maybeSingle(),
+        ]);
+
+        if (likeResult.error) {
+          console.error("레시피 좋아요 상태 조회 오류:", likeResult.error);
+        } else {
+          setLiked(Boolean(likeResult.data));
+        }
+
+        if (bookmarkResult.error) {
+          console.error("레시피 즐겨찾기 상태 조회 오류:", bookmarkResult.error);
+        } else {
+          setBookmarked(Boolean(bookmarkResult.data));
+        }
+      } catch (error) {
+        console.error("좋아요/즐겨찾기 상태 조회 오류:", error);
+      }
+    };
+
+    loadMyReactions();
+  }, [authLoading, user?.id, recipe?.id]);
+
+  /**
+   * 로그인 페이지 이동
+   */
+  const moveToLogin = () => {
+    navigate("/login", {
+      state: {
+        from: `/recipes/${recipe.id}`,
+      },
+    });
+  };
+
+  /**
+   * 좋아요 토글
+   */
+  const handleLikeToggle = async () => {
+    if (authLoading || likeLoading || !recipe) {
+      return;
+    }
+
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    try {
+      setLikeLoading(true);
+
+      /**
+       * 현재 좋아요 상태라면 삭제,
+       * 아니라면 새로 추가
+       */
+      if (liked) {
+        const { error } = await supabase
+          .from("recipe_likes")
+          .delete()
+          .eq("recipe_id", recipe.id)
+          .eq("user_id", user.id);
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        const { error } = await supabase.from("recipe_likes").insert({
+          recipe_id: recipe.id,
+          user_id: user.id,
+        });
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      const nextLikeCount = liked ? Math.max(0, likeCount - 1) : likeCount + 1;
+
+      /**
+       * recipes.like_count도 갱신
+       * 인기순 정렬 등에 활용 가능
+       */
+      const { error: countUpdateError } = await supabase
+        .from("recipes")
+        .update({
+          like_count: nextLikeCount,
+        })
+        .eq("id", recipe.id);
+
+      if (countUpdateError) {
+        throw countUpdateError;
+      }
+
+      setLiked(!liked);
+      setLikeCount(nextLikeCount);
+
+      setRecipe(previousRecipe => ({
+        ...previousRecipe,
+        like_count: nextLikeCount,
+      }));
+    } catch (error) {
+      console.error("레시피 좋아요 처리 오류:", error);
+
+      alert(error.message || "좋아요 처리에 실패했습니다.");
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  /**
+   * 즐겨찾기 토글
+   */
+  const handleBookmarkToggle = async () => {
+    if (authLoading || bookmarkLoading || !recipe) {
+      return;
+    }
+
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    try {
+      setBookmarkLoading(true);
+
+      if (bookmarked) {
+        const { error } = await supabase
+          .from("recipe_bookmarks")
+          .delete()
+          .eq("recipe_id", recipe.id)
+          .eq("user_id", user.id);
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        const { error } = await supabase.from("recipe_bookmarks").insert({
+          recipe_id: recipe.id,
+          user_id: user.id,
+        });
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      setBookmarked(!bookmarked);
+    } catch (error) {
+      console.error("레시피 즐겨찾기 처리 오류:", error);
+
+      alert(error.message || "즐겨찾기 처리에 실패했습니다.");
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
+
+  /**
+   * Supabase created_at 날짜
+   * YYYY.MM.DD 형식으로 변환
+   */
+  const formatDate = dateString => {
+    if (!dateString) {
+      return "";
+    }
+
+    const date = new Date(dateString);
+
+    const year = date.getFullYear();
+
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}.${month}.${day}`;
+  };
+
+  /**
+   * AI 핵심 조리 과정용 텍스트
+   *
+   * 향후 steps[].summary가 생기면
+   * summary를 우선 사용하고,
+   * 현재 데이터에서는 description 사용
+   */
+  const getStepSummary = step => {
+    if (step?.summary?.trim()) {
+      return step.summary.trim();
+    }
+
+    if (step?.description?.trim()) {
+      return step.description.trim();
+    }
+
+    return step?.title || "";
+  };
+
+  /* =========================
+     로딩
+  ========================= */
+
+  if (loading) {
+    return (
+      <Layout activeMenu="레시피 둘러보기">
+        <div className={styles.stateMessage}>레시피를 불러오는 중입니다.</div>
+      </Layout>
+    );
+  }
+
+  /* =========================
+     조회 실패
+  ========================= */
+
+  if (errorMessage || !recipe) {
+    return (
+      <Layout activeMenu="레시피 둘러보기">
+        <div className={styles.stateMessage}>{errorMessage || "레시피를 찾을 수 없습니다."}</div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout activeMenu="레시피 둘러보기">
-      {/* 대표 이미지 */}
+      {/* =========================
+          대표 이미지
+      ========================= */}
+
       <section className={styles.hero}>
-        <img src="https://picsum.photos/seed/cream-pasta/1400/600" alt="매콤 크림 닭갈비 파스타" />
+        <img src={recipe.thumbnail_url} alt={recipe.title} />
       </section>
 
-      {/* 레시피 기본 정보 */}
+      {/* =========================
+          레시피 기본 정보
+      ========================= */}
+
       <section className={styles.intro}>
-        <p className={`text-sm ${styles.category}`}>양식</p>
+        <p className={`text-sm ${styles.category}`}>{recipe.cuisine}</p>
 
-        <h1 className={`font-display dtext-4xl ${styles.title}`}>매콤 크림 닭갈비 파스타</h1>
+        <h1 className={`font-display dtext-4xl ${styles.title}`}>{recipe.title}</h1>
 
-        <p className={`text-m ${styles.description}`}>
-          부드러운 크림소스와 매콤한 닭갈비를 함께 즐기는 간단한 퓨전 파스타입니다.
-        </p>
+        <p className={`text-m ${styles.description}`}>{recipe.summary}</p>
 
         <div className={styles.authorRow}>
           <div className={styles.author}>
             <div className={styles.authorImage} />
 
             <div>
-              <p className={`text-sm ${styles.authorName}`}>요리하는정원</p>
-              <p className={`text-s ${styles.date}`}>2026.07.20</p>
+              <p className={`text-sm ${styles.authorName}`}>{recipe.nickname || "사용자"}</p>
+
+              <p className={`text-s ${styles.date}`}>{formatDate(recipe.created_at)}</p>
             </div>
           </div>
 
+          {/*
+            후기 테이블 연결 전까지 임시
+          */}
           <div className={`text-sm ${styles.rating}`}>
             <div className={styles.stars}>
               {[1, 2, 3, 4, 5].map(star => (
@@ -139,134 +426,190 @@ export default function RecipeDetail() {
         </div>
       </section>
 
-      {/* 레시피 요약 정보 */}
+      {/* =========================
+          레시피 요약 정보
+      ========================= */}
+
       <section className={styles.recipeInfo}>
         <div className={styles.infoItem}>
           <AccessTimeOutlined />
+
           <div>
             <span className="text-s">조리 시간</span>
-            <strong className="text-sm">25분</strong>
+
+            <strong className="text-sm">{recipe.cooking_time}</strong>
           </div>
         </div>
 
         <div className={styles.infoItem}>
           <LocalDiningOutlined />
+
           <div>
             <span className="text-s">난이도</span>
-            <strong className="text-sm">쉬움</strong>
+
+            <strong className="text-sm">{recipe.difficulty}</strong>
           </div>
         </div>
 
         <div className={styles.infoItem}>
           <GroupOutlined />
+
           <div>
             <span className="text-s">인분</span>
-            <strong className="text-sm">2인분</strong>
+
+            <strong className="text-sm">{recipe.servings}</strong>
           </div>
         </div>
 
         <div className={styles.infoItem}>
           <RemoveRedEyeOutlined />
+
           <div>
             <span className="text-s">조회 수</span>
+
+            {/*
+              view_count 연결 전까지 임시
+            */}
             <strong className="text-sm">18,420</strong>
           </div>
         </div>
       </section>
 
-      {/* 액션 버튼 */}
+      {/* =========================
+          액션 버튼
+      ========================= */}
+
       <section className={styles.actions}>
-        <button type="button" className="text-sm">
-          <FavoriteBorderOutlined />
-          좋아요 1,248
+        {/* 좋아요 */}
+        <button
+          type="button"
+          className="text-sm"
+          onClick={handleLikeToggle}
+          disabled={likeLoading}
+          aria-pressed={liked}
+          style={{
+            color: liked ? "var(--brand-primary)" : undefined,
+          }}
+        >
+          {liked ? <Favorite /> : <FavoriteBorderOutlined />}
+          좋아요 {likeCount}
         </button>
 
-        <button type="button" className="text-sm">
-          <BookmarkBorderOutlined />
+        {/* 즐겨찾기 */}
+        <button
+          type="button"
+          className="text-sm"
+          onClick={handleBookmarkToggle}
+          disabled={bookmarkLoading}
+          aria-pressed={bookmarked}
+          style={{
+            color: bookmarked ? "var(--brand-primary)" : undefined,
+          }}
+        >
+          {bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
           즐겨찾기
         </button>
 
+        {/* 공유 */}
         <button type="button" className="text-sm">
           <ShareOutlined />
           공유
         </button>
       </section>
 
-      {/* AI 요약 */}
-      <section className={styles.aiSummary}>
-        <h2 className="text-lg">✨ AI가 정리한 핵심 조리 과정</h2>
+      {/* =========================
+          AI 핵심 조리 과정
+      ========================= */}
 
-        <ol>
-          <li className="text-sm">
-            <span className="text-s">1</span>
-            닭고기와 채소를 먹기 좋은 크기로 손질합니다.
-          </li>
-          <li className="text-sm">
-            <span className="text-s">2</span>
-            팬에 닭고기와 양념을 넣고 충분히 볶습니다.
-          </li>
-          <li className="text-sm">
-            <span className="text-s">3</span>
-            생크림과 삶은 면을 넣어 농도를 맞춥니다.
-          </li>
-          <li className="text-sm">
-            <span className="text-s">4</span>
-            치즈와 파슬리를 올려 완성합니다.
-          </li>
-        </ol>
-      </section>
+      {recipe.steps?.length > 0 && (
+        <section className={styles.aiSummary}>
+          <h2 className="text-lg">✨ AI가 정리한 핵심 조리 과정</h2>
 
-      {/* 조리 과정 */}
-      <section className={styles.processSection}>
-        <h2 className={`font-display dtext-2xl ${styles.sectionTitle}`}>조리 과정</h2>
+          <ol>
+            {recipe.steps.map(step => (
+              <li key={`summary-${step.step}`} className="text-sm">
+                <span className="text-s">{step.step}</span>
 
-        <div className={styles.steps}>
-          {cookingSteps.map((step, index) => (
-            <article
-              key={step.id}
-              className={`${styles.step} ${index % 2 === 1 ? styles.stepReverse : ""}`}
-            >
-              <img
-                className={styles.stepImage}
-                src={step.image}
-                alt={`${step.id}단계 ${step.title}`}
-              />
+                <p>{getStepSummary(step)}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
-              <div className={styles.stepContent}>
-                <div className={styles.stepHeader}>
-                  <div className={styles.stepTitle}>
-                    <span className="text-sm">{step.id}</span>
-                    <h3 className="text-lg">{step.title}</h3>
-                  </div>
+      {/* =========================
+          조리 과정
+      ========================= */}
 
-                  <span className={`text-s ${styles.stepTime}`}>{step.time}</span>
-                </div>
+      {recipe.steps?.length > 0 && (
+        <section className={styles.processSection}>
+          <h2 className={`font-display dtext-2xl ${styles.sectionTitle}`}>조리 과정</h2>
 
-                <p className={`text-sm ${styles.stepDescription}`}>{step.description}</p>
+          <div className={styles.steps}>
+            {recipe.steps.map((step, index) => (
+              <article
+                key={step.step}
+                className={`
+                    ${styles.step}
+                    ${index % 2 === 1 ? styles.stepReverse : ""}
+                    ${!step.image ? styles.stepWithoutImage : ""}
+                  `}
+              >
+                {/* =========================
+                      단계 이미지
+                  ========================= */}
 
-                {step.tip && (
-                  <div className={styles.stepTip}>
-                    <LightbulbOutlined fontSize="small" />
-                    <span className="text-sm">{step.tip}</span>
+                {step.image && (
+                  <div className={styles.stepImageArea}>
+                    <img
+                      className={styles.stepImage}
+                      src={step.image}
+                      alt={`${step.step}단계 ${step.title}`}
+                      loading="lazy"
+                    />
                   </div>
                 )}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
 
-      {/* 작성자 팁 */}
-      <section className={styles.writerTip}>
-        <h2 className="font-display dtext-2xl">작성자의 요리 팁</h2>
+                {/* =========================
+                      단계 내용
+                  ========================= */}
 
-        <p className="text-sm">
-          크림소스가 너무 되직하면 면수를 조금씩 넣어 농도를 조절하세요. 닭다리살 대신 베이컨이나
-          새우를 사용해도 잘 어울립니다.
-        </p>
-      </section>
+                <div className={styles.stepContent}>
+                  <div className={styles.stepHeader}>
+                    <div className={styles.stepTitle}>
+                      <span className="text-sm">{step.step}</span>
 
-      {/* 완성 후기 */}
+                      <h3 className="text-lg">{step.title}</h3>
+                    </div>
+
+                    {step.time && <span className={`text-s ${styles.stepTime}`}>{step.time}</span>}
+                  </div>
+
+                  <p className={`text-sm ${styles.stepDescription}`}>{step.description}</p>
+
+                  {/* =========================
+                        단계별 조리 팁
+                    ========================= */}
+
+                  {step.tip && (
+                    <div className={styles.stepTip}>
+                      <LightbulbOutlined fontSize="small" />
+
+                      <span className="text-sm">{step.tip}</span>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* =========================
+          완성 후기
+          아직 DB 연결 전
+      ========================= */}
+
       <section className={styles.reviewSection}>
         <div className={styles.sectionHeader}>
           <h2 className={`font-display dtext-2xl ${styles.sectionTitle}`}>완성 후기</h2>
@@ -327,74 +670,83 @@ export default function RecipeDetail() {
         </div>
       </section>
 
-      {/* 댓글 */}
+      {/* =========================
+          댓글
+          아직 DB 연결 전
+      ========================= */}
+
       <section className={styles.commentSection}>
         <h2 className={`font-display dtext-2xl ${styles.sectionTitle}`}>댓글</h2>
 
         <form className={styles.commentForm} onSubmit={event => event.preventDefault()}>
           <input className="text-sm" type="text" placeholder="댓글을 남겨보세요" />
+
           <button className="text-button" type="submit">
             등록
           </button>
         </form>
       </section>
 
-      {/* 연관 레시피 */}
-      <section className={styles.relatedSection}>
-        <h2 className={`font-display dtext-2xl ${styles.relatedTitle}`}>
-          이 레시피와 함께 보면 좋아요
-        </h2>
+      {/* =========================
+          연관 레시피
+      ========================= */}
 
-        <div className={styles.relatedList}>
-          {relatedRecipes.map(recipe => (
-            <article key={recipe.id} className={styles.relatedCard}>
-              <div className={styles.relatedImageArea}>
-                <img src={recipe.image} alt={recipe.title} />
+      {relatedRecipes.length > 0 && (
+        <section className={styles.relatedSection}>
+          <h2 className={`font-display dtext-2xl ${styles.relatedTitle}`}>
+            이 레시피와 함께 보면 좋아요
+          </h2>
 
-                <span className={`text-s ${styles.relatedTag}`}>{recipe.tag}</span>
+          <div className={styles.relatedList}>
+            {relatedRecipes.map(relatedRecipe => (
+              <article
+                key={relatedRecipe.id}
+                className={styles.relatedCard}
+                onClick={() => navigate(`/recipes/${relatedRecipe.id}`)}
+              >
+                <div className={styles.relatedImageArea}>
+                  <img src={relatedRecipe.thumbnail_url} alt={relatedRecipe.title} />
 
-                <button type="button" className={styles.cardFavorite} aria-label="레시피 즐겨찾기">
-                  <FavoriteBorderOutlined fontSize="small" />
-                </button>
-              </div>
+                  <span className={`text-s ${styles.relatedTag}`}>{relatedRecipe.cuisine}</span>
 
-              <div className={styles.relatedContent}>
-                <h3 className="text-lg">{recipe.title}</h3>
-                <p className="text-s">{recipe.author}</p>
-
-                <div className={`text-s ${styles.relatedMeta}`}>
-                  <span>
-                    <AccessTimeOutlined fontSize="inherit" />
-                    {recipe.time}
-                  </span>
-
-                  <span>
-                    <LocalDiningOutlined fontSize="inherit" />
-                    {recipe.level}
-                  </span>
+                  {/*
+                      연관 레시피 카드의 즐겨찾기는
+                      다음 단계에서 별도로 연결 가능
+                    */}
+                  <button
+                    type="button"
+                    className={styles.cardFavorite}
+                    aria-label="레시피 즐겨찾기"
+                    onClick={event => {
+                      event.stopPropagation();
+                    }}
+                  >
+                    <FavoriteBorderOutlined fontSize="small" />
+                  </button>
                 </div>
 
-                <div className={`text-s ${styles.relatedStats}`}>
-                  <span className={styles.relatedRating}>
-                    <Star fontSize="inherit" />
-                    {recipe.rating}
-                  </span>
+                <div className={styles.relatedContent}>
+                  <h3 className="text-lg">{relatedRecipe.title}</h3>
 
-                  <span>
-                    <FavoriteBorderOutlined fontSize="inherit" />
-                    {recipe.likes}
-                  </span>
+                  <div className={`text-s ${styles.relatedMeta}`}>
+                    <span>
+                      <AccessTimeOutlined fontSize="inherit" />
 
-                  <span>
-                    <ChatBubbleOutlineOutlined fontSize="inherit" />
-                    {recipe.comments}
-                  </span>
+                      {relatedRecipe.cooking_time}
+                    </span>
+
+                    <span>
+                      <LocalDiningOutlined fontSize="inherit" />
+
+                      {relatedRecipe.difficulty}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </Layout>
   );
 }
