@@ -102,9 +102,14 @@
   color: var(--brand-gray);
 }
 
+/* =========================
+   상단 평균 별점
+========================= */
+
 .rating {
   display: flex;
   align-items: center;
+
   gap: 8px;
 
   color: var(--brand-brown);
@@ -118,12 +123,22 @@
   color: var(--brand-primary);
 }
 
+.stars svg,
+.reviewStars svg {
+  font-size: 19px;
+}
+
+.rating > span {
+  font-weight: 600;
+}
+
 /* =========================
    요약 정보
 ========================= */
 
 .recipeInfo {
   display: grid;
+
   grid-template-columns: repeat(4, 1fr);
 
   margin-top: 24px;
@@ -139,6 +154,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
   gap: 12px;
 
   color: var(--brand-primary);
@@ -155,6 +171,7 @@
 .infoItem div {
   display: flex;
   flex-direction: column;
+
   gap: 4px;
 }
 
@@ -174,16 +191,17 @@
 
 .actions {
   display: flex;
+
   gap: 8px;
 
   margin-top: 16px;
 }
 
-.actions button,
-.outlineButton {
+.actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   gap: 6px;
 
   padding: 8px 14px;
@@ -202,16 +220,22 @@
   transition:
     color 0.2s ease,
     border-color 0.2s ease,
-    background-color 0.2s ease;
+    background-color 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.actions button:hover,
-.outlineButton:hover {
+.actions button:hover:not(:disabled) {
   color: var(--brand-primary);
 
   border-color: var(--brand-primary);
 
   background: var(--brand-cream);
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.6;
 }
 
 .actions svg {
@@ -242,6 +266,7 @@
 .aiSummary ol {
   display: flex;
   flex-direction: column;
+
   gap: 12px;
 
   margin: 0;
@@ -253,6 +278,7 @@
 .aiSummary li {
   display: flex;
   align-items: flex-start;
+
   gap: 10px;
 
   color: var(--brand-brown);
@@ -290,7 +316,6 @@
 
 .processSection,
 .reviewSection,
-.commentSection,
 .relatedSection {
   margin-top: 48px;
 }
@@ -320,8 +345,6 @@
 
   2단계
   [내용] [이미지]
-
-  순서로 지그재그 배치
 */
 
 .step {
@@ -338,7 +361,6 @@
   min-width: 0;
 }
 
-/* 짝수 번째 단계는 반대로 */
 .stepReverse {
   grid-template-columns:
     minmax(0, 1fr)
@@ -346,7 +368,7 @@
 }
 
 /* =========================
-   이미지 영역
+   단계 이미지
 ========================= */
 
 .stepImageArea {
@@ -370,20 +392,10 @@
   object-position: center;
 }
 
-/*
-  짝수 단계에서는
-  이미지가 오른쪽
-*/
-
 .stepReverse .stepImageArea {
   grid-column: 2;
   grid-row: 1;
 }
-
-/*
-  짝수 단계에서는
-  내용이 왼쪽
-*/
 
 .stepReverse .stepContent {
   grid-column: 1;
@@ -497,31 +509,21 @@
   color: var(--brand-primary);
 }
 
-/* =========================
-   완성 후기
-========================= */
+/* =========================================================
+   완성 후기 목록
+========================================================= */
 
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 20px;
-}
-
-.sectionHeader .sectionTitle {
-  margin-bottom: 24px;
-}
-
-.reviewList {
+.commentList {
   display: flex;
   flex-direction: column;
 
-  gap: 16px;
+  gap: 12px;
+
+  margin-bottom: 24px;
 }
 
-.review {
-  padding: 24px;
+.commentItem {
+  padding: 20px;
 
   border: 1px solid var(--brand-divider);
   border-radius: 16px;
@@ -529,69 +531,167 @@
   background: #fff;
 }
 
-.reviewHeader {
+.commentHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
 
   gap: 16px;
+
+  margin-bottom: 12px;
 }
 
-.reviewName {
-  margin: 0 0 8px;
+/* 닉네임 + 별점 */
+.commentHeader > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+
+  min-width: 0;
+}
+
+.commentHeader strong {
+  color: var(--brand-brown);
+
+  font-weight: 600;
+}
+
+.commentHeader > span {
+  flex-shrink: 0;
+
+  color: var(--brand-gray);
+}
+
+/* 후기 별점 */
+.reviewStars {
+  gap: 1px;
+}
+
+.reviewStars svg {
+  font-size: 18px;
+}
+
+/* 후기 내용 */
+.commentItem > p {
+  margin: 0;
+
+  color: var(--brand-brown);
+
+  line-height: 1.65;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 후기 이미지 */
+.commentImage {
+  display: block;
+
+  width: min(100%, 320px);
+  height: auto;
+
+  margin-top: 14px;
+
+  object-fit: cover;
+
+  border-radius: 14px;
+}
+
+/* 후기가 하나도 없을 때 */
+.emptyComment {
+  margin: 0 0 20px;
+
+  color: var(--brand-gray);
+}
+
+/* =========================================================
+   완성 후기 작성
+========================================================= */
+
+.commentForm {
+  width: 100%;
+}
+
+.reviewFormContent {
+  display: flex;
+  flex-direction: column;
+
+  gap: 14px;
+
+  width: 100%;
+
+  padding: 20px;
+
+  border: 1px solid var(--brand-divider);
+  border-radius: 16px;
+
+  background: #fff;
+}
+
+/* =========================
+   별점 입력
+========================= */
+
+.ratingInputArea {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  min-height: 32px;
+}
+
+.ratingInputArea > span:first-child {
+  flex-shrink: 0;
 
   color: var(--brand-brown);
 
   font-weight: 600;
 }
 
-.reviewHeader time {
-  color: var(--brand-gray);
-}
-
-.review > p {
-  margin: 14px 0;
-
-  color: var(--brand-brown);
-}
-
-.review > img {
-  display: block;
-
-  width: 140px;
-  height: 110px;
-
-  object-fit: cover;
-
-  border-radius: 12px;
-}
-
-.reviewLike {
+.ratingInput {
   display: flex;
   align-items: center;
 
-  gap: 4px;
+  gap: 1px;
+}
 
-  margin-top: 10px;
+.ratingButton {
+  display: inline-flex;
 
-  color: var(--brand-gray);
+  width: 30px;
+  height: 30px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color: var(--brand-primary);
+
+  background: transparent;
+
+  border: 0;
+
+  cursor: pointer;
+}
+
+.ratingButton svg {
+  font-size: 25px;
+}
+
+.ratingRequired {
+  color: var(--brand-primary);
 }
 
 /* =========================
-   댓글
+   후기 텍스트 입력
 ========================= */
 
-.commentForm {
-  display: flex;
-  align-items: center;
-
-  gap: 12px;
-}
-
-.commentForm input {
+.reviewFormContent > input {
+  width: 100%;
   min-width: 0;
-
-  flex: 1;
 
   padding: 14px 18px;
 
@@ -600,25 +700,162 @@
   background: var(--brand-cream);
 
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 14px;
 
   font: inherit;
 
   outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.commentForm input::placeholder {
+.reviewFormContent > input::placeholder {
   color: var(--brand-gray);
 }
 
-.commentForm input:focus {
+.reviewFormContent > input:focus {
   border-color: var(--brand-primary);
+
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 12%, transparent);
 }
 
-.commentForm button {
-  flex-shrink: 0;
+.reviewFormContent > input:disabled {
+  cursor: not-allowed;
 
-  padding: 12px 22px;
+  opacity: 0.7;
+}
+
+/* =========================
+   이미지 미리보기
+========================= */
+
+.reviewImagePreview {
+  position: relative;
+
+  width: fit-content;
+  max-width: 100%;
+}
+
+.reviewImagePreview img {
+  display: block;
+
+  width: 180px;
+  max-width: 100%;
+
+  aspect-ratio: 4 / 3;
+
+  object-fit: cover;
+
+  border-radius: 14px;
+}
+
+.removeReviewImage {
+  position: absolute;
+
+  top: 8px;
+  right: 8px;
+
+  padding: 5px 9px;
+
+  color: #fff;
+
+  background: color-mix(in srgb, var(--brand-brown) 75%, transparent);
+
+  border: 0;
+  border-radius: 999px;
+
+  font: inherit;
+
+  cursor: pointer;
+}
+
+.removeReviewImage:hover {
+  background: var(--brand-brown);
+}
+
+/* =========================
+   사진 추가 / 등록
+========================= */
+
+.reviewFormActions {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  width: 100%;
+}
+
+/* 사진 추가 label */
+.imageUploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 9px 14px;
+
+  color: var(--brand-brown);
+
+  background: #fff;
+
+  border: 1px solid var(--brand-divider);
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.imageUploadButton:hover {
+  color: var(--brand-primary);
+
+  border-color: var(--brand-primary);
+
+  background: var(--brand-cream);
+}
+
+.imageUploadButton svg {
+  font-size: 19px;
+}
+
+/* 실제 file input 숨기기 */
+.imageUploadButton input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  overflow: hidden;
+
+  clip: rect(0, 0, 0, 0);
+
+  white-space: nowrap;
+
+  clip-path: inset(50%);
+}
+
+/* 2MB 이하 안내 */
+.imageGuide {
+  color: var(--brand-gray);
+}
+
+/* 등록 버튼 */
+.reviewFormActions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 72px;
+
+  margin-left: auto;
+  padding: 11px 22px;
 
   color: #fff;
 
@@ -630,10 +867,20 @@
   font: inherit;
 
   cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.commentForm button:hover {
+.reviewFormActions > button:hover:not(:disabled) {
   background: var(--brand-primary-dark);
+}
+
+.reviewFormActions > button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.6;
 }
 
 /* =========================
@@ -766,23 +1013,21 @@
 
 /* =========================================================
    태블릿
-   600px ~ 1023px
-
-   이미지
-   ↓
-   단계 제목
-   ↓
-   설명
-   ↓
-   팁
-
-   전부 가운데 정렬
+   768px ~ 1199px
 ========================================================= */
 
-@media (max-width: 1279px) {
+@media (max-width: 1199px) {
+  /* =========================
+     대표 이미지
+  ========================= */
+
   .hero {
     height: 320px;
   }
+
+  /* =========================
+     요약 정보
+  ========================= */
 
   .recipeInfo {
     padding: 18px 12px;
@@ -790,6 +1035,14 @@
 
   /* =========================
      조리 과정
+
+     이미지
+     ↓
+     단계
+     ↓
+     설명
+     ↓
+     팁
   ========================= */
 
   .steps {
@@ -809,10 +1062,6 @@
     gap: 18px;
   }
 
-  /*
-    무조건 이미지가 가장 먼저
-  */
-
   .stepImageArea,
   .stepReverse .stepImageArea {
     order: 0;
@@ -829,10 +1078,6 @@
 
     aspect-ratio: 16 / 9;
   }
-
-  /*
-    이미지 다음 내용
-  */
 
   .stepContent,
   .stepReverse .stepContent,
@@ -869,6 +1114,14 @@
   }
 
   /* =========================
+     후기
+  ========================= */
+
+  .commentImage {
+    width: min(100%, 300px);
+  }
+
+  /* =========================
      연관 레시피
   ========================= */
 
@@ -899,10 +1152,10 @@
 
 /* =========================================================
    모바일
-   0 ~ 599px
+   376px ~ 767px
 ========================================================= */
 
-@media (max-width: 599px) {
+@media (max-width: 767px) {
   /* =========================
      대표 이미지
   ========================= */
@@ -932,8 +1185,16 @@
     display: none;
   }
 
+  .rating {
+    gap: 5px;
+  }
+
+  .stars svg {
+    font-size: 17px;
+  }
+
   /* =========================
-     레시피 요약 정보
+     요약 정보
   ========================= */
 
   .recipeInfo {
@@ -986,7 +1247,6 @@
 
   .processSection,
   .reviewSection,
-  .commentSection,
   .relatedSection {
     margin-top: 40px;
   }
@@ -997,13 +1257,6 @@
 
   /* =========================
      조리 과정
-
-     사진
-     단계
-     설명
-     팁
-
-     가운데 정렬
   ========================= */
 
   .steps {
@@ -1077,7 +1330,6 @@
     width: 100%;
 
     margin-inline: auto;
-
     padding: 11px 14px;
 
     border-radius: 14px;
@@ -1086,39 +1338,83 @@
   }
 
   /* =========================
-     후기
+     완성 후기 목록
   ========================= */
 
-  .sectionHeader {
-    align-items: center;
+  .commentList {
+    gap: 10px;
+
+    margin-bottom: 16px;
   }
 
-  .outlineButton {
-    padding: 7px 12px;
-  }
-
-  .review {
+  .commentItem {
     padding: 16px;
+
+    border-radius: 14px;
   }
 
-  .review > img {
-    width: 110px;
-    height: 90px;
+  .commentHeader {
+    gap: 10px;
+
+    margin-bottom: 10px;
+  }
+
+  .commentImage {
+    width: min(100%, 260px);
+
+    border-radius: 12px;
+  }
+
+  .emptyComment {
+    margin-bottom: 16px;
   }
 
   /* =========================
-     댓글
+     후기 작성
   ========================= */
 
-  .commentForm {
-    gap: 8px;
+  .reviewFormContent {
+    gap: 12px;
+
+    padding: 16px;
+
+    border-radius: 14px;
   }
 
-  .commentForm input {
+  .ratingInputArea {
+    flex-wrap: wrap;
+
+    gap: 7px;
+  }
+
+  .ratingButton {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ratingButton svg {
+    font-size: 24px;
+  }
+
+  .reviewFormContent > input {
     padding: 12px 14px;
   }
 
-  .commentForm button {
+  .reviewImagePreview img {
+    width: 160px;
+  }
+
+  .reviewFormActions {
+    flex-wrap: wrap;
+
+    gap: 8px;
+  }
+
+  .imageUploadButton {
+    padding: 8px 12px;
+  }
+
+  .reviewFormActions > button {
     padding: 10px 18px;
   }
 
@@ -1134,5 +1430,182 @@
 
   .relatedImageArea {
     height: 170px;
+  }
+}
+
+/* =========================================================
+   375px 디자인
+========================================================= */
+
+@media (max-width: 375px) {
+  /* =========================
+     대표 이미지
+  ========================= */
+
+  .hero {
+    height: 260px;
+
+    border-radius: 16px;
+  }
+
+  /* =========================
+     작성자 / 평점
+  ========================= */
+
+  .authorRow {
+    flex-direction: column;
+
+    gap: 12px;
+  }
+
+  .rating {
+    width: 100%;
+  }
+
+  /* =========================
+     요약 정보
+  ========================= */
+
+  .recipeInfo {
+    gap: 16px 0;
+
+    padding: 16px 10px;
+  }
+
+  .infoItem {
+    gap: 8px;
+
+    padding-left: 4px;
+  }
+
+  .infoItem > svg {
+    font-size: 20px;
+  }
+
+  /* =========================
+     액션
+  ========================= */
+
+  .actions {
+    gap: 6px;
+  }
+
+  .actions button {
+    gap: 4px;
+
+    padding: 8px 4px;
+  }
+
+  .actions svg {
+    font-size: 17px;
+  }
+
+  /* =========================
+     AI 요약
+  ========================= */
+
+  .aiSummary {
+    padding: 16px 14px;
+
+    border-radius: 14px;
+  }
+
+  /* =========================
+     후기 목록
+  ========================= */
+
+  .commentItem {
+    padding: 14px;
+  }
+
+  .commentHeader {
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 8px;
+  }
+
+  .commentHeader > span {
+    align-self: flex-start;
+  }
+
+  .commentImage {
+    width: 100%;
+  }
+
+  /* =========================
+     후기 작성
+  ========================= */
+
+  .reviewFormContent {
+    padding: 14px;
+  }
+
+  .ratingInputArea {
+    align-items: center;
+  }
+
+  .ratingInputArea > span:first-child {
+    width: 100%;
+  }
+
+  .ratingButton {
+    width: 27px;
+    height: 27px;
+  }
+
+  .ratingButton svg {
+    font-size: 23px;
+  }
+
+  .reviewImagePreview {
+    width: 100%;
+  }
+
+  .reviewImagePreview img {
+    width: 100%;
+
+    max-height: 240px;
+  }
+
+  .reviewFormActions {
+    display: grid;
+
+    grid-template-columns: auto 1fr auto;
+
+    width: 100%;
+  }
+
+  .imageUploadButton {
+    min-width: 0;
+
+    padding: 8px 11px;
+  }
+
+  .imageGuide {
+    align-self: center;
+  }
+
+  .reviewFormActions > button {
+    min-width: 64px;
+
+    margin-left: 0;
+
+    padding: 10px 16px;
+  }
+
+  /* =========================
+     연관 레시피
+  ========================= */
+
+  .relatedCard {
+    width: 210px;
+
+    flex-basis: 210px;
+  }
+
+  .relatedImageArea {
+    height: 155px;
   }
 }

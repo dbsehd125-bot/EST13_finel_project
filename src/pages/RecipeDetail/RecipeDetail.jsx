@@ -1,5 +1,6 @@
 import {
   AccessTimeOutlined,
+  AddPhotoAlternateOutlined,
   Bookmark,
   BookmarkBorderOutlined,
   Favorite,
@@ -10,9 +11,10 @@ import {
   RemoveRedEyeOutlined,
   ShareOutlined,
   Star,
+  StarBorder,
 } from "@mui/icons-material";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import styles from "./RecipeDetail.module.css";
@@ -37,9 +39,23 @@ export default function RecipeDetail() {
   const [bookmarked, setBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
-  // 중복 클릭 방지
+  // 좋아요 / 즐겨찾기 중복 클릭 방지
   const [likeLoading, setLikeLoading] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
+
+  // 완성 후기
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+
+  // 후기 별점
+  const [reviewRating, setReviewRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+
+  // 후기 이미지
+  const [reviewImageFile, setReviewImageFile] = useState(null);
+  const [reviewImagePreview, setReviewImagePreview] = useState("");
 
   // 다른 레시피로 이동할 때 스크롤 맨 위로
   useEffect(() => {
@@ -56,7 +72,7 @@ export default function RecipeDetail() {
         setErrorMessage("");
         setRelatedRecipes([]);
 
-        // 다른 레시피 이동 시 이전 반응 상태 초기화
+        // 다른 레시피 이동 시 이전 상태 초기화
         setLiked(false);
         setBookmarked(false);
         setLikeCount(0);
@@ -77,12 +93,11 @@ export default function RecipeDetail() {
 
         setRecipe(recipeData);
 
-        // DB의 좋아요 수
+        // DB에 저장된 좋아요 수
         setLikeCount(recipeData.like_count ?? 0);
 
         /* =========================
            연관 레시피 조회
-           같은 cuisine의 다른 레시피
         ========================= */
 
         try {
@@ -108,20 +123,13 @@ export default function RecipeDetail() {
 
           setRelatedRecipes(relatedData || []);
         } catch (relatedError) {
-          /**
-           * 연관 레시피 조회 실패 때문에
-           * 상세페이지 전체가 깨지지 않도록
-           * 별도로 처리
-           */
           console.error("연관 레시피 조회 실패:", relatedError);
-
           setRelatedRecipes([]);
         }
       } catch (error) {
         console.error("레시피 조회 실패:", error);
 
         setRecipe(null);
-
         setErrorMessage("레시피를 불러오지 못했습니다.");
       } finally {
         setLoading(false);
@@ -132,15 +140,14 @@ export default function RecipeDetail() {
   }, [id]);
 
   /**
-   * 현재 로그인한 사용자가
-   * 이 레시피에 좋아요 / 즐겨찾기를 했는지 조회
+   * 현재 로그인 사용자의
+   * 좋아요 / 즐겨찾기 상태 조회
    */
   useEffect(() => {
     if (authLoading || !recipe?.id) {
       return;
     }
 
-    // 비로그인 상태
     if (!user) {
       setLiked(false);
       setBookmarked(false);
@@ -185,6 +192,70 @@ export default function RecipeDetail() {
   }, [authLoading, user?.id, recipe?.id]);
 
   /**
+   * 완성 후기 조회
+   */
+  useEffect(() => {
+    if (!recipe?.id) {
+      return;
+    }
+
+    const fetchComments = async () => {
+      try {
+        setCommentLoading(true);
+        setComments([]);
+        setCommentText("");
+        setReviewRating(0);
+        setHoverRating(0);
+        setReviewImageFile(null);
+        setReviewImagePreview("");
+
+        const { data, error } = await supabase
+          .from("recipe_comments")
+          .select("*")
+          .eq("recipe_id", recipe.id)
+          .order("created_at", {
+            ascending: true,
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        setComments(data || []);
+      } catch (error) {
+        console.error("완성 후기 조회 오류:", error);
+
+        setComments([]);
+      } finally {
+        setCommentLoading(false);
+      }
+    };
+
+    fetchComments();
+  }, [recipe?.id]);
+
+  /**
+   * 후기 평균 별점
+   */
+  const averageRating = useMemo(() => {
+    if (comments.length === 0) {
+      return 0;
+    }
+
+    const validRatings = comments
+      .map(comment => Number(comment.rating))
+      .filter(rating => rating >= 1 && rating <= 5);
+
+    if (validRatings.length === 0) {
+      return 0;
+    }
+
+    const total = validRatings.reduce((sum, rating) => sum + rating, 0);
+
+    return total / validRatings.length;
+  }, [comments]);
+
+  /**
    * 로그인 페이지 이동
    */
   const moveToLogin = () => {
@@ -211,10 +282,6 @@ export default function RecipeDetail() {
     try {
       setLikeLoading(true);
 
-      /**
-       * 현재 좋아요 상태라면 삭제,
-       * 아니라면 새로 추가
-       */
       if (liked) {
         const { error } = await supabase
           .from("recipe_likes")
@@ -238,10 +305,6 @@ export default function RecipeDetail() {
 
       const nextLikeCount = liked ? Math.max(0, likeCount - 1) : likeCount + 1;
 
-      /**
-       * recipes.like_count도 갱신
-       * 인기순 정렬 등에 활용 가능
-       */
       const { error: countUpdateError } = await supabase
         .from("recipes")
         .update({
@@ -317,8 +380,168 @@ export default function RecipeDetail() {
   };
 
   /**
+   * 후기 이미지 선택
+   */
+  const handleReviewImageChange = event => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 첨부할 수 있습니다.");
+      event.target.value = "";
+      return;
+    }
+
+    const maxFileSize = 2 * 1024 * 1024;
+
+    if (file.size > maxFileSize) {
+      alert("이미지는 2MB 이하만 첨부할 수 있습니다.");
+      event.target.value = "";
+      return;
+    }
+
+    if (reviewImagePreview) {
+      URL.revokeObjectURL(reviewImagePreview);
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+
+    setReviewImageFile(file);
+    setReviewImagePreview(previewUrl);
+  };
+
+  /**
+   * 선택한 후기 이미지 제거
+   */
+  const handleRemoveReviewImage = () => {
+    if (reviewImagePreview) {
+      URL.revokeObjectURL(reviewImagePreview);
+    }
+
+    setReviewImageFile(null);
+    setReviewImagePreview("");
+  };
+
+  /**
+   * 후기 이미지 Storage 업로드
+   */
+  const uploadReviewImage = async file => {
+    if (!file || !user) {
+      return null;
+    }
+
+    const fileExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+
+    const imagePath = `reviews/${user.id}/${crypto.randomUUID()}.${fileExtension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("recipe-images")
+      .upload(imagePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: publicUrlData } = supabase.storage.from("recipe-images").getPublicUrl(imagePath);
+
+    return publicUrlData.publicUrl;
+  };
+
+  /**
+   * 완성 후기 등록
+   */
+  const handleCommentSubmit = async event => {
+    event.preventDefault();
+
+    if (authLoading || commentSubmitting || !recipe) {
+      return;
+    }
+
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    /**
+     * 별점은 필수
+     */
+    if (reviewRating < 1) {
+      alert("별점을 선택해주세요.");
+      return;
+    }
+
+    const trimmedComment = commentText.trim();
+
+    let uploadedImageUrl = null;
+
+    try {
+      setCommentSubmitting(true);
+
+      /**
+       * 이미지가 있으면 먼저 Storage 업로드
+       */
+      if (reviewImageFile) {
+        uploadedImageUrl = await uploadReviewImage(reviewImageFile);
+      }
+
+      const nickname =
+        user.user_metadata?.nickname ||
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
+        "사용자";
+
+      /**
+       * 내용은 선택사항
+       * 이미지도 선택사항
+       * 별점만 필수
+       */
+      const { data, error } = await supabase
+        .from("recipe_comments")
+        .insert({
+          recipe_id: recipe.id,
+          user_id: user.id,
+          nickname,
+          rating: reviewRating,
+          content: trimmedComment || null,
+          image_url: uploadedImageUrl || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setComments(previousComments => [...previousComments, data]);
+
+      setCommentText("");
+      setReviewRating(0);
+      setHoverRating(0);
+
+      if (reviewImagePreview) {
+        URL.revokeObjectURL(reviewImagePreview);
+      }
+
+      setReviewImageFile(null);
+      setReviewImagePreview("");
+    } catch (error) {
+      console.error("완성 후기 등록 오류:", error);
+
+      alert(error.message || "완성 후기 등록에 실패했습니다.");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  /**
    * Supabase created_at 날짜
-   * YYYY.MM.DD 형식으로 변환
+   * YYYY.MM.DD
    */
   const formatDate = dateString => {
     if (!dateString) {
@@ -338,10 +561,6 @@ export default function RecipeDetail() {
 
   /**
    * AI 핵심 조리 과정용 텍스트
-   *
-   * 향후 steps[].summary가 생기면
-   * summary를 우선 사용하고,
-   * 현재 데이터에서는 description 사용
    */
   const getStepSummary = step => {
     if (step?.summary?.trim()) {
@@ -411,17 +630,24 @@ export default function RecipeDetail() {
             </div>
           </div>
 
-          {/*
-            후기 테이블 연결 전까지 임시
-          */}
+          {/* 실제 후기 평균 별점 */}
           <div className={`text-sm ${styles.rating}`}>
             <div className={styles.stars}>
               {[1, 2, 3, 4, 5].map(star => (
-                <Star key={star} fontSize="small" />
+                <Star
+                  key={star}
+                  fontSize="small"
+                  style={{
+                    color:
+                      star <= Math.round(averageRating)
+                        ? "var(--brand-primary)"
+                        : "var(--brand-beige)",
+                  }}
+                />
               ))}
             </div>
 
-            <span>4.8</span>
+            <span>{comments.length > 0 ? averageRating.toFixed(1) : "0.0"}</span>
           </div>
         </div>
       </section>
@@ -467,9 +693,6 @@ export default function RecipeDetail() {
           <div>
             <span className="text-s">조회 수</span>
 
-            {/*
-              view_count 연결 전까지 임시
-            */}
             <strong className="text-sm">18,420</strong>
           </div>
         </div>
@@ -480,7 +703,6 @@ export default function RecipeDetail() {
       ========================= */}
 
       <section className={styles.actions}>
-        {/* 좋아요 */}
         <button
           type="button"
           className="text-sm"
@@ -495,7 +717,6 @@ export default function RecipeDetail() {
           좋아요 {likeCount}
         </button>
 
-        {/* 즐겨찾기 */}
         <button
           type="button"
           className="text-sm"
@@ -510,7 +731,6 @@ export default function RecipeDetail() {
           즐겨찾기
         </button>
 
-        {/* 공유 */}
         <button type="button" className="text-sm">
           <ShareOutlined />
           공유
@@ -555,10 +775,6 @@ export default function RecipeDetail() {
                     ${!step.image ? styles.stepWithoutImage : ""}
                   `}
               >
-                {/* =========================
-                      단계 이미지
-                  ========================= */}
-
                 {step.image && (
                   <div className={styles.stepImageArea}>
                     <img
@@ -569,10 +785,6 @@ export default function RecipeDetail() {
                     />
                   </div>
                 )}
-
-                {/* =========================
-                      단계 내용
-                  ========================= */}
 
                 <div className={styles.stepContent}>
                   <div className={styles.stepHeader}>
@@ -586,10 +798,6 @@ export default function RecipeDetail() {
                   </div>
 
                   <p className={`text-sm ${styles.stepDescription}`}>{step.description}</p>
-
-                  {/* =========================
-                        단계별 조리 팁
-                    ========================= */}
 
                   {step.tip && (
                     <div className={styles.stepTip}>
@@ -607,83 +815,133 @@ export default function RecipeDetail() {
 
       {/* =========================
           완성 후기
-          아직 DB 연결 전
       ========================= */}
 
       <section className={styles.reviewSection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={`font-display dtext-2xl ${styles.sectionTitle}`}>완성 후기</h2>
+        <h2 className={`font-display dtext-2xl ${styles.sectionTitle}`}>완성 후기</h2>
 
-          <button type="button" className={`text-sm ${styles.outlineButton}`}>
-            요리 후기 남기기
-          </button>
-        </div>
+        {/* 후기 목록 */}
+        {commentLoading ? (
+          <p className="text-sm">완성 후기를 불러오는 중입니다.</p>
+        ) : comments.length > 0 ? (
+          <div className={styles.commentList}>
+            {comments.map(comment => (
+              <article key={comment.id} className={styles.commentItem}>
+                <div className={styles.commentHeader}>
+                  <div>
+                    <strong className="text-sm">{comment.nickname || "사용자"}</strong>
 
-        <div className={styles.reviewList}>
-          <article className={styles.review}>
-            <div className={styles.reviewHeader}>
-              <div>
-                <p className={`text-sm ${styles.reviewName}`}>집밥러버</p>
+                    <div className={styles.reviewStars}>
+                      {[1, 2, 3, 4, 5].map(star =>
+                        star <= Number(comment.rating) ? (
+                          <Star key={star} fontSize="small" />
+                        ) : (
+                          <StarBorder key={star} fontSize="small" />
+                        ),
+                      )}
+                    </div>
+                  </div>
 
-                <div className={styles.reviewStars}>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star key={star} fontSize="small" />
-                  ))}
+                  <span className="text-s">{formatDate(comment.created_at)}</span>
                 </div>
+
+                {comment.content && <p className="text-sm">{comment.content}</p>}
+
+                {comment.image_url && (
+                  <img
+                    className={styles.commentImage}
+                    src={comment.image_url}
+                    alt={`${comment.nickname || "사용자"}님의 완성 후기`}
+                    loading="lazy"
+                  />
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className={`text-sm ${styles.emptyComment}`}>아직 등록된 완성 후기가 없습니다.</p>
+        )}
+
+        {/* =========================
+            후기 작성 폼
+        ========================= */}
+
+        <form className={styles.commentForm} onSubmit={handleCommentSubmit}>
+          <div className={styles.reviewFormContent}>
+            {/* 별점 */}
+            <div className={styles.ratingInputArea}>
+              <span className="text-sm">별점</span>
+
+              <div className={styles.ratingInput} onMouseLeave={() => setHoverRating(0)}>
+                {[1, 2, 3, 4, 5].map(star => {
+                  const activeRating = hoverRating || reviewRating;
+
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      className={styles.ratingButton}
+                      onClick={() => setReviewRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      aria-label={`${star}점`}
+                    >
+                      {star <= activeRating ? <Star /> : <StarBorder />}
+                    </button>
+                  );
+                })}
               </div>
 
-              <time className="text-s">2026.07.24</time>
+              <span className={`text-s ${styles.ratingRequired}`}>필수</span>
             </div>
 
-            <p className="text-sm">정말 맛있어요! 남편이 계속 해달래요.</p>
+            {/* 이미지 미리보기 */}
+            {reviewImagePreview && (
+              <div className={styles.reviewImagePreview}>
+                <img src={reviewImagePreview} alt="후기 이미지 미리보기" />
 
-            <img src="https://picsum.photos/seed/review-1/300/220" alt="완성 요리 후기" />
-
-            <div className={`text-s ${styles.reviewLike}`}>
-              <FavoriteBorderOutlined fontSize="small" />
-              <span>32</span>
-            </div>
-          </article>
-
-          <article className={styles.review}>
-            <div className={styles.reviewHeader}>
-              <div>
-                <p className={`text-sm ${styles.reviewName}`}>요리초보탈출</p>
-
-                <div className={styles.reviewStars}>
-                  {[1, 2, 3, 4].map(star => (
-                    <Star key={star} fontSize="small" />
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  className={styles.removeReviewImage}
+                  onClick={handleRemoveReviewImage}
+                >
+                  삭제
+                </button>
               </div>
+            )}
 
-              <time className="text-s">2026.07.23</time>
+            {/* 내용 */}
+            <input
+              className="text-sm"
+              type="text"
+              value={commentText}
+              onChange={event => setCommentText(event.target.value)}
+              placeholder="완성 후기를 남겨보세요 (선택)"
+              maxLength={300}
+              disabled={commentSubmitting}
+            />
+
+            {/* 이미지 첨부 */}
+            <div className={styles.reviewFormActions}>
+              <label className={styles.imageUploadButton}>
+                <AddPhotoAlternateOutlined />
+
+                <span className="text-sm">사진 추가</span>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReviewImageChange}
+                  disabled={commentSubmitting}
+                />
+              </label>
+
+              <span className={`text-s ${styles.imageGuide}`}>2MB 이하</span>
+
+              <button className="text-button" type="submit" disabled={commentSubmitting}>
+                {commentSubmitting ? "등록 중..." : "등록"}
+              </button>
             </div>
-
-            <p className="text-sm">생각보다 쉽게 완성! 다음엔 새우 넣어볼게요.</p>
-
-            <div className={`text-s ${styles.reviewLike}`}>
-              <FavoriteBorderOutlined fontSize="small" />
-              <span>12</span>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      {/* =========================
-          댓글
-          아직 DB 연결 전
-      ========================= */}
-
-      <section className={styles.commentSection}>
-        <h2 className={`font-display dtext-2xl ${styles.sectionTitle}`}>댓글</h2>
-
-        <form className={styles.commentForm} onSubmit={event => event.preventDefault()}>
-          <input className="text-sm" type="text" placeholder="댓글을 남겨보세요" />
-
-          <button className="text-button" type="submit">
-            등록
-          </button>
+          </div>
         </form>
       </section>
 
@@ -709,10 +967,6 @@ export default function RecipeDetail() {
 
                   <span className={`text-s ${styles.relatedTag}`}>{relatedRecipe.cuisine}</span>
 
-                  {/*
-                      연관 레시피 카드의 즐겨찾기는
-                      다음 단계에서 별도로 연결 가능
-                    */}
                   <button
                     type="button"
                     className={styles.cardFavorite}
