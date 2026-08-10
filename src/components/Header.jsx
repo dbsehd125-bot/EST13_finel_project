@@ -109,7 +109,7 @@ export default function Header() {
 
         <div className="header-right">
           {/* 검색 */}
-          <button type="button" className="icon-btn search-btn" aria-label="검색">
+          <button type="button" className="icon-btn search-btn hide-on-mobile" aria-label="검색">
             <svg
               width="20"
               height="20"
@@ -127,7 +127,7 @@ export default function Header() {
           </button>
 
           {/* 알림 */}
-          <button type="button" className="icon-btn alarm-btn" aria-label="알림">
+          <button type="button" className="icon-btn alarm-btn hide-on-mobile" aria-label="알림">
             <svg
               width="20"
               height="20"
@@ -150,7 +150,7 @@ export default function Header() {
           {/* <Link to="/register" className="btn-create text-button">
             + 레시피 등록하기
           </Link> */}
-          <button type="button" className="btn-create text-button" onClick={handleRegisterClick}>
+          <button type="button" className="btn-create text-button hide-on-mobile" onClick={handleRegisterClick}>
             + 레시피 등록하기
           </button>
 

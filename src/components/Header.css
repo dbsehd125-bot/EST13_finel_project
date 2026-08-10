@@ -336,8 +336,26 @@
 
 @media (max-width: 1279px) {
   .header-inner {
-    height: 72px;
-    padding-inline: 24px;
+    height: 64px;
+    padding-inline: 16px;
+  }
+
+  .logo-title {
+    font-size: 18px !important;
+  }
+
+  .header-right {
+    gap: 12px;
+  }
+
+  .btn-create {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
   }
 
   .nav {
@@ -350,6 +368,7 @@
 
   .menu-btn {
     display: flex;
+    margin-left: 4px;
   }
 
   .mobile-menu {
@@ -487,7 +506,7 @@
    모바일: 375px
 ========================= */
 
-@media (max-width: 599px) {
+@media (max-width: 767px) {
   .header-inner {
     height: 56px;
     padding-inline: 16px;
@@ -502,8 +521,8 @@
   }
 
   .logo-badge {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
   }
 
   .logo-badge svg {
@@ -512,11 +531,16 @@
   }
 
   .logo-title {
+    display: block;
     font-size: 16px;
   }
 
   .header-right {
-    gap: 4px;
+    gap: 12px;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
   }
 
   .search-btn,
@@ -526,8 +550,8 @@
   }
 
   .avatar {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
   }
 
   .menu-btn {
