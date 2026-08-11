@@ -317,9 +317,17 @@ export default function Home() {
 
   const activeRecipes = dbRecipes.length > 0 ? dbRecipes : recipeData;
 
-  const filteredRecipes = activeRecipes.filter(
+  let filteredRecipes = activeRecipes.filter(
     recipe => selectedCategory === "전체" || recipe.category === selectedCategory
   );
+
+  // 💡 스마트 하이브리드 Fallback: DB를 통해 받아온 결과 중 선택된 카테고리의 실제 레시피가 전혀 없는 경우,
+  // 썰렁하게 비워두는 대신 로컬 mock 데이터에서 해당 카테고리 요리를 가져와 예쁘게 채워줍니다.
+  if (dbRecipes.length > 0 && filteredRecipes.length === 0 && selectedCategory !== "전체") {
+    filteredRecipes = recipeData.filter(
+      recipe => recipe.category === selectedCategory
+    );
+  }
 
   const toggleWish = (id) => {
     const isWished = wishedIds.includes(id);
