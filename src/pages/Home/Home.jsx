@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
 import { Layout } from "../../components";
+import { supabase } from "../../lib/supabaseClient";
 import "./Home.css";
 
 // --- 상수 및 더미 데이터 (컴포넌트 외부로 분리하여 렌더링 성능 최적화) ---
@@ -78,7 +79,7 @@ const recipeData = [
     title: "두툼한 수제 돈카츠",
     author: "도쿄키친",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop",
-    image: "https://images.unsplash.com/photo-1581264692411-cf93c0490b4d?q=80&w=600&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1599321955726-e04842669811?q=80&w=600&auto=format&fit=crop",
     time: "35분",
     difficulty: "보통",
     rating: 4.9,
@@ -215,6 +216,48 @@ export default function Home() {
   // 오늘 뭐 먹지? 레시피 섹션 상태
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [wishedIds, setWishedIds] = useState([]);
+  const [dbRecipes, setDbRecipes] = useState([]);
+  const [recipesLoading, setRecipesLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDbRecipes = async () => {
+      try {
+        setRecipesLoading(true);
+        // Supabase에서 레시피 데이터 조회
+        const { data, error } = await supabase
+          .from("recipes")
+          .select("*")
+          .order("like_count", { ascending: false })
+          .limit(8);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          // DB 데이터를 Home 레시피 카드가 읽을 수 있는 규격으로 정규화
+          const normalized = data.map(r => ({
+            id: r.id,
+            category: r.cuisine || "기타",
+            title: r.title,
+            author: r.author || "레시피 장인",
+            avatar: r.author_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
+            image: r.thumbnail_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop",
+            time: r.cooking_time ? (String(r.cooking_time).includes("분") ? r.cooking_time : `${r.cooking_time}분`) : "30분",
+            difficulty: r.difficulty || "보통",
+            rating: r.rating || 4.8,
+            likes: r.like_count !== undefined ? String(r.like_count) : "0",
+            comments: r.comment_count || 0
+          }));
+          setDbRecipes(normalized);
+        }
+      } catch (error) {
+        console.warn("로컬 환경이거나 Supabase 조회에 실패하여 Fallback 더미 데이터를 사용합니다:", error);
+      } finally {
+        setRecipesLoading(false);
+      }
+    };
+
+    fetchDbRecipes();
+  }, []);
 
   // AI 냉장고 털기 섹션 상태
   const [tags, setTags] = useState(["계란", "양파", "대파", "김치", "두부", "닭가슴살"]);
@@ -272,7 +315,9 @@ export default function Home() {
     };
   }, []);
 
-  const filteredRecipes = recipeData.filter(
+  const activeRecipes = dbRecipes.length > 0 ? dbRecipes : recipeData;
+
+  const filteredRecipes = activeRecipes.filter(
     recipe => selectedCategory === "전체" || recipe.category === selectedCategory
   );
 
