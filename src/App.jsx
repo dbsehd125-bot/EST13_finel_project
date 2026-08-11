@@ -12,14 +12,17 @@ import Login from "./pages/Auth/Login";
 import SignUp from "./pages/Auth/SignUp";
 
 import GuestRoute from "./components/GuestRoute";
+import { ScrollToTop } from "./components";
 
 import "./App.css";
 
 export default function App() {
   return (
-    <Routes>
-      {/* 메인 홈 페이지 */}
-      <Route path="/" element={<Home />} />
+    <>
+      <ScrollToTop />
+      <Routes>
+        {/* 메인 홈 페이지 */}
+        <Route path="/" element={<Home />} />
 
       {/* 라우팅 페이지 목록 */}
       <Route path="/ai" element={<CreateAIRecipe />} />
@@ -48,5 +51,6 @@ export default function App() {
         }
       />
     </Routes>
+    </>
   );
 }

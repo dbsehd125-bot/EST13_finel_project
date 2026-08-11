@@ -72,7 +72,7 @@ const matchRecipes = [
   },
   {
     title: "백종원풍 파송송 계란국",
-    desc: "계란과 대파만으로 5분 만에 깊은 감칠맛을 내는 맑고 따뜻한 국 요리입니다.",
+    desc: "계란 and 대파만으로 5분 만에 깊은 감칠맛을 내는 맑고 따뜻한 국 요리입니다.",
     image: "https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=800&auto=format&fit=crop",
     time: "10분",
     difficulty: "매우 쉬움",
@@ -453,10 +453,16 @@ export default function Home() {
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
                       </button>
-                      <img src={recipe.image} alt={recipe.title} className="card-image" />
+                      <Link to={`/recipes/${recipe.id}`} className="card-image-link">
+                        <img src={recipe.image} alt={recipe.title} className="card-image" />
+                      </Link>
                     </div>
                     <div className="card-info">
-                      <h3 className="card-title">{recipe.title}</h3>
+                      <h3 className="card-title">
+                        <Link to={`/recipes/${recipe.id}`} className="card-title-link">
+                          {recipe.title}
+                        </Link>
+                      </h3>
                       <div className="author-info">
                         <div 
                           className="author-avatar" 
@@ -637,7 +643,7 @@ export default function Home() {
                   onChange={handleFileChange}
                 />
                 <button className="btn-upload" onClick={handleUploadClick}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                   냉장고 사진 업로드
                 </button>
                 <button className="btn-recommend" onClick={handleRecommend} disabled={isLoading}>
@@ -669,15 +675,28 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  <img src={recommendation.image} alt={recommendation.title} className="preview-img" />
+                  <Link to="/ai" className="preview-img-link">
+                    <img src={recommendation.image} alt={recommendation.title} className="preview-img" />
+                  </Link>
                   <div className="preview-info">
-                    <h3 className="preview-title">{recommendation.title}</h3>
+                    <h3 className="preview-title">
+                      <Link to="/ai" className="preview-title-link">
+                        {recommendation.title}
+                      </Link>
+                    </h3>
                     <p className="preview-desc">{recommendation.desc}</p>
                     <div className="preview-meta">
                       <span>🕒 {recommendation.time}</span>
                       <span>⭐ {recommendation.difficulty}</span>
                       <span>👥 {recommendation.servings}</span>
                     </div>
+                    <Link to="/ai" className="preview-action-btn">
+                      상세 요리법 & AI 가이드 보기
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                      </svg>
+                    </Link>
                   </div>
                 </>
               )}
@@ -724,7 +743,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    <img src={plan.image} alt={plan.title} className="card-img" />
+                    <Link to="/recipes" className="card-img-link">
+                      <img src={plan.image} alt={plan.title} className="card-img" />
+                    </Link>
                     
                     <div className="card-body">
                       <div className="card-meta">
@@ -732,7 +753,9 @@ export default function Home() {
                         <span className="meal-type">{plan.type}</span>
                       </div>
                       <h3 className="recipe-title" title={plan.title}>
-                        {plan.title}
+                        <Link to="/recipes" className="recipe-title-link">
+                          {plan.title}
+                        </Link>
                       </h3>
                       <button 
                         className="replace-btn"
@@ -782,7 +805,9 @@ export default function Home() {
               const totalLikes = isLiked ? review.likes + 1 : review.likes;
               return (
                 <article key={review.id} className="review-card">
-                  <img src={review.image} alt={review.dishName} className="card-img" />
+                  <Link to="/recipes" className="review-img-link">
+                    <img src={review.image} alt={review.dishName} className="card-img" />
+                  </Link>
                   <div className="card-content">
                     <div className="user-info">
                       <div 
