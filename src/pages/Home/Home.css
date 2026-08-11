@@ -1932,3 +1932,243 @@
     margin-top: 4px;
   }
 }
+
+/* =========================
+   추가 커스텀 스타일 (최적화 및 UX 개선)
+========================= */
+
+/* 커스텀 토스트 알림 */
+.custom-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background-color: var(--brand-brown, #40291f);
+  color: #fff;
+  border-radius: 30px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.custom-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.custom-toast.success {
+  border-left: 4px solid var(--brand-primary, #f26b3a);
+}
+
+.custom-toast.warning {
+  border-left: 4px solid #ffcc00;
+  background-color: #5a4033;
+}
+
+.custom-toast.info {
+  border-left: 4px solid var(--brand-ai, #b79ced);
+}
+
+.toast-icon {
+  font-size: 16px;
+}
+
+.toast-message {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 모바일 뷰포트에서의 토스트 위치 조정 */
+@media (max-width: 767px) {
+  .custom-toast {
+    bottom: 80px; /* 바텀 네비게이션 가리지 않게 상단 배치 */
+    width: calc(100% - 32px);
+    justify-content: center;
+  }
+}
+
+/* 인라인 재료 추가 폼 */
+.add-tag-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #fff;
+  border: 1px solid var(--brand-primary, #f26b3a);
+  border-radius: 24px;
+  padding: 2px 6px 2px 14px;
+  box-shadow: 0 2px 8px rgba(242, 107, 58, 0.1);
+}
+
+.add-tag-input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: #333;
+  width: 90px;
+  padding: 4px 0;
+}
+
+.add-tag-submit-btn {
+  background-color: var(--brand-primary, #f26b3a);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-tag-submit-btn:hover {
+  background-color: var(--brand-primary-dark, #d94f27);
+}
+
+/* 태그 내 삭제 마크 X 스타일 조정 */
+.tag-remove-x {
+  margin-left: 4px;
+  font-weight: 700;
+  color: #aaa;
+  transition: color 0.2s;
+}
+
+.tag:hover .tag-remove-x {
+  color: var(--brand-primary, #f26b3a);
+}
+
+/* 스켈레톤 로더 공통 pulse 애니메이션 */
+.pulse {
+  animation: pulse-keyframes 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-keyframes {
+  0% {
+    opacity: 0.6;
+    background-color: #e5e5e5;
+  }
+  50% {
+    opacity: 1;
+    background-color: #f0f0f0;
+  }
+  100% {
+    opacity: 0.6;
+    background-color: #e5e5e5;
+  }
+}
+
+/* AI 레시피 추천 스켈레톤 */
+.preview-skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.preview-skeleton-wrapper .skeleton-img {
+  width: 100%;
+  aspect-ratio: 2.2 / 1;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #e5e5e5;
+}
+
+.spinner-emoji {
+  font-size: 32px;
+  animation: rotate-spinner 2s infinite linear;
+}
+
+@keyframes rotate-spinner {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.skeleton-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-line {
+  height: 14px;
+  background-color: #e5e5e5;
+  border-radius: 4px;
+}
+
+.skeleton-line.title {
+  height: 20px;
+  width: 60%;
+  margin-bottom: 6px;
+}
+
+.skeleton-line.desc {
+  width: 100%;
+}
+
+.skeleton-line.desc.short {
+  width: 80%;
+}
+
+.skeleton-line.meta {
+  width: 40%;
+  height: 12px;
+  margin-top: 10px;
+}
+
+/* 식단 카드 스켈레톤 */
+.plan-skeleton {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.plan-skeleton .skeleton-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #e5e5e5;
+}
+
+.spinner-icon {
+  font-size: 24px;
+  animation: rotate-spinner 1.5s infinite linear;
+}
+
+.plan-skeleton .card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plan-skeleton .skeleton-line.sm {
+  width: 30%;
+  height: 10px;
+}
+
+.plan-skeleton .skeleton-line.md {
+  width: 70%;
+  height: 16px;
+}
+
+.plan-skeleton .skeleton-line.lg {
+  width: 40%;
+  height: 10px;
+  margin-top: 4px;
+}
+
