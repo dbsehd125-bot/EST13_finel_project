@@ -14,13 +14,16 @@ import {
   StarBorder,
 } from "@mui/icons-material";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import styles from "./RecipeDetail.module.css";
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
+import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from "../../utils/AlanApi";
+
+const API_BASE = "/api/v1";
 
 export default function RecipeDetail() {
   const { id } = useParams();
@@ -30,6 +33,21 @@ export default function RecipeDetail() {
 
   const [recipe, setRecipe] = useState(null);
   const [relatedRecipes, setRelatedRecipes] = useState([]);
+
+  // 조회수 중복 증가 방지
+  const lastViewedRecipeIdRef = useRef(null);
+
+  // 공유
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Alan AI 단계 요약
+  const [aiStepSummaries, setAiStepSummaries] = useState([]);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryError, setAiSummaryError] = useState(false);
+
+  // 연관 레시피 좋아요
+  const [relatedLikedIds, setRelatedLikedIds] = useState(() => new Set());
+  const [relatedLikeLoadingIds, setRelatedLikeLoadingIds] = useState(() => new Set());
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -76,6 +94,10 @@ export default function RecipeDetail() {
         setLiked(false);
         setBookmarked(false);
         setLikeCount(0);
+        setShareCopied(false);
+        setAiStepSummaries([]);
+        setAiSummaryError(false);
+        setRelatedLikedIds(new Set());
 
         /* =========================
            현재 레시피 조회
@@ -110,7 +132,8 @@ export default function RecipeDetail() {
               cuisine,
               title,
               cooking_time,
-              difficulty
+              difficulty,
+              like_count
             `,
             )
             .eq("cuisine", recipeData.cuisine)
@@ -138,6 +161,45 @@ export default function RecipeDetail() {
 
     fetchRecipeData();
   }, [id]);
+
+  /**
+   * 상세 페이지 진입 시 조회수 1 증가
+   */
+  useEffect(() => {
+    if (!recipe?.id) {
+      return;
+    }
+
+    if (lastViewedRecipeIdRef.current === recipe.id) {
+      return;
+    }
+
+    lastViewedRecipeIdRef.current = recipe.id;
+
+    const increaseViewCount = async () => {
+      const { data, error } = await supabase.rpc("increment_recipe_view", {
+        target_recipe_id: recipe.id,
+      });
+
+      if (error) {
+        console.error("조회수 증가 실패:", error);
+        return;
+      }
+
+      setRecipe(previousRecipe => {
+        if (!previousRecipe || previousRecipe.id !== recipe.id) {
+          return previousRecipe;
+        }
+
+        return {
+          ...previousRecipe,
+          view_count: Number(data ?? previousRecipe.view_count ?? 0),
+        };
+      });
+    };
+
+    increaseViewCount();
+  }, [recipe?.id]);
 
   /**
    * 현재 로그인 사용자의
@@ -192,6 +254,39 @@ export default function RecipeDetail() {
   }, [authLoading, user?.id, recipe?.id]);
 
   /**
+   * 현재 로그인 사용자의 연관 레시피 좋아요 상태 조회
+   */
+  useEffect(() => {
+    if (authLoading || relatedRecipes.length === 0) {
+      return;
+    }
+
+    if (!user) {
+      setRelatedLikedIds(new Set());
+      return;
+    }
+
+    const loadRelatedLikes = async () => {
+      const relatedRecipeIds = relatedRecipes.map(item => item.id);
+
+      const { data, error } = await supabase
+        .from("recipe_likes")
+        .select("recipe_id")
+        .eq("user_id", user.id)
+        .in("recipe_id", relatedRecipeIds);
+
+      if (error) {
+        console.error("연관 레시피 좋아요 상태 조회 오류:", error);
+        return;
+      }
+
+      setRelatedLikedIds(new Set((data || []).map(item => item.recipe_id)));
+    };
+
+    loadRelatedLikes();
+  }, [authLoading, user?.id, relatedRecipes]);
+
+  /**
    * 완성 후기 조회
    */
   useEffect(() => {
@@ -232,6 +327,131 @@ export default function RecipeDetail() {
     };
 
     fetchComments();
+  }, [recipe?.id]);
+
+  /**
+   * Alan API로 각 조리 단계를 한 문장으로 요약
+   */
+  useEffect(() => {
+    if (!recipe?.id || !Array.isArray(recipe.steps) || recipe.steps.length === 0) {
+      setAiStepSummaries([]);
+      setAiSummaryLoading(false);
+      setAiSummaryError(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchAiStepSummaries = async () => {
+      try {
+        setAiSummaryLoading(true);
+        setAiSummaryError(false);
+        setAiStepSummaries([]);
+
+        const stepText = recipe.steps
+          .map(
+            step =>
+              `${step.step}단계 | 제목: ${step.title || ""} | 설명: ${step.description || ""}`,
+          )
+          .join(" / ");
+
+        const prompt =
+          `다음 요리 레시피의 각 조리 단계를 핵심 행동만 남겨 한 문장으로 짧게 요약해줘. ` +
+          `반드시 입력된 단계 개수와 같은 개수로 작성하고, 순서를 바꾸거나 단계를 합치지 마. ` +
+          `응답은 다른 설명이나 마크다운 없이 순수 JSON 객체 하나만 반환해. ` +
+          `JSON 형식은 {"summaries":[{"step":1,"summary":"요약 문장"}]} 이야. ` +
+          `모든 summary는 한국어로 작성해. 레시피명: ${recipe.title}. 조리 단계: ${stepText}`;
+
+        let alanClientId = getCurrentAlanClientId();
+        let response = null;
+
+        while (alanClientId) {
+          const queryString = new URLSearchParams({
+            content: prompt,
+            client_id: alanClientId,
+          }).toString();
+
+          let currentResponse = null;
+
+          try {
+            currentResponse = await fetch(`${API_BASE}/question?${queryString}`);
+          } catch (networkError) {
+            console.warn("Alan AI 요약 네트워크 오류:", networkError);
+            alanClientId = getNextAlanClientId();
+            continue;
+          }
+
+          if (currentResponse.ok) {
+            response = currentResponse;
+            break;
+          }
+
+          if (isFailoverError(currentResponse.status)) {
+            alanClientId = getNextAlanClientId();
+            continue;
+          }
+
+          throw new Error(`Alan API 요청 실패 (Status: ${currentResponse.status})`);
+        }
+
+        if (!response) {
+          throw new Error("Alan API 요청에 사용할 수 있는 Client ID가 없습니다.");
+        }
+
+        const data = await response.json();
+
+        const rawContent =
+          data.content || data.answer || (typeof data === "string" ? data : JSON.stringify(data));
+
+        const cleanedContent = rawContent
+          .replace(/```json/gi, "")
+          .replace(/```/g, "")
+          .trim();
+
+        const parsed = JSON.parse(cleanedContent);
+
+        if (!Array.isArray(parsed.summaries)) {
+          throw new Error("Alan API 요약 응답 형식이 올바르지 않습니다.");
+        }
+
+        const summaryMap = new Map(
+          parsed.summaries.map(item => [Number(item.step), String(item.summary || "").trim()]),
+        );
+
+        const normalizedSummaries = recipe.steps.map(step => ({
+          step: step.step,
+          summary:
+            summaryMap.get(Number(step.step)) || step.description?.trim() || step.title || "",
+        }));
+
+        if (!cancelled) {
+          setAiStepSummaries(normalizedSummaries);
+        }
+      } catch (error) {
+        console.error("Alan AI 단계 요약 실패:", error);
+
+        if (!cancelled) {
+          setAiSummaryError(true);
+
+          setAiStepSummaries(
+            recipe.steps.map(step => ({
+              step: step.step,
+              summary: step.description?.trim() || step.title || "",
+            })),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setAiSummaryLoading(false);
+        }
+      }
+    };
+
+    fetchAiStepSummaries();
+
+    return () => {
+      cancelled = true;
+    };
   }, [recipe?.id]);
 
   /**
@@ -329,6 +549,118 @@ export default function RecipeDetail() {
       alert(error.message || "좋아요 처리에 실패했습니다.");
     } finally {
       setLikeLoading(false);
+    }
+  };
+
+  /**
+   * 현재 상세 페이지 주소 클립보드 복사
+   */
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+
+      setShareCopied(true);
+
+      window.setTimeout(() => {
+        setShareCopied(false);
+      }, 1500);
+    } catch (error) {
+      console.error("링크 복사 실패:", error);
+      alert("링크를 복사하지 못했습니다.");
+    }
+  };
+
+  /**
+   * 연관 레시피 좋아요 토글
+   */
+  const handleRelatedLikeToggle = async (event, relatedRecipe) => {
+    event.stopPropagation();
+
+    if (authLoading || !relatedRecipe?.id || relatedLikeLoadingIds.has(relatedRecipe.id)) {
+      return;
+    }
+
+    if (!user) {
+      moveToLogin();
+      return;
+    }
+
+    const recipeId = relatedRecipe.id;
+    const isLiked = relatedLikedIds.has(recipeId);
+
+    setRelatedLikeLoadingIds(previousIds => {
+      const nextIds = new Set(previousIds);
+      nextIds.add(recipeId);
+      return nextIds;
+    });
+
+    try {
+      if (isLiked) {
+        const { error } = await supabase
+          .from("recipe_likes")
+          .delete()
+          .eq("recipe_id", recipeId)
+          .eq("user_id", user.id);
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        const { error } = await supabase.from("recipe_likes").insert({
+          recipe_id: recipeId,
+          user_id: user.id,
+        });
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      const previousLikeCount = Number(relatedRecipe.like_count ?? 0);
+      const nextLikeCount = isLiked ? Math.max(0, previousLikeCount - 1) : previousLikeCount + 1;
+
+      const { error: countUpdateError } = await supabase
+        .from("recipes")
+        .update({
+          like_count: nextLikeCount,
+        })
+        .eq("id", recipeId);
+
+      if (countUpdateError) {
+        throw countUpdateError;
+      }
+
+      setRelatedLikedIds(previousIds => {
+        const nextIds = new Set(previousIds);
+
+        if (isLiked) {
+          nextIds.delete(recipeId);
+        } else {
+          nextIds.add(recipeId);
+        }
+
+        return nextIds;
+      });
+
+      setRelatedRecipes(previousRecipes =>
+        previousRecipes.map(item =>
+          item.id === recipeId
+            ? {
+                ...item,
+                like_count: nextLikeCount,
+              }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error("연관 레시피 좋아요 처리 오류:", error);
+      alert(error.message || "좋아요 처리에 실패했습니다.");
+    } finally {
+      setRelatedLikeLoadingIds(previousIds => {
+        const nextIds = new Set(previousIds);
+        nextIds.delete(recipeId);
+        return nextIds;
+      });
     }
   };
 
@@ -559,21 +891,6 @@ export default function RecipeDetail() {
     return `${year}.${month}.${day}`;
   };
 
-  /**
-   * AI 핵심 조리 과정용 텍스트
-   */
-  const getStepSummary = step => {
-    if (step?.summary?.trim()) {
-      return step.summary.trim();
-    }
-
-    if (step?.description?.trim()) {
-      return step.description.trim();
-    }
-
-    return step?.title || "";
-  };
-
   /* =========================
      로딩
   ========================= */
@@ -693,7 +1010,7 @@ export default function RecipeDetail() {
           <div>
             <span className="text-s">조회 수</span>
 
-            <strong className="text-sm">18,420</strong>
+            <strong className="text-sm">{Number(recipe.view_count ?? 0).toLocaleString()}</strong>
           </div>
         </div>
       </section>
@@ -731,9 +1048,13 @@ export default function RecipeDetail() {
           즐겨찾기
         </button>
 
-        <button type="button" className="text-sm">
+        <button
+          type="button"
+          className={`text-sm ${shareCopied ? styles.shareSuccess : ""}`}
+          onClick={handleShare}
+        >
           <ShareOutlined />
-          공유
+          {shareCopied ? "복사됨" : "공유"}
         </button>
       </section>
 
@@ -743,17 +1064,39 @@ export default function RecipeDetail() {
 
       {recipe.steps?.length > 0 && (
         <section className={styles.aiSummary}>
-          <h2 className="text-lg">✨ AI가 정리한 핵심 조리 과정</h2>
+          <div className={styles.aiSummaryHeader}>
+            <h2 className="text-lg">✨ AI가 정리한 핵심 조리 과정</h2>
 
-          <ol>
-            {recipe.steps.map(step => (
-              <li key={`summary-${step.step}`} className="text-sm">
-                <span className="text-s">{step.step}</span>
+            {aiSummaryLoading && <span className="text-s">AI 요약 중...</span>}
+          </div>
 
-                <p>{getStepSummary(step)}</p>
-              </li>
-            ))}
-          </ol>
+          {aiSummaryLoading && aiStepSummaries.length === 0 ? (
+            <p className={`text-sm ${styles.aiSummaryLoading}`}>
+              조리 과정을 간단하게 정리하고 있습니다.
+            </p>
+          ) : (
+            <ol>
+              {(aiStepSummaries.length > 0
+                ? aiStepSummaries
+                : recipe.steps.map(step => ({
+                    step: step.step,
+                    summary: step.description?.trim() || step.title || "",
+                  }))
+              ).map(step => (
+                <li key={`summary-${step.step}`} className="text-sm">
+                  <span className="text-s">{step.step}</span>
+
+                  <p>{step.summary}</p>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {aiSummaryError && (
+            <p className={`text-s ${styles.aiSummaryNotice}`}>
+              AI 요약을 불러오지 못해 기존 조리 설명을 표시하고 있습니다.
+            </p>
+          )}
         </section>
       )}
 
@@ -969,13 +1312,21 @@ export default function RecipeDetail() {
 
                   <button
                     type="button"
-                    className={styles.cardFavorite}
-                    aria-label="레시피 즐겨찾기"
-                    onClick={event => {
-                      event.stopPropagation();
-                    }}
+                    className={`${styles.cardFavorite} ${
+                      relatedLikedIds.has(relatedRecipe.id) ? styles.cardFavoriteActive : ""
+                    }`}
+                    aria-label={
+                      relatedLikedIds.has(relatedRecipe.id) ? "레시피 좋아요 취소" : "레시피 좋아요"
+                    }
+                    aria-pressed={relatedLikedIds.has(relatedRecipe.id)}
+                    disabled={relatedLikeLoadingIds.has(relatedRecipe.id)}
+                    onClick={event => handleRelatedLikeToggle(event, relatedRecipe)}
                   >
-                    <FavoriteBorderOutlined fontSize="small" />
+                    {relatedLikedIds.has(relatedRecipe.id) ? (
+                      <Favorite fontSize="small" />
+                    ) : (
+                      <FavoriteBorderOutlined fontSize="small" />
+                    )}
                   </button>
                 </div>
 
