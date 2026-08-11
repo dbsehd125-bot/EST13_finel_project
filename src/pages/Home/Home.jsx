@@ -58,6 +58,58 @@ const recipeData = [
     rating: 4.7,
     likes: "1,120",
     comments: 156
+  },
+  {
+    id: 5,
+    category: "중식",
+    title: "바삭바삭 꿔바로우",
+    author: "차이나키친",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1525755662778-989d0524087e?q=80&w=600&auto=format&fit=crop",
+    time: "40분",
+    difficulty: "보통",
+    rating: 4.8,
+    likes: "942",
+    comments: 118
+  },
+  {
+    id: 6,
+    category: "일식",
+    title: "두툼한 수제 돈카츠",
+    author: "도쿄키친",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1581264692411-cf93c0490b4d?q=80&w=600&auto=format&fit=crop",
+    time: "35분",
+    difficulty: "보통",
+    rating: 4.9,
+    likes: "1,205",
+    comments: 184
+  },
+  {
+    id: 7,
+    category: "디저트",
+    title: "달콤 촉촉 바나나 푸딩",
+    author: "달콤베이커리",
+    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=600&auto=format&fit=crop",
+    time: "15분",
+    difficulty: "쉬움",
+    rating: 4.7,
+    likes: "863",
+    comments: 92
+  },
+  {
+    id: 8,
+    category: "야식",
+    title: "매콤 달달 치즈 떡볶이",
+    author: "야식마스터",
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1580651315530-69c8e0026377?q=80&w=600&auto=format&fit=crop",
+    time: "20분",
+    difficulty: "쉬움",
+    rating: 4.9,
+    likes: "2,408",
+    comments: 310
   }
 ];
 
