@@ -114,6 +114,25 @@ const recipeData = [
   }
 ];
 
+function formatRelativeTime(dateString) {
+  const createdAt = new Date(dateString);
+  const diff = Date.now() - createdAt.getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) return "방금 전";
+  if (diff < hour) return `${Math.floor(diff / minute)}분 전`;
+  if (diff < day) return `${Math.floor(diff / hour)}시간 전`;
+  if (diff < day * 2) return "어제";
+
+  return createdAt.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 const matchRecipes = [
   {
     title: "두부 닭가슴살 김치 볶음밥",
@@ -259,6 +278,47 @@ export default function Home() {
     fetchDbRecipes();
   }, []);
 
+  const [communityReviews, setCommunityReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCommunityReviews = async () => {
+      try {
+        setReviewsLoading(true);
+        // Supabase에서 커뮤니티 게시글 조회 (최신 10개)
+        const { data, error } = await supabase
+          .from("community_posts")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const formatted = data.map(r => ({
+            id: r.id,
+            image: r.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop",
+            dishName: r.recipe_name || "맛있는 요리",
+            recipeName: r.recipe_name ? `${r.recipe_name} 레시피` : "자유 이야기",
+            username: r.nickname || "요리러버",
+            time: formatRelativeTime(r.created_at),
+            text: r.content || "정말 맛있게 만들어졌어요!",
+            likes: r.like_count || 0,
+            comments: r.comment_count || 0,
+            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
+          }));
+          setCommunityReviews(formatted);
+        }
+      } catch (error) {
+        console.warn("커뮤니티 데이터를 가져오지 못해 로컬 더미 리뷰 데이터를 사용합니다:", error);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchCommunityReviews();
+  }, []);
+
   // AI 냉장고 털기 섹션 상태
   const [tags, setTags] = useState(["계란", "양파", "대파", "김치", "두부", "닭가슴살"]);
   const [isLoading, setIsLoading] = useState(false);
@@ -328,6 +388,8 @@ export default function Home() {
       recipe => recipe.category === selectedCategory
     );
   }
+
+  const activeReviews = communityReviews.length > 0 ? communityReviews : reviewsData;
 
   const toggleWish = (id) => {
     const isWished = wishedIds.includes(id);
@@ -911,58 +973,113 @@ export default function Home() {
             </Link>
           </header>
 
-          {/* 리뷰 카드 그리드 영역 */}
-          <div className="review-grid">
-            {reviewsData.map((review) => {
-              const isLiked = likedReviews.includes(review.id);
-              const totalLikes = isLiked ? review.likes + 1 : review.likes;
-              return (
-                <article key={review.id} className="review-card">
-                  <Link to="/recipes" className="review-img-link">
-                    <img src={review.image} alt={review.dishName} className="card-img" />
-                  </Link>
-                  <div className="card-content">
-                    <div className="user-info">
-                      <div 
-                        className="avatar" 
-                        style={{ backgroundImage: `url('${review.avatar}')` }}
-                        role="img"
-                        aria-label={`${review.username} 프로필 사진`}
-                      ></div>
-                      <span className="username">{review.username}</span>
-                      <span className="time">{review.time}</span>
-                    </div>
-                    <p className="review-text">{review.text}</p>
-                    
-                    <Link to="/recipes" className="recipe-link">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-                      </svg>
-                      {review.recipeName}
+          {/* 리뷰 카드 무한 롤링 슬라이더 영역 */}
+          <div className="review-slider-track">
+            <div className="review-slider-list animate-slide-left">
+              {/* 첫 번째 카드 그룹 */}
+              {activeReviews.map((review) => {
+                const isLiked = likedReviews.includes(review.id);
+                const totalLikes = isLiked ? review.likes + 1 : review.likes;
+                return (
+                  <article key={review.id} className="review-card">
+                    <Link to="/community" className="review-img-link">
+                      <img src={review.image} alt={review.dishName} className="card-img" />
                     </Link>
-                    
-                    <div className="card-stats">
-                      <span 
-                        className={`stat ${isLiked ? "liked" : ""}`}
-                        onClick={() => toggleLikeReview(review.id)}
-                        title="좋아요 클릭"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg> 
-                        {` ${totalLikes}`}
-                      </span>
-                      <span className="stat">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg> 
-                        {` ${review.comments}`}
-                      </span>
+                    <div className="card-content">
+                      <div className="user-info">
+                        <div 
+                          className="avatar" 
+                          style={{ backgroundImage: `url('${review.avatar}')` }}
+                          role="img"
+                          aria-label={`${review.username} 프로필 사진`}
+                        ></div>
+                        <span className="username">{review.username}</span>
+                        <span className="time">{review.time}</span>
+                      </div>
+                      <p className="review-text">{review.text}</p>
+                      
+                      <Link to="/community" className="recipe-link">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+                        </svg>
+                        {review.recipeName}
+                      </Link>
+                      
+                      <div className="card-stats">
+                        <span 
+                          className={`stat ${isLiked ? "liked" : ""}`}
+                          onClick={() => toggleLikeReview(review.id)}
+                          title="좋아요 클릭"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                          </svg> 
+                          {` ${totalLikes}`}
+                        </span>
+                        <span className="stat">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                          </svg> 
+                          {` ${review.comments}`}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
+                  </article>
+                );
+              })}
+
+              {/* 무한 롤링 구현을 위한 두 번째 (복제된) 카드 그룹 */}
+              {activeReviews.map((review) => {
+                const isLiked = likedReviews.includes(review.id);
+                const totalLikes = isLiked ? review.likes + 1 : review.likes;
+                return (
+                  <article key={`clone-${review.id}`} className="review-card">
+                    <Link to="/community" className="review-img-link">
+                      <img src={review.image} alt={review.dishName} className="card-img" />
+                    </Link>
+                    <div className="card-content">
+                      <div className="user-info">
+                        <div 
+                          className="avatar" 
+                          style={{ backgroundImage: `url('${review.avatar}')` }}
+                          role="img"
+                          aria-label={`${review.username} 프로필 사진`}
+                        ></div>
+                        <span className="username">{review.username}</span>
+                        <span className="time">{review.time}</span>
+                      </div>
+                      <p className="review-text">{review.text}</p>
+                      
+                      <Link to="/community" className="recipe-link">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+                        </svg>
+                        {review.recipeName}
+                      </Link>
+                      
+                      <div className="card-stats">
+                        <span 
+                          className={`stat ${isLiked ? "liked" : ""}`}
+                          onClick={() => toggleLikeReview(review.id)}
+                          title="좋아요 클릭"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                          </svg> 
+                          {` ${totalLikes}`}
+                        </span>
+                        <span className="stat">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                          </svg> 
+                          {` ${review.comments}`}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
 
         </div>
