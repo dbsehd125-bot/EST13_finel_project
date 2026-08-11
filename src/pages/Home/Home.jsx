@@ -1,7 +1,163 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
 import { Layout } from "../../components";
 import "./Home.css";
+
+// --- 상수 및 더미 데이터 (컴포넌트 외부로 분리하여 렌더링 성능 최적화) ---
+const categories = ["전체", "한식", "양식", "중식", "일식", "디저트", "다이어트", "야식"];
+
+const recipeData = [
+  {
+    id: 1,
+    category: "양식",
+    title: "레몬 버터 연어 스테이크",
+    author: "주말의셰프",
+    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=600&auto=format&fit=crop",
+    time: "30분",
+    difficulty: "보통",
+    rating: 4.9,
+    likes: "2,104",
+    comments: 341
+  },
+  {
+    id: 2,
+    category: "다이어트",
+    title: "채소로 만드는 두부 덮밥",
+    author: "초록식탁",
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop",
+    time: "20분",
+    difficulty: "쉬움",
+    rating: 4.9,
+    likes: "1,567",
+    comments: 288
+  },
+  {
+    id: 3,
+    category: "양식",
+    title: "봉골레 오일 파스타",
+    author: "미드나잇키친",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=600&auto=format&fit=crop",
+    time: "20분",
+    difficulty: "보통",
+    rating: 4.8,
+    likes: "1,330",
+    comments: 202
+  },
+  {
+    id: 4,
+    category: "한식",
+    title: "아보카도 명란 비빔밥",
+    author: "건강식탁",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1553163147-622ab57be1c7?q=80&w=600&auto=format&fit=crop",
+    time: "15분",
+    difficulty: "매우 쉬움",
+    rating: 4.7,
+    likes: "1,120",
+    comments: 156
+  }
+];
+
+const matchRecipes = [
+  {
+    title: "두부 닭가슴살 김치 볶음밥",
+    desc: "보유하신 재료로 만들 수 있는 매콤 담백하고 단백질 가득한 한 그릇 메뉴에요.",
+    image: "https://images.unsplash.com/photo-1553163147-622ab57be1c7?q=80&w=800&auto=format&fit=crop",
+    time: "20분",
+    difficulty: "쉬움",
+    servings: "2인분"
+  },
+  {
+    title: "백종원풍 파송송 계란국",
+    desc: "계란과 대파만으로 5분 만에 깊은 감칠맛을 내는 맑고 따뜻한 국 요리입니다.",
+    image: "https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=800&auto=format&fit=crop",
+    time: "10분",
+    difficulty: "매우 쉬움",
+    servings: "1인분"
+  },
+  {
+    title: "두부 김치 조림",
+    desc: "두부와 숙성된 김치에 대파, 양파를 팍팍 넣고 자글자글 끓여낸 밥도둑 반찬입니다.",
+    image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?q=80&w=800&auto=format&fit=crop",
+    time: "25분",
+    difficulty: "보통",
+    servings: "2인분"
+  },
+  {
+    title: "양파 가득 닭가슴살 볶음",
+    desc: "양파와 닭가슴살을 굴소스와 마늘로 볶아 든든한 다이어트 도시락으로 추천합니다.",
+    image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?q=80&w=800&auto=format&fit=crop",
+    time: "15분",
+    difficulty: "쉬움",
+    servings: "1인분"
+  }
+];
+
+const backupMeals = [
+  { title: "포치드 에그 브런치", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" },
+  { title: "봉골레 오일 파스타", image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=400&auto=format&fit=crop" },
+  { title: "버터 연어 스테이크", image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=400&auto=format&fit=crop" },
+  { title: "얼큰 순두부 계란탕", image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=400&auto=format&fit=crop" },
+  { title: "매콤 크림 파스타", image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?q=80&w=400&auto=format&fit=crop" },
+  { title: "든든 채소 샐러드 볼", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400&auto=format&fit=crop" },
+  { title: "밤 티라미수", image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=400&auto=format&fit=crop" },
+  { title: "돼지고기 김치찌개", image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?q=80&w=400&auto=format&fit=crop" },
+  { title: "스팸 무스비", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" }
+];
+
+const reviewsData = [
+  {
+    id: 1,
+    image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=600&auto=format&fit=crop",
+    dishName: "레몬 버터 연어",
+    recipeName: "레몬 버터 연어 스테이크",
+    username: "집밥러버",
+    time: "2시간 전",
+    text: "레몬 버터 연어 처음으로 만들어봤는데 대성공? 레몬양만 조절하면 완벽해요",
+    likes: 128,
+    comments: 24,
+    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
+  },
+  {
+    id: 2,
+    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop",
+    dishName: "두부 덮밥",
+    recipeName: "냉장고 채소로 만드는 두부덮밥",
+    username: "요리초보탈출",
+    time: "5시간 전",
+    text: "두부 덮밥 다이어트 중인데 진짜 든든하고 맛있어요. 매일 해먹는 중!",
+    likes: 98,
+    comments: 18,
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop"
+  },
+  {
+    id: 3,
+    image: "https://images.unsplash.com/photo-1580651315530-69c8e0026377?q=80&w=600&auto=format&fit=crop",
+    dishName: "김치전",
+    recipeName: "바삭한 김치 치즈전",
+    username: "저녁마다요리",
+    time: "어제",
+    text: "김치전 바삭하게 부치는 팁 덕분에 인생 김치전 완성했습니다",
+    likes: 210,
+    comments: 41,
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop"
+  },
+  {
+    id: 4,
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=600&auto=format&fit=crop",
+    dishName: "포치드 에그 브런치",
+    recipeName: "포치드 에그 브런치 플레이트",
+    username: "브런치소녀",
+    time: "어제",
+    text: "주말 브런치로 포치드 에그 플레이트를 만들었어요. 사진도 예쁘게 나옴!",
+    likes: 174,
+    comments: 33,
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop"
+  }
+];
 
 export default function Home() {
   // 오늘 뭐 먹지? 레시피 섹션 상태
@@ -35,187 +191,69 @@ export default function Home() {
   // 사용자 리뷰 섹션 상태
   const [likedReviews, setLikedReviews] = useState([]);
 
+  // 인라인 재료 추가 상태
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagInput, setNewTagInput] = useState("");
+
+  // 토스트 메시지 상태
+  const [toast, setToast] = useState({ message: "", visible: false, type: "success" });
+  const toastTimeoutRef = useRef(null);
+
   const fileInputRef = useRef(null);
 
-  const categories = ["전체", "한식", "양식", "중식", "일식", "디저트", "다이어트", "야식"];
-
-  const recipeData = [
-    {
-      id: 1,
-      category: "양식",
-      title: "레몬 버터 연어 스테이크",
-      author: "주말의셰프",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
-      image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=600&auto=format&fit=crop",
-      time: "30분",
-      difficulty: "보통",
-      rating: 4.9,
-      likes: "2,104",
-      comments: 341
-    },
-    {
-      id: 2,
-      category: "다이어트",
-      title: "채소로 만드는 두부 덮밥",
-      author: "초록식탁",
-      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop",
-      image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop",
-      time: "20분",
-      difficulty: "쉬움",
-      rating: 4.9,
-      likes: "1,567",
-      comments: 288
-    },
-    {
-      id: 3,
-      category: "양식",
-      title: "봉골레 오일 파스타",
-      author: "미드나잇키친",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop",
-      image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=600&auto=format&fit=crop",
-      time: "20분",
-      difficulty: "보통",
-      rating: 4.8,
-      likes: "1,330",
-      comments: 202
-    },
-    {
-      id: 4,
-      category: "한식",
-      title: "아보카도 명란 비빔밥",
-      author: "건강식탁",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
-      image: "https://images.unsplash.com/photo-1553163147-622ab57be1c7?q=80&w=600&auto=format&fit=crop",
-      time: "15분",
-      difficulty: "매우 쉬움",
-      rating: 4.7,
-      likes: "1,120",
-      comments: 156
+  // 토스트 보이기 함수
+  const showToast = (message, type = "success") => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
     }
-  ];
+    setToast({ message, visible: true, type });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 3000);
+  };
 
-  const matchRecipes = [
-    {
-      title: "두부 닭가슴살 김치 볶음밥",
-      desc: "보유하신 재료로 만들 수 있는 매콤 담백하고 단백질 가득한 한 그릇 메뉴에요.",
-      image: "https://images.unsplash.com/photo-1553163147-622ab57be1c7?q=80&w=800&auto=format&fit=crop",
-      time: "20분",
-      difficulty: "쉬움",
-      servings: "2인분"
-    },
-    {
-      title: "백종원풍 파송송 계란국",
-      desc: "계란과 대파만으로 5분 만에 깊은 감칠맛을 내는 맑고 따뜻한 국 요리입니다.",
-      image: "https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=800&auto=format&fit=crop",
-      time: "10분",
-      difficulty: "매우 쉬움",
-      servings: "1인분"
-    },
-    {
-      title: "두부 김치 조림",
-      desc: "두부와 숙성된 김치에 대파, 양파를 팍팍 넣고 자글자글 끓여낸 밥도둑 반찬입니다.",
-      image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?q=80&w=800&auto=format&fit=crop",
-      time: "25분",
-      difficulty: "보통",
-      servings: "2인분"
-    },
-    {
-      title: "양파 가득 닭가슴살 볶음",
-      desc: "양파와 닭가슴살을 굴소스와 마늘로 볶아 든든한 다이어트 도시락으로 추천합니다.",
-      image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?q=80&w=800&auto=format&fit=crop",
-      time: "15분",
-      difficulty: "쉬움",
-      servings: "1인분"
-    }
-  ];
-
-  const backupMeals = [
-    { title: "포치드 에그 브런치", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" },
-    { title: "봉골레 오일 파스타", image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=400&auto=format&fit=crop" },
-    { title: "버터 연어 스테이크", image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=400&auto=format&fit=crop" },
-    { title: "얼큰 순두부 계란탕", image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=400&auto=format&fit=crop" },
-    { title: "매콤 크림 파스타", image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?q=80&w=400&auto=format&fit=crop" },
-    { title: "든든 채소 샐러드 볼", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400&auto=format&fit=crop" },
-    { title: "밤 티라미수", image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=400&auto=format&fit=crop" },
-    { title: "돼지고기 김치찌개", image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?q=80&w=400&auto=format&fit=crop" },
-    { title: "스팸 무스비", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" }
-  ];
-
-  const reviewsData = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=600&auto=format&fit=crop",
-      dishName: "레몬 버터 연어",
-      recipeName: "레몬 버터 연어 스테이크",
-      username: "집밥러버",
-      time: "2시간 전",
-      text: "레몬 버터 연어 처음으로 만들어봤는데 대성공? 레몬양만 조절하면 완벽해요",
-      likes: 128,
-      comments: 24,
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop",
-      dishName: "두부 덮밥",
-      recipeName: "냉장고 채소로 만드는 두부덮밥",
-      username: "요리초보탈출",
-      time: "5시간 전",
-      text: "두부 덮밥 다이어트 중인데 진짜 든든하고 맛있어요. 매일 해먹는 중!",
-      likes: 98,
-      comments: 18,
-      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop"
-    },
-    {
-      id: 3,
-      image: "https://images.unsplash.com/photo-1580651315530-69c8e0026377?q=80&w=600&auto=format&fit=crop",
-      dishName: "김치전",
-      recipeName: "바삭한 김치 치즈전",
-      username: "저녁마다요리",
-      time: "어제",
-      text: "김치전 바삭하게 부치는 팁 덕분에 인생 김치전 완성했습니다",
-      likes: 210,
-      comments: 41,
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop"
-    },
-    {
-      id: 4,
-      image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=600&auto=format&fit=crop",
-      dishName: "포치드 에그 브런치",
-      recipeName: "포치드 에그 브런치 플레이트",
-      username: "브런치소녀",
-      time: "어제",
-      text: "주말 브런치로 포치드 에그 플레이트를 만들었어요. 사진도 예쁘게 나옴!",
-      likes: 174,
-      comments: 33,
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop"
-    }
-  ];
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const filteredRecipes = recipeData.filter(
     recipe => selectedCategory === "전체" || recipe.category === selectedCategory
   );
 
   const toggleWish = (id) => {
+    const isWished = wishedIds.includes(id);
     setWishedIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
+    if (!isWished) {
+      showToast("관심 레시피에 추가되었습니다.", "success");
+    } else {
+      showToast("관심 레시피에서 제외되었습니다.", "info");
+    }
   };
 
   // 재료 태그 제어 함수들
   const handleRemoveTag = (tagToRemove) => {
     setTags(tags.filter(t => t !== tagToRemove));
+    showToast(`"${tagToRemove}" 재료를 삭제했습니다.`, "info");
   };
 
-  const handleAddTag = () => {
-    const newTag = prompt("추가하실 재료명을 입력해 주세요 (예: 스팸, 감자):");
-    if (newTag && newTag.trim()) {
-      const trimmed = newTag.trim();
-      if (tags.includes(trimmed)) {
-        alert("이미 등록된 재료입니다.");
-      } else {
-        setTags([...tags, trimmed]);
-      }
+  const handleAddTagSubmit = (e) => {
+    e.preventDefault();
+    const trimmed = newTagInput.trim();
+    if (!trimmed) return;
+
+    if (tags.includes(trimmed)) {
+      showToast("이미 등록된 재료입니다.", "warning");
+    } else {
+      setTags([...tags, trimmed]);
+      showToast(`"${trimmed}" 재료를 추가했습니다.`, "success");
+      setNewTagInput("");
+      setIsAddingTag(false);
     }
   };
 
@@ -227,7 +265,7 @@ export default function Home() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      alert(`[AI 인식 완료] 업로드된 사진(${file.name})을 분석하여 '파프리카', '양배추' 재료를 냉장고 태그 목록에 추가했습니다!`);
+      showToast(`[AI 인식 완료] '${file.name}' 분석을 통해 '파프리카', '양배추'가 추가되었습니다!`, "success");
       const extraTags = ["파프리카", "양배추"];
       const updatedTags = [...tags];
       extraTags.forEach(t => {
@@ -242,7 +280,7 @@ export default function Home() {
   // AI 레시피 추천 시뮬레이션
   const handleRecommend = () => {
     if (tags.length === 0) {
-      alert("최소 한 개 이상의 재료를 입력해 주세요!");
+      showToast("최소 한 개 이상의 재료를 입력해 주세요!", "warning");
       return;
     }
     setIsLoading(true);
@@ -251,7 +289,8 @@ export default function Home() {
       const filtered = matchRecipes.filter(r => r.title !== recommendation.title);
       const chosen = filtered[Math.floor(Math.random() * filtered.length)] || matchRecipes[0];
       setRecommendation(chosen);
-    }, 700);
+      showToast("새로운 AI 추천 레시피가 생성되었습니다. ✨", "success");
+    }, 1200);
   };
 
   // 식단 개별 교체 제어
@@ -263,6 +302,7 @@ export default function Home() {
     setMealPlan(prev => 
       prev.map(m => m.id === id ? { ...m, title: randomMeal.title, image: randomMeal.image } : m)
     );
+    showToast(`${currentMeal.day}요일 식단이 교체되었습니다.`, "success");
   };
 
   // AI 일주일 식단 생성 제어
@@ -274,15 +314,19 @@ export default function Home() {
         const randomMeal = backupMeals[Math.floor(Math.random() * backupMeals.length)];
         return { ...m, title: randomMeal.title, image: randomMeal.image };
       }));
-      alert("AI가 새로운 일주일 맞춤형 식단을 구성했습니다! ✨");
-    }, 850);
+      showToast("AI가 새로운 일주일 맞춤형 식단을 구성했습니다! ✨", "success");
+    }, 1200);
   };
 
   // 사용자 리뷰 좋아요 제어
   const toggleLikeReview = (id) => {
+    const isLiked = likedReviews.includes(id);
     setLikedReviews(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
+    if (!isLiked) {
+      showToast("리뷰를 추천했습니다.", "success");
+    }
   };
 
   return (
@@ -332,7 +376,7 @@ export default function Home() {
             />
             {/* 태블릿용 보라색 플로팅 버튼 */}
             <Link to="/ai" className="fab-btn-purple" aria-label="AI 레시피 액션">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                 <path d="m10 9 5 3-5 3z"/>
               </svg>
@@ -362,7 +406,7 @@ export default function Home() {
             </div>
             <Link to="/recipes" className="view-all-link">
               전체보기
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
@@ -424,7 +468,7 @@ export default function Home() {
                       </div>
                       <div className="meta-info">
                         <span className="time">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
                             <polyline points="12 6 12 12 16 14"></polyline>
                           </svg> 
@@ -440,13 +484,13 @@ export default function Home() {
                           {` ${recipe.rating}`}
                         </span>
                         <span className="stat-item">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                           </svg> 
                           {` ${recipe.likes}`}
                         </span>
                         <span className="stat-item">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                           </svg> 
                           {` ${recipe.comments}`}
@@ -538,7 +582,7 @@ export default function Home() {
           <div className="fridge-content">
             {/* 상단 뱃지 */}
             <div className="ai-badge">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="m10 9 5 3-5 3z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="m10 9 5 3-5 3z"/></svg>
               AI 냉장고 털기
             </div>
 
@@ -557,9 +601,30 @@ export default function Home() {
                     title="클릭하면 삭제됩니다"
                   >
                     {tag}
+                    <span className="tag-remove-x">&times;</span>
                   </span>
                 ))}
-                <button className="add-tag-btn" onClick={handleAddTag}>+ 재료 추가</button>
+                
+                {isAddingTag ? (
+                  <form onSubmit={handleAddTagSubmit} className="add-tag-form" onBlur={(e) => {
+                    // input 밖을 클릭 시 자동 닫힘 (약간의 딜레이로 버튼 클릭 허용)
+                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                      setTimeout(() => setIsAddingTag(false), 200);
+                    }
+                  }}>
+                    <input 
+                      type="text" 
+                      value={newTagInput} 
+                      onChange={(e) => setNewTagInput(e.target.value)} 
+                      placeholder="재료명 입력" 
+                      className="add-tag-input"
+                      autoFocus
+                    />
+                    <button type="submit" className="add-tag-submit-btn">추가</button>
+                  </form>
+                ) : (
+                  <button className="add-tag-btn" onClick={() => setIsAddingTag(true)}>+ 재료 추가</button>
+                )}
               </div>
               
               <div className="action-buttons">
@@ -572,7 +637,7 @@ export default function Home() {
                   onChange={handleFileChange}
                 />
                 <button className="btn-upload" onClick={handleUploadClick}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                   냉장고 사진 업로드
                 </button>
                 <button className="btn-recommend" onClick={handleRecommend} disabled={isLoading}>
@@ -587,29 +652,36 @@ export default function Home() {
             <div>
               <div className="preview-header">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="m10 9 5 3-5 3z"/></svg>
-                {isLoading ? "AI 분석 중..." : "AI 추천 미리보기"}
+                {isLoading ? "AI 분석 중..." : "AI 추천 레시피"}
               </div>
               
               {isLoading ? (
-                <div style={{ height: "200px", display: "flex", justifyContent: "center", alignItems: "center", backgroundColor: "#fff", borderRadius: "12px", marginBottom: "20px", color: "#AB88ED", fontWeight: "600" }}>
-                  🍳 AI 레시피 탐색 중...
+                <div className="preview-skeleton-wrapper">
+                  <div className="skeleton-img pulse">
+                    <span className="spinner-emoji">🍳</span>
+                  </div>
+                  <div className="skeleton-info">
+                    <div className="skeleton-line title pulse"></div>
+                    <div className="skeleton-line desc pulse"></div>
+                    <div className="skeleton-line desc short pulse"></div>
+                    <div className="skeleton-line meta pulse"></div>
+                  </div>
                 </div>
               ) : (
-                <img src={recommendation.image} alt={recommendation.title} className="preview-img" />
+                <>
+                  <img src={recommendation.image} alt={recommendation.title} className="preview-img" />
+                  <div className="preview-info">
+                    <h3 className="preview-title">{recommendation.title}</h3>
+                    <p className="preview-desc">{recommendation.desc}</p>
+                    <div className="preview-meta">
+                      <span>🕒 {recommendation.time}</span>
+                      <span>⭐ {recommendation.difficulty}</span>
+                      <span>👥 {recommendation.servings}</span>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
-            
-            {!isLoading && (
-              <div className="preview-info">
-                <h3 className="preview-title">{recommendation.title}</h3>
-                <p className="preview-desc">{recommendation.desc}</p>
-                <div className="preview-meta">
-                  <span>{recommendation.time}</span>
-                  <span>{recommendation.difficulty}</span>
-                  <span>{recommendation.servings}</span>
-                </div>
-              </div>
-            )}
           </div>
 
         </div>
@@ -640,33 +712,42 @@ export default function Home() {
             {mealPlan.map((plan) => (
               <article key={plan.id} className={`plan-card ${isGeneratingPlan ? "loading" : ""}`}>
                 {isGeneratingPlan ? (
-                  <div style={{ aspectRatio: "4/3", backgroundColor: "#eee", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "20px" }}>
-                    🔄
+                  <div className="plan-skeleton">
+                    <div className="skeleton-img pulse">
+                      <span className="spinner-icon">🔄</span>
+                    </div>
+                    <div className="card-body">
+                      <div className="skeleton-line sm pulse"></div>
+                      <div className="skeleton-line md pulse"></div>
+                      <div className="skeleton-line lg pulse"></div>
+                    </div>
                   </div>
                 ) : (
-                  <img src={plan.image} alt={plan.title} className="card-img" />
+                  <>
+                    <img src={plan.image} alt={plan.title} className="card-img" />
+                    
+                    <div className="card-body">
+                      <div className="card-meta">
+                        <span className="day">{plan.day}</span>
+                        <span className="meal-type">{plan.type}</span>
+                      </div>
+                      <h3 className="recipe-title" title={plan.title}>
+                        {plan.title}
+                      </h3>
+                      <button 
+                        className="replace-btn"
+                        onClick={() => handleReplaceMeal(plan.id)}
+                        disabled={isGeneratingPlan}
+                        title="다른 식단으로 교체하기"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l5.6 5.6M2.5 22v-6h6M2.66 8.43a10 10 0 1 1 .59 9.21l-5.6-5.6"/>
+                        </svg>
+                        교체
+                      </button>
+                    </div>
+                  </>
                 )}
-                
-                <div className="card-body">
-                  <div className="card-meta">
-                    <span className="day">{plan.day}</span>
-                    <span className="meal-type">{plan.type}</span>
-                  </div>
-                  <h3 className="recipe-title" title={plan.title}>
-                    {isGeneratingPlan ? "레시피 조합 중..." : plan.title}
-                  </h3>
-                  <button 
-                    className="replace-btn"
-                    onClick={() => handleReplaceMeal(plan.id)}
-                    disabled={isGeneratingPlan}
-                    title="다른 식단으로 교체하기"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l5.6 5.6M2.5 22v-6h6M2.66 8.43a10 10 0 1 1 .59 9.21l-5.6-5.6"/>
-                    </svg>
-                    교체
-                  </button>
-                </div>
               </article>
             ))}
           </div>
@@ -768,6 +849,16 @@ export default function Home() {
 
         </div>
       </section>
+
+      {/* 커스텀 토스트 알림 컴포넌트 */}
+      <div className={`custom-toast ${toast.type} ${toast.visible ? "show" : ""}`}>
+        <span className="toast-icon">
+          {toast.type === "success" && "✨"}
+          {toast.type === "warning" && "⚠️"}
+          {toast.type === "info" && "ℹ️"}
+        </span>
+        <span className="toast-message">{toast.message}</span>
+      </div>
     </Layout>
   );
 }

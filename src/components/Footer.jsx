@@ -1,14 +1,19 @@
 import React from "react";
+import { Link } from "react-router";
 import "./Footer.css";
 
 export default function Footer() {
+  const handlePreventDefault = (e) => {
+    e.preventDefault();
+  };
+
   return (
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-top">
           <div className="footer-info">
             <div className="footer-header-row">
-              <a href="/" className="footer-logo">
+              <Link to="/" className="footer-logo">
                 <div className="logo-badge">
                   <svg
                     width="20"
@@ -26,7 +31,7 @@ export default function Footer() {
                   </svg>
                 </div>
                 <span className="logo-title">깃깔나는 레시피</span>
-              </a>
+              </Link>
               <div className="footer-sns">
                 <a href="https://github.com" target="_blank" rel="noreferrer" aria-label="GitHub">
                   <svg
@@ -72,26 +77,26 @@ export default function Footer() {
             <div className="link-col">
               <h4>서비스</h4>
               <ul>
-                <li><a href="#about">서비스 소개</a></li>
-                <li><a href="#notice">공지사항</a></li>
-                <li><a href="#help">고객센터</a></li>
+                <li><Link to="/" onClick={handlePreventDefault}>서비스 소개</Link></li>
+                <li><Link to="/" onClick={handlePreventDefault}>공지사항</Link></li>
+                <li><Link to="/" onClick={handlePreventDefault}>고객센터</Link></li>
               </ul>
             </div>
             <div className="link-col">
               <h4>정책</h4>
               <ul>
-                <li><a href="#terms">이용약관</a></li>
-                <li><a href="#privacy">개인정보처리방침</a></li>
-                <li><a href="#contact">문의하기</a></li>
-                <li><a href="#styleguide">스타일 가이드</a></li>
+                <li><Link to="/" onClick={handlePreventDefault}>이용약관</Link></li>
+                <li><Link to="/" onClick={handlePreventDefault}>개인정보처리방침</Link></li>
+                <li><Link to="/" onClick={handlePreventDefault}>문의하기</Link></li>
+                <li><Link to="/" onClick={handlePreventDefault}>스타일 가이드</Link></li>
               </ul>
             </div>
             <div className="link-col">
               <h4>탐색</h4>
               <ul>
-                <li><a href="#explore">레시피 둘러보기</a></li>
-                <li><a href="#ai">AI 레시피</a></li>
-                <li><a href="#community">커뮤니티</a></li>
+                <li><Link to="/recipes">레시피 둘러보기</Link></li>
+                <li><Link to="/ai">AI 레시피</Link></li>
+                <li><Link to="/community">커뮤니티</Link></li>
               </ul>
             </div>
           </div>

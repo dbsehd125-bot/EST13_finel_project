@@ -5,6 +5,30 @@ import { useAuth } from '../context/AuthContext';
 import './Header.css';
 import AuthGuardModal from '../components/AuthGuardModal';
 
+const menuItems = [
+  {
+    id: 'home',
+    label: '홈',
+    path: '/',
+    end: true,
+  },
+  {
+    id: 'recipes',
+    label: '레시피 둘러보기',
+    path: '/recipes',
+  },
+  {
+    id: 'ai',
+    label: 'AI 레시피',
+    path: '/ai',
+  },
+  {
+    id: 'community',
+    label: '커뮤니티',
+    path: '/community',
+  },
+];
+
 export default function Header() {
   const navigate = useNavigate();
 
@@ -12,30 +36,6 @@ export default function Header() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
-
-  const menuItems = [
-    {
-      id: 'home',
-      label: '홈',
-      path: '/',
-      end: true,
-    },
-    {
-      id: 'recipes',
-      label: '레시피 둘러보기',
-      path: '/recipes',
-    },
-    {
-      id: 'ai',
-      label: 'AI 레시피',
-      path: '/ai',
-    },
-    {
-      id: 'community',
-      label: '커뮤니티',
-      path: '/community',
-    },
-  ];
 
   function closeMenu() {
     setMenuOpen(false);
