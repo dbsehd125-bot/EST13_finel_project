@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
 import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import styles from './RecipeList.module.css';
@@ -116,17 +117,62 @@ export default function RecipeList() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // --- 더미 데이터 90개 생성 (임시 테스트용) ---
+  const initialDummyRecipes = Array.from({ length: 90 }, (_, i) => ({
+    id: `dummy-${i + 1}`,
+    category: ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'][i % 7],
+    title: `테스트 임시 레시피 ${i + 1}`,
+    author: `요리사 ${i + 1}`,
+    time: `${(i % 6 + 1) * 10}분`,
+    difficulty: ['매우 쉬움', '쉬움', '보통', '어려움'][i % 4],
+    rating: (Math.random() * 2 + 3).toFixed(1), // 3.0 ~ 5.0
+    views: Math.floor(Math.random() * 500) + 50,
+    comments: Math.floor(Math.random() * 50),
+    image: `https://picsum.photos/seed/recipe${i}/400/300`,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=user${i}`,
+    diet: ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'][i % 7]
+  }));
 
-  const recipes = [
-    { id: 1, category: '양식', title: '매콤 크림 닭갈비 파스타', author: '주말의셰프', time: '30분', difficulty: '보통', rating: 4.9, views: '2,104', comments: '341', image: 'https://images.unsplash.com/photo-1645696301019-35adcb18cb4d?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80' },
-    { id: 2, category: '다이어트', title: '냉장고 채소로 만드는 두부 덮밥', author: '초록식탁', time: '20분', difficulty: '쉬움', rating: 4.9, views: '1,567', comments: '288', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&q=80' },
-    { id: 3, category: '양식', title: '봉골레 오일 파스타', author: '미드나잇키친', time: '20분', difficulty: '보통', rating: 4.8, views: '1,330', comments: '202', image: 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80' },
-    { id: 4, category: '한식', title: '아보카도 명란 비빔밥', author: '건강식탁', time: '15분', difficulty: '매우 쉬움', rating: 4.7, views: '1,120', comments: '156', image: 'https://images.unsplash.com/photo-1553163147-622ab57be1c7?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80' },
-    { id: 5, category: '분식', title: '매콤 달콤 떡볶이', author: '분식매니아', time: '25분', difficulty: '쉬움', rating: 4.9, views: '3,450', comments: '521', image: 'https://images.unsplash.com/photo-1580651315530-69c8e0026377?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80' },
-    { id: 6, category: '일식', title: '바삭바삭 돈까스', author: '일식장인', time: '40분', difficulty: '보통', rating: 4.6, views: '890', comments: '112', image: 'https://images.unsplash.com/photo-1599321955726-e04842669811?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80' },
-    { id: 7, category: '디저트', title: '상큼한 베리 팬케이크', author: '달콤한하루', time: '20분', difficulty: '쉬움', rating: 4.8, views: '1,950', comments: '276', image: 'https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80' },
-    { id: 8, category: '한식', title: '구수한 된장찌개', author: '할머니손맛', time: '30분', difficulty: '쉬움', rating: 4.9, views: '2,740', comments: '412', image: 'https://images.unsplash.com/photo-1520209268518-aec60b8bb5ca?auto=format&fit=crop&w=400&q=80', avatar: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=100&q=80' },
-  ];
+  const [recipes, setRecipes] = useState(initialDummyRecipes);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecipes() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('recipes')
+          .select('*')
+          .eq('is_public', true)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        const mappedRecipes = (data || []).map(row => ({
+          id: row.id,
+          category: row.cuisine || row.category || '기타',
+          title: row.title,
+          author: row.author_nickname || '사용자',
+          time: row.cooking_time || row.time || '0분',
+          difficulty: row.difficulty || '보통',
+          rating: row.rating || 0,
+          views: row.views || 0,
+          comments: row.comments_count || 0,
+          image: row.thumbnail_url || row.image_url || '',
+          avatar: row.author_avatar || '',
+          diet: row.diet || ''
+        }));
+        
+        setRecipes([...mappedRecipes, ...initialDummyRecipes]);
+      } catch (err) {
+        console.error('레시피 목록 조회 오류:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchRecipes();
+  }, []);
 
   const filterCategories = ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'];
   const filterDiets = ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'];
@@ -165,6 +211,36 @@ export default function RecipeList() {
         return 0;
     }
   });
+
+  // --- 페이지네이션 로직 ---
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // 필터나 검색어가 변경되면 1페이지로 이동
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilters, debouncedSearchTerm, sortBy]);
+
+  const PAGE_SIZE = 12;
+  const PAGEGP_SIZE = 5;
+
+  const count = sortedRecipes.length;
+  const pageCount = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const safePage = Math.min(currentPage, pageCount);
+  
+  const from = (safePage - 1) * PAGE_SIZE;
+  const currentRecipes = sortedRecipes.slice(from, from + PAGE_SIZE);
+
+  const pageGP = Math.ceil(safePage / PAGEGP_SIZE);
+  const groupStart = (pageGP - 1) * PAGEGP_SIZE + 1;
+  const groupEnd = Math.min(groupStart + (PAGEGP_SIZE - 1), pageCount);
+
+  const pageCountArray = [];
+  for (let i = groupStart; i <= groupEnd; i++) {
+    pageCountArray.push(i);
+  }
+
+  const prevGP = groupStart - PAGEGP_SIZE;
+  const nextGP = groupEnd + 1;
 
   return (
     <Layout activeMenu="레시피 둘러보기">
@@ -307,7 +383,7 @@ export default function RecipeList() {
             </div>
 
             <div className={styles[viewMode]}>
-              {sortedRecipes.map(recipe => (
+              {currentRecipes.map(recipe => (
                 <RecipeCard 
                   key={recipe.id} 
                   recipe={recipe} 
@@ -318,15 +394,37 @@ export default function RecipeList() {
             </div>
 
             {/* Pagination */}
-            <div className={styles['pagination']}>
-              <button className={`${styles['page-btn']} ${styles['nav-btn']}`}><ChevronLeft size={16} /></button>
-              <button className={`${styles['page-btn']} ${styles['active']} text-button`}>1</button>
-              <button className={`${styles['page-btn']} text-button`}>2</button>
-              <button className={`${styles['page-btn']} text-button`}>3</button>
-              <button className={`${styles['page-btn']} text-button`}>4</button>
-              <button className={`${styles['page-btn']} text-button`}>5</button>
-              <button className={`${styles['page-btn']} ${styles['nav-btn']}`}><ChevronRight size={16} /></button>
-            </div>
+            {count > 0 && (
+              <div className={styles['pagination']}>
+                {pageGP > 1 && (
+                  <button 
+                    className={`${styles['page-btn']} ${styles['nav-btn']}`}
+                    onClick={() => setCurrentPage(prevGP)}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                )}
+                
+                {pageCountArray.map(i => (
+                  <button 
+                    key={i} 
+                    className={`${styles['page-btn']} ${safePage === i ? styles['active'] : ''} text-button`}
+                    onClick={() => setCurrentPage(i)}
+                  >
+                    {i}
+                  </button>
+                ))}
+                
+                {groupEnd < pageCount && (
+                  <button 
+                    className={`${styles['page-btn']} ${styles['nav-btn']}`}
+                    onClick={() => setCurrentPage(nextGP)}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+            )}
           </main>
         </div>
       </div>
