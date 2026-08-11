@@ -242,6 +242,12 @@
   font-size: 18px;
 }
 
+.shareSuccess {
+  color: var(--brand-primary) !important;
+  border-color: var(--brand-primary) !important;
+  background: var(--brand-cream) !important;
+}
+
 /* =========================
    AI 핵심 조리 과정
 ========================= */
@@ -258,9 +264,39 @@
 }
 
 .aiSummary h2 {
-  margin: 0 0 16px;
+  margin: 0;
 
   color: var(--brand-brown);
+}
+
+.aiSummaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 16px;
+}
+
+.aiSummaryHeader > span {
+  flex-shrink: 0;
+
+  color: var(--brand-ai);
+}
+
+.aiSummaryLoading {
+  margin: 0;
+
+  color: var(--brand-gray);
+
+  line-height: 1.6;
+}
+
+.aiSummaryNotice {
+  margin: 14px 0 0;
+
+  color: var(--brand-gray);
 }
 
 .aiSummary ol {
@@ -976,6 +1012,28 @@
   border-radius: 50%;
 
   cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.cardFavorite:hover:not(:disabled) {
+  color: var(--brand-primary);
+
+  transform: scale(1.06);
+}
+
+.cardFavoriteActive {
+  color: var(--brand-primary);
+}
+
+.cardFavorite:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.65;
 }
 
 .relatedContent {
