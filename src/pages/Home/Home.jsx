@@ -293,8 +293,12 @@ export default function Home() {
     }, 1200);
   };
 
+  // 식단 개별 교체 상태
+  const [replacingId, setReplacingId] = useState(null);
+
   // 식단 개별 교체 제어
   const handleReplaceMeal = (id) => {
+    setReplacingId(id);
     const currentMeal = mealPlan.find(m => m.id === id);
     const filteredBackup = backupMeals.filter(b => b.title !== currentMeal.title);
     const randomMeal = filteredBackup[Math.floor(Math.random() * filteredBackup.length)] || backupMeals[0];
@@ -303,6 +307,10 @@ export default function Home() {
       prev.map(m => m.id === id ? { ...m, title: randomMeal.title, image: randomMeal.image } : m)
     );
     showToast(`${currentMeal.day}요일 식단이 교체되었습니다.`, "success");
+
+    setTimeout(() => {
+      setReplacingId(null);
+    }, 400);
   };
 
   // AI 일주일 식단 생성 제어
@@ -729,7 +737,7 @@ export default function Home() {
           {/* 식단 카드 그리드 영역 */}
           <div className="plan-grid">
             {mealPlan.map((plan) => (
-              <article key={plan.id} className={`plan-card ${isGeneratingPlan ? "loading" : ""}`}>
+              <article key={plan.id} className={`plan-card ${isGeneratingPlan ? "loading" : ""} ${replacingId === plan.id ? "flash" : ""}`}>
                 {isGeneratingPlan ? (
                   <div className="plan-skeleton">
                     <div className="skeleton-img pulse">
