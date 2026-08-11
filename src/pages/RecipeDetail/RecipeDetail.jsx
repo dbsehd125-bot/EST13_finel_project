@@ -330,11 +330,26 @@ export default function RecipeDetail() {
   }, [recipe?.id]);
 
   /**
-   * Alan API로 각 조리 단계를 한 문장으로 요약
+   * AI 핵심 조리 과정
+   *
+   * 1) Supabase에 ai_step_summaries가 있으면 그대로 사용
+   * 2) 없으면 Alan API 호출
+   * 3) 생성 결과를 save_recipe_ai_summary RPC로 최초 1회 저장
    */
   useEffect(() => {
     if (!recipe?.id || !Array.isArray(recipe.steps) || recipe.steps.length === 0) {
       setAiStepSummaries([]);
+      setAiSummaryLoading(false);
+      setAiSummaryError(false);
+      return;
+    }
+
+    /**
+     * 이미 DB에 AI 요약이 저장되어 있으면
+     * Alan API를 다시 호출하지 않고 바로 사용
+     */
+    if (Array.isArray(recipe.ai_step_summaries) && recipe.ai_step_summaries.length > 0) {
+      setAiStepSummaries(recipe.ai_step_summaries);
       setAiSummaryLoading(false);
       setAiSummaryError(false);
       return;
@@ -360,7 +375,8 @@ export default function RecipeDetail() {
           `반드시 입력된 단계 개수와 같은 개수로 작성하고, 순서를 바꾸거나 단계를 합치지 마. ` +
           `응답은 다른 설명이나 마크다운 없이 순수 JSON 객체 하나만 반환해. ` +
           `JSON 형식은 {"summaries":[{"step":1,"summary":"요약 문장"}]} 이야. ` +
-          `모든 summary는 한국어로 작성해. 레시피명: ${recipe.title}. 조리 단계: ${stepText}`;
+          `모든 summary는 한국어로 작성해. ` +
+          `레시피명: ${recipe.title}. 조리 단계: ${stepText}`;
 
         let alanClientId = getCurrentAlanClientId();
         let response = null;
@@ -377,6 +393,7 @@ export default function RecipeDetail() {
             currentResponse = await fetch(`${API_BASE}/question?${queryString}`);
           } catch (networkError) {
             console.warn("Alan AI 요약 네트워크 오류:", networkError);
+
             alanClientId = getNextAlanClientId();
             continue;
           }
@@ -424,15 +441,49 @@ export default function RecipeDetail() {
             summaryMap.get(Number(step.step)) || step.description?.trim() || step.title || "",
         }));
 
-        if (!cancelled) {
-          setAiStepSummaries(normalizedSummaries);
+        if (cancelled) {
+          return;
         }
+
+        /**
+         * 비로그인 사용자도 저장 가능하도록
+         * direct UPDATE 대신 security definer RPC 사용
+         */
+        const { error: saveError } = await supabase.rpc("save_recipe_ai_summary", {
+          target_recipe_id: recipe.id,
+          summaries: normalizedSummaries,
+        });
+
+        if (saveError) {
+          console.error("AI 요약 DB 저장 실패:", saveError);
+        }
+
+        setAiStepSummaries(normalizedSummaries);
+
+        /**
+         * 현재 화면 상태에도 저장된 것처럼 반영
+         * 이후 같은 상세 페이지에서 불필요한 재호출 방지
+         */
+        setRecipe(previousRecipe => {
+          if (!previousRecipe || previousRecipe.id !== recipe.id) {
+            return previousRecipe;
+          }
+
+          return {
+            ...previousRecipe,
+            ai_step_summaries: normalizedSummaries,
+          };
+        });
       } catch (error) {
         console.error("Alan AI 단계 요약 실패:", error);
 
         if (!cancelled) {
           setAiSummaryError(true);
 
+          /**
+           * Alan 실패 시 페이지는 깨지지 않고
+           * 기존 단계 설명을 fallback으로 표시
+           */
           setAiStepSummaries(
             recipe.steps.map(step => ({
               step: step.step,
@@ -452,7 +503,7 @@ export default function RecipeDetail() {
     return () => {
       cancelled = true;
     };
-  }, [recipe?.id]);
+  }, [recipe?.id, recipe?.ai_step_summaries]);
 
   /**
    * 후기 평균 별점
