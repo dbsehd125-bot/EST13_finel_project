@@ -963,11 +963,41 @@
   margin-top: 1px;
 }
 
-/* 리뷰 카드 그리드 (4분할) */
-.review-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+/* 리뷰 카드 무한 롤링 슬라이더 */
+.review-slider-track {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 10px 0;
+  display: flex;
+  mask-image: linear-gradient(to right, transparent, white 10%, white 90%, transparent); /* 가장자리 부드러운 페이드 효과 */
+  -webkit-mask-image: linear-gradient(to right, transparent, white 10%, white 90%, transparent);
+}
+
+.review-slider-list {
+  display: flex;
+  gap: 24px;
+  width: max-content;
+  will-change: transform;
+}
+
+/* 무한 롤링 애니메이션 */
+.animate-slide-left {
+  animation: slideLeft 30s linear infinite;
+}
+
+/* 호버 시 롤링 정지 */
+.review-slider-track:hover .animate-slide-left {
+  animation-play-state: paused;
+}
+
+@keyframes slideLeft {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 /* 개별 카드 스타일 */
@@ -979,6 +1009,8 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
+  width: 310px; /* 슬라이드 고정 너비 */
+  flex-shrink: 0; /* 슬라이더 트랙 내 축소 방지 */
 }
 
 .review-card:hover {
@@ -1450,8 +1482,11 @@
     font-size: 14px;
   }
 
-  .review-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .review-card {
+    width: 290px;
+  }
+
+  .review-slider-list {
     gap: 16px;
   }
 
@@ -1819,9 +1854,12 @@
     margin-top: 4px;
   }
 
-  .review-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+  .review-card {
+    width: 260px;
+  }
+
+  .review-slider-list {
+    gap: 12px;
   }
 
   .review-card .card-img {
