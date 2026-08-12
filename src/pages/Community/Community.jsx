@@ -12,7 +12,16 @@ import {
   ModeCommentOutlined,
   SendOutlined,
 } from "@mui/icons-material";
-import { Button, Dialog, FormControl, IconButton, MenuItem, Select, Skeleton } from "@mui/material";
+import {
+  Button,
+  Dialog,
+  FormControl,
+  IconButton,
+  MenuItem,
+  Select,
+  Skeleton,
+  TextField,
+} from "@mui/material";
 import Masonry from "@mui/lab/Masonry";
 
 import { supabase } from "../../lib/supabaseClient";
@@ -28,6 +37,7 @@ const POSTS_PER_PAGE = 9;
 const initialWriteForm = {
   category: "자유 이야기",
   content: "",
+  recipeId: "",
   recipeName: "",
   image: "",
 };
@@ -64,6 +74,7 @@ function mapPost(row) {
     likes: row.like_count ?? 0,
     comments: row.comment_count ?? 0,
     category: row.category,
+    recipeId: row.recipe_id ?? null,
     recipeName: row.recipe_name || "",
     liked: false,
     bookmarked: false,
@@ -141,6 +152,10 @@ export default function Community() {
   const [writeSubmitting, setWriteSubmitting] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [originalPostImageUrl, setOriginalPostImageUrl] = useState("");
+  const [recipePickerOpen, setRecipePickerOpen] = useState(false);
+  const [recipeSearch, setRecipeSearch] = useState("");
+  const [recipeResults, setRecipeResults] = useState([]);
+  const [recipesLoading, setRecipesLoading] = useState(false);
 
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -178,6 +193,75 @@ export default function Community() {
 
     return session;
   }
+
+  async function loadRecipes(searchTerm = "") {
+    try {
+      setRecipesLoading(true);
+
+      let query = supabase
+        .from("recipes")
+        .select("id, title, thumbnail_url, cuisine, cooking_time, difficulty, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      const trimmedSearch = searchTerm.trim();
+
+      if (trimmedSearch) {
+        query = query.ilike("title", `%${trimmedSearch}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      setRecipeResults(data ?? []);
+    } catch (error) {
+      console.error("레시피 조회 오류:", error);
+      setRecipeResults([]);
+      setWriteError("레시피 목록을 불러오지 못했습니다.");
+    } finally {
+      setRecipesLoading(false);
+    }
+  }
+
+  function handleRecipePickerOpen() {
+    setRecipeSearch("");
+    setRecipePickerOpen(true);
+  }
+
+  function handleRecipePickerClose() {
+    setRecipePickerOpen(false);
+    setRecipeSearch("");
+  }
+
+  function handleRecipeSelect(recipe) {
+    setWriteForm(previousForm => ({
+      ...previousForm,
+      recipeId: String(recipe.id),
+      recipeName: recipe.title,
+    }));
+    setWriteError("");
+    handleRecipePickerClose();
+  }
+
+  function handleRecipeClear() {
+    setWriteForm(previousForm => ({
+      ...previousForm,
+      recipeId: "",
+      recipeName: "",
+    }));
+    setWriteError("");
+  }
+
+  useEffect(() => {
+    if (!recipePickerOpen) return undefined;
+
+    const timer = window.setTimeout(() => {
+      void loadRecipes(recipeSearch);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [recipePickerOpen, recipeSearch]);
 
   // 게시글 조회와 분리된 좋아요/북마크 상태 조회
   // 이 요청이 실패해도 게시글 자체는 정상적으로 표시된다.
@@ -576,6 +660,7 @@ export default function Community() {
     setWriteForm({
       category: selectedPost.category,
       content: selectedPost.content,
+      recipeId: selectedPost.recipeId ? String(selectedPost.recipeId) : "",
       recipeName: selectedPost.recipeName || "",
       image: selectedPost.image || "",
     });
@@ -627,7 +712,6 @@ export default function Community() {
 
   function handleWriteFormChange(event) {
     const { name, value } = event.target;
-
     setWriteForm(previousForm => ({ ...previousForm, [name]: value }));
 
     if (writeError) setWriteError("");
@@ -865,7 +949,8 @@ export default function Community() {
     }
 
     const trimmedContent = writeForm.content.trim();
-    const trimmedRecipeName = writeForm.recipeName.trim();
+    const selectedRecipeId = writeForm.recipeId ? Number(writeForm.recipeId) : null;
+    const selectedRecipeName = writeForm.recipeName.trim() || null;
 
     if (!writeForm.category) {
       setWriteError("카테고리를 선택해주세요.");
@@ -905,7 +990,8 @@ export default function Community() {
           .update({
             category: submittedCategory,
             content: trimmedContent,
-            recipe_name: trimmedRecipeName || null,
+            recipe_id: selectedRecipeId,
+            recipe_name: selectedRecipeId ? selectedRecipeName : null,
             image_url: nextImageUrl,
           })
           .eq("id", editingPostId)
@@ -949,7 +1035,8 @@ export default function Community() {
         nickname,
         category: submittedCategory,
         content: trimmedContent,
-        recipe_name: trimmedRecipeName || null,
+        recipe_id: selectedRecipeId,
+        recipe_name: selectedRecipeId ? selectedRecipeName : null,
         image_url: nextImageUrl,
       });
 
@@ -1249,7 +1336,21 @@ export default function Community() {
 
                   {post.recipeName && (
                     <div className={styles.cardRecipeArea}>
-                      <span className={styles.cardRecipeButton}>📖 {post.recipeName}</span>
+                      {post.recipeId ? (
+                        <button
+                          type="button"
+                          className={styles.cardRecipeButton}
+                          style={{ border: 0, font: "inherit", cursor: "pointer" }}
+                          onClick={event => {
+                            event.stopPropagation();
+                            navigate(`/recipes/${post.recipeId}`);
+                          }}
+                        >
+                          📖 {post.recipeName}
+                        </button>
+                      ) : (
+                        <span className={styles.cardRecipeButton}>📖 {post.recipeName}</span>
+                      )}
                     </div>
                   )}
 
@@ -1431,11 +1532,20 @@ export default function Community() {
                 <div className={styles.modalPost}>
                   <p className={styles.modalPostText}>{selectedPost.content}</p>
 
-                  {selectedPost.recipeName && (
-                    <button type="button" className={styles.recipeButton}>
-                      📖 {selectedPost.recipeName}
-                    </button>
-                  )}
+                  {selectedPost.recipeName &&
+                    (selectedPost.recipeId ? (
+                      <button
+                        type="button"
+                        className={styles.recipeButton}
+                        onClick={() => navigate(`/recipes/${selectedPost.recipeId}`)}
+                      >
+                        📖 {selectedPost.recipeName}
+                      </button>
+                    ) : (
+                      <span className={styles.recipeButton} style={{ cursor: "default" }}>
+                        📖 {selectedPost.recipeName}
+                      </span>
+                    ))}
                 </div>
 
                 <div className={styles.modalComments}>
@@ -1728,18 +1838,60 @@ export default function Community() {
               <small>{writeForm.content.length}/500</small>
             </label>
 
-            <label className={styles.writeField}>
+            <div className={styles.writeField}>
               <span>연결할 레시피</span>
 
-              <input
-                name="recipeName"
-                type="text"
-                value={writeForm.recipeName}
-                onChange={handleWriteFormChange}
-                placeholder="레시피 이름을 입력해주세요. (선택)"
-                maxLength={60}
-              />
-            </label>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  width: "100%",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleRecipePickerOpen}
+                  style={{
+                    flex: 1,
+                    minHeight: "48px",
+                    padding: "12px 14px",
+                    border: "1px solid var(--brand-divider)",
+                    borderRadius: "16px",
+                    background: "var(--brand-cream)",
+                    color: writeForm.recipeName ? "var(--brand-brown)" : "var(--brand-gray)",
+                    fontFamily: "inherit",
+                    fontSize: "14px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  {writeForm.recipeName || "레시피 찾아보기"}
+                </button>
+
+                {writeForm.recipeId && (
+                  <button
+                    type="button"
+                    onClick={handleRecipeClear}
+                    style={{
+                      flexShrink: 0,
+                      padding: "0 14px",
+                      border: "1px solid var(--brand-divider)",
+                      borderRadius: "16px",
+                      background: "#fff",
+                      color: "var(--brand-gray)",
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    연결 해제
+                  </button>
+                )}
+              </div>
+
+              <small style={{ alignSelf: "flex-start" }}>
+                다른 사용자가 등록한 레시피도 검색해서 연결할 수 있습니다.
+              </small>
+            </div>
 
             <div className={styles.writeImageField}>
               <div className={styles.writeImageLabel}>
@@ -1808,6 +1960,174 @@ export default function Community() {
             </button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={recipePickerOpen}
+        onClose={handleRecipePickerClose}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: "24px",
+            overflow: "hidden",
+          },
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "20px 20px 12px",
+          }}
+        >
+          <div>
+            <h3 style={{ margin: 0, color: "var(--brand-brown)" }}>레시피 찾기</h3>
+            <p
+              style={{
+                margin: "6px 0 0",
+                color: "var(--brand-gray)",
+                fontSize: "13px",
+              }}
+            >
+              등록된 모든 레시피 중에서 연결할 레시피를 선택해주세요.
+            </p>
+          </div>
+
+          <IconButton type="button" onClick={handleRecipePickerClose} aria-label="닫기">
+            <Close />
+          </IconButton>
+        </div>
+
+        <div style={{ padding: "8px 20px 20px" }}>
+          <TextField
+            fullWidth
+            size="small"
+            value={recipeSearch}
+            onChange={event => setRecipeSearch(event.target.value)}
+            placeholder="레시피 이름으로 검색"
+            autoFocus
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "14px",
+                backgroundColor: "var(--brand-cream)",
+                fontFamily: "inherit",
+                "&.Mui-focused fieldset": {
+                  borderColor: "var(--brand-primary)",
+                },
+              },
+            }}
+          />
+
+          <div
+            style={{
+              maxHeight: "420px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            {recipesLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <Skeleton key={index} variant="rounded" height={72} sx={{ borderRadius: "14px" }} />
+              ))
+            ) : recipeResults.length > 0 ? (
+              recipeResults.map(recipe => (
+                <button
+                  key={recipe.id}
+                  type="button"
+                  onClick={() => handleRecipeSelect(recipe)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    width: "100%",
+                    padding: "10px",
+                    border: "1px solid var(--brand-divider)",
+                    borderRadius: "14px",
+                    background: "#fff",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {recipe.thumbnail_url ? (
+                    <img
+                      src={recipe.thumbnail_url}
+                      alt=""
+                      style={{
+                        width: "56px",
+                        height: "56px",
+                        objectFit: "cover",
+                        borderRadius: "10px",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "56px",
+                        height: "56px",
+                        borderRadius: "10px",
+                        background: "var(--brand-cream)",
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      📖
+                    </div>
+                  )}
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <strong
+                      style={{
+                        display: "block",
+                        color: "var(--brand-brown)",
+                        fontSize: "14px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {recipe.title}
+                    </strong>
+
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: "5px",
+                        color: "var(--brand-gray)",
+                        fontSize: "12px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {[recipe.cuisine, recipe.cooking_time, recipe.difficulty]
+                        .filter(Boolean)
+                        .join(" · ") || "레시피"}
+                    </span>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div
+                style={{
+                  padding: "48px 16px",
+                  textAlign: "center",
+                  color: "var(--brand-gray)",
+                  fontSize: "14px",
+                }}
+              >
+                {recipeSearch.trim() ? "검색 결과가 없습니다." : "등록된 레시피가 없습니다."}
+              </div>
+            )}
+          </div>
+        </div>
       </Dialog>
     </Layout>
   );
