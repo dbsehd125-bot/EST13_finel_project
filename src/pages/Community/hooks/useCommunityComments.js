@@ -20,8 +20,11 @@ export default function useCommunityComments({
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+
   const [editingCommentId, setEditingCommentId] = useState(null);
+
   const [editingCommentText, setEditingCommentText] = useState("");
+
   const [commentActionId, setCommentActionId] = useState(null);
 
   useEffect(() => {
@@ -35,23 +38,29 @@ export default function useCommunityComments({
 
     async function loadComments() {
       setCommentLoading(true);
+
       const { data, error } = await supabase
         .from("community_comments")
         .select("*")
         .eq("post_id", selectedPostId)
-        .order("created_at", { ascending: true });
+        .order("created_at", {
+          ascending: true,
+        });
 
       if (!mounted) return;
+
       if (error) {
         console.error("댓글 조회 오류:", error);
         setComments([]);
       } else {
         setComments((data ?? []).map(mapComment));
       }
+
       setCommentLoading(false);
     }
 
     void loadComments();
+
     return () => {
       mounted = false;
     };
@@ -64,7 +73,10 @@ export default function useCommunityComments({
   }
 
   function handleCommentEditStart(comment) {
-    if (!user || comment.userId !== user.id) return;
+    if (!user || comment.userId !== user.id) {
+      return;
+    }
+
     setEditingCommentId(comment.id);
     setEditingCommentText(comment.content);
   }
@@ -78,16 +90,21 @@ export default function useCommunityComments({
     if (!user) return;
 
     const trimmedContent = editingCommentText.trim();
+
     if (!trimmedContent) {
       showNotification("댓글 내용을 입력해주세요.", "warning");
+
       return;
     }
 
     try {
       setCommentActionId(commentId);
+
       const { data, error } = await supabase
         .from("community_comments")
-        .update({ content: trimmedContent })
+        .update({
+          content: trimmedContent,
+        })
         .eq("id", commentId)
         .eq("user_id", user.id)
         .select()
@@ -97,14 +114,21 @@ export default function useCommunityComments({
 
       setComments(previousComments =>
         previousComments.map(comment =>
-          comment.id === commentId ? { ...comment, content: data.content } : comment,
+          comment.id === commentId
+            ? {
+                ...comment,
+                content: data.content,
+              }
+            : comment,
         ),
       );
 
       handleCommentEditCancel();
+
       showNotification("댓글을 수정했습니다.", "success");
     } catch (error) {
       console.error("댓글 수정 오류:", error);
+
       showNotification(error.message || "댓글 수정에 실패했습니다.", "error");
     } finally {
       setCommentActionId(null);
@@ -112,38 +136,48 @@ export default function useCommunityComments({
   }
 
   async function deleteComment(commentId) {
-    if (!user || !selectedPost || !commentId) return false;
+    if (!user || !selectedPost || !commentId) {
+      return false;
+    }
 
     try {
       setCommentActionId(commentId);
+
       const { error } = await supabase
         .from("community_comments")
         .delete()
         .eq("id", commentId)
         .eq("user_id", user.id);
+
       if (error) throw error;
 
-      const nextCommentCount = Math.max(0, selectedPost.comments - 1);
-      const { error: countUpdateError } = await supabase
-        .from("community_posts")
-        .update({ comment_count: nextCommentCount })
-        .eq("id", selectedPost.id);
-
-      if (countUpdateError) console.error("댓글 수 갱신 오류:", countUpdateError);
-
       setComments(previousComments => previousComments.filter(comment => comment.id !== commentId));
+
+      // DB의 comment_count는 Trigger가 자동으로 처리한다.
+      // 프론트에서는 화면에 보이는 댓글 수만 즉시 변경한다.
       setPosts(previousPosts =>
         previousPosts.map(post =>
-          post.id === selectedPost.id ? { ...post, comments: nextCommentCount } : post,
+          post.id === selectedPost.id
+            ? {
+                ...post,
+                comments: Math.max(0, post.comments - 1),
+              }
+            : post,
         ),
       );
 
-      if (editingCommentId === commentId) handleCommentEditCancel();
+      if (editingCommentId === commentId) {
+        handleCommentEditCancel();
+      }
+
       showNotification("댓글을 삭제했습니다.", "success");
+
       return true;
     } catch (error) {
       console.error("댓글 삭제 오류:", error);
+
       showNotification(error.message || "댓글 삭제에 실패했습니다.", "error");
+
       return false;
     } finally {
       setCommentActionId(null);
@@ -152,13 +186,20 @@ export default function useCommunityComments({
 
   async function handleCommentSubmit(event) {
     event.preventDefault();
-    if (!user) return moveToLogin();
+
+    if (!user) {
+      return moveToLogin();
+    }
 
     const trimmedComment = commentText.trim();
-    if (!selectedPost || !trimmedComment) return;
+
+    if (!selectedPost || !trimmedComment) {
+      return;
+    }
 
     try {
       setCommentSubmitting(true);
+
       const nickname =
         user.user_metadata?.nickname ||
         user.user_metadata?.full_name ||
@@ -175,25 +216,28 @@ export default function useCommunityComments({
         })
         .select()
         .single();
+
       if (error) throw error;
 
-      const nextCommentCount = selectedPost.comments + 1;
-      const { error: countUpdateError } = await supabase
-        .from("community_posts")
-        .update({ comment_count: nextCommentCount })
-        .eq("id", selectedPost.id);
-
-      if (countUpdateError) console.error("댓글 수 갱신 오류:", countUpdateError);
-
       setComments(previousComments => [...previousComments, mapComment(data)]);
+
       setCommentText("");
+
+      // DB의 comment_count는 Trigger가 자동으로 처리한다.
+      // 프론트에서는 화면에 보이는 댓글 수만 즉시 변경한다.
       setPosts(previousPosts =>
         previousPosts.map(post =>
-          post.id === selectedPost.id ? { ...post, comments: nextCommentCount } : post,
+          post.id === selectedPost.id
+            ? {
+                ...post,
+                comments: post.comments + 1,
+              }
+            : post,
         ),
       );
     } catch (error) {
       console.error("댓글 등록 오류:", error);
+
       showNotification(error.message || "댓글 등록에 실패했습니다.", "error");
     } finally {
       setCommentSubmitting(false);
@@ -202,14 +246,19 @@ export default function useCommunityComments({
 
   return {
     comments,
+
     commentText,
     setCommentText,
+
     commentLoading,
     commentSubmitting,
+
     editingCommentId,
     editingCommentText,
     setEditingCommentText,
+
     commentActionId,
+
     resetCommentState,
     handleCommentEditStart,
     handleCommentEditCancel,
