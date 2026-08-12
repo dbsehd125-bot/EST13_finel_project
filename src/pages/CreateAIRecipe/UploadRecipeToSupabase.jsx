@@ -38,7 +38,7 @@ async function uploadImageToStorage(base64Data, folderName) {
       .from("recipe-images")
       .upload(imagePath, imageBytes, {
         contentType: "image/png",
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadError) {
