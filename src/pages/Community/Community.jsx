@@ -1962,31 +1962,60 @@ export default function Community() {
         </form>
       </Dialog>
 
+      {/* 레시피 검색 모달 */}
       <Dialog
         open={recipePickerOpen}
         onClose={handleRecipePickerClose}
-        fullWidth
-        maxWidth="sm"
-        PaperProps={{
-          sx: {
-            borderRadius: "24px",
+        maxWidth={false}
+        sx={{
+          "& .MuiDialog-container": {
+            padding: "16px",
+          },
+
+          "& .MuiDialog-paper": {
+            // ✅ 결과 개수와 무관하게 완전히 고정
+            width: "560px !important",
+            height: "420px !important",
+            minHeight: "420px !important",
+            maxHeight: "420px !important",
+
+            maxWidth: "calc(100vw - 32px) !important",
+
+            margin: "0 !important",
+            borderRadius: "18px",
             overflow: "hidden",
+
+            display: "flex",
+            flexDirection: "column",
           },
         }}
       >
+        {/* 상단 */}
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "space-between",
-            padding: "20px 20px 12px",
+
+            padding: "18px 20px 10px",
+
+            flex: "0 0 auto",
           }}
         >
           <div>
-            <h3 style={{ margin: 0, color: "var(--brand-brown)" }}>레시피 찾기</h3>
+            <h3
+              style={{
+                margin: 0,
+                color: "var(--brand-brown)",
+                fontSize: "20px",
+              }}
+            >
+              레시피 찾기
+            </h3>
+
             <p
               style={{
-                margin: "6px 0 0",
+                margin: "4px 0 0",
                 color: "var(--brand-gray)",
                 fontSize: "13px",
               }}
@@ -1995,12 +2024,26 @@ export default function Community() {
             </p>
           </div>
 
-          <IconButton type="button" onClick={handleRecipePickerClose} aria-label="닫기">
+          <IconButton
+            type="button"
+            onClick={handleRecipePickerClose}
+            aria-label="닫기"
+            sx={{
+              mt: "-6px",
+              mr: "-6px",
+            }}
+          >
             <Close />
           </IconButton>
         </div>
 
-        <div style={{ padding: "8px 20px 20px" }}>
+        {/* 검색창 */}
+        <div
+          style={{
+            padding: "0 20px 14px",
+            flex: "0 0 auto",
+          }}
+        >
           <TextField
             fullWidth
             size="small"
@@ -2009,124 +2052,180 @@ export default function Community() {
             placeholder="레시피 이름으로 검색"
             autoFocus
             sx={{
-              mb: 2,
               "& .MuiOutlinedInput-root": {
+                height: "42px",
+
                 borderRadius: "14px",
                 backgroundColor: "var(--brand-cream)",
                 fontFamily: "inherit",
+
                 "&.Mui-focused fieldset": {
                   borderColor: "var(--brand-primary)",
                 },
               },
             }}
           />
+        </div>
 
-          <div
-            style={{
-              maxHeight: "420px",
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-            }}
-          >
-            {recipesLoading ? (
-              Array.from({ length: 5 }).map((_, index) => (
-                <Skeleton key={index} variant="rounded" height={72} sx={{ borderRadius: "14px" }} />
-              ))
-            ) : recipeResults.length > 0 ? (
-              recipeResults.map(recipe => (
-                <button
-                  key={recipe.id}
-                  type="button"
-                  onClick={() => handleRecipeSelect(recipe)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    width: "100%",
-                    padding: "10px",
-                    border: "1px solid var(--brand-divider)",
-                    borderRadius: "14px",
-                    background: "#fff",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {recipe.thumbnail_url ? (
-                    <img
-                      src={recipe.thumbnail_url}
-                      alt=""
-                      style={{
-                        width: "56px",
-                        height: "56px",
-                        objectFit: "cover",
-                        borderRadius: "10px",
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: "56px",
-                        height: "56px",
-                        borderRadius: "10px",
-                        background: "var(--brand-cream)",
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      📖
-                    </div>
-                  )}
+        {/* ✅ 검색 결과 영역 - 여기 크기도 완전히 고정 */}
+        <div
+          style={{
+            height: "270px",
+            minHeight: "270px",
+            maxHeight: "270px",
 
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <strong
-                      style={{
-                        display: "block",
-                        color: "var(--brand-brown)",
-                        fontSize: "14px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {recipe.title}
-                    </strong>
+            overflowY: "auto",
+            overflowX: "hidden",
 
-                    <span
-                      style={{
-                        display: "block",
-                        marginTop: "5px",
-                        color: "var(--brand-gray)",
-                        fontSize: "12px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {[recipe.cuisine, recipe.cooking_time, recipe.difficulty]
-                        .filter(Boolean)
-                        .join(" · ") || "레시피"}
-                    </span>
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div
+            padding: "0 20px 16px",
+
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+
+            boxSizing: "border-box",
+            flex: "0 0 270px",
+          }}
+        >
+          {recipesLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton
+                key={index}
+                variant="rounded"
+                height={72}
+                sx={{
+                  height: "72px",
+                  minHeight: "72px",
+                  borderRadius: "14px",
+                  flexShrink: 0,
+                }}
+              />
+            ))
+          ) : recipeResults.length > 0 ? (
+            recipeResults.map(recipe => (
+              <button
+                key={recipe.id}
+                type="button"
+                onClick={() => handleRecipeSelect(recipe)}
                 style={{
-                  padding: "48px 16px",
-                  textAlign: "center",
-                  color: "var(--brand-gray)",
-                  fontSize: "14px",
+                  width: "100%",
+
+                  height: "72px",
+                  minHeight: "72px",
+                  maxHeight: "72px",
+
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+
+                  padding: "10px",
+
+                  border: "1px solid var(--brand-divider)",
+                  borderRadius: "14px",
+                  backgroundColor: "#fff",
+
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+
+                  boxSizing: "border-box",
+                  flexShrink: 0,
                 }}
               >
-                {recipeSearch.trim() ? "검색 결과가 없습니다." : "등록된 레시피가 없습니다."}
-              </div>
-            )}
-          </div>
+                {recipe.thumbnail_url ? (
+                  <img
+                    src={recipe.thumbnail_url}
+                    alt={recipe.title}
+                    style={{
+                      width: "52px",
+                      height: "52px",
+
+                      objectFit: "cover",
+                      borderRadius: "10px",
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "52px",
+                      height: "52px",
+
+                      borderRadius: "10px",
+                      backgroundColor: "var(--brand-primary)",
+                      color: "#fff",
+
+                      display: "grid",
+                      placeItems: "center",
+
+                      fontSize: "10px",
+
+                      flexShrink: 0,
+                    }}
+                  >
+                    No Image
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  <strong
+                    style={{
+                      display: "block",
+
+                      color: "var(--brand-brown)",
+                      fontSize: "14px",
+
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {recipe.title}
+                  </strong>
+
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: "4px",
+
+                      color: "var(--brand-gray)",
+                      fontSize: "12px",
+
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {[recipe.cuisine, recipe.cooking_time, recipe.difficulty]
+                      .filter(Boolean)
+                      .join(" · ") || "레시피"}
+                  </span>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+
+                color: "var(--brand-gray)",
+                fontSize: "14px",
+                textAlign: "center",
+              }}
+            >
+              {recipeSearch.trim() ? "검색 결과가 없습니다." : "등록된 레시피가 없습니다."}
+            </div>
+          )}
         </div>
       </Dialog>
     </Layout>

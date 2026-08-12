@@ -18,6 +18,11 @@ export default function Login() {
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+
   const isProcessing = loading || Boolean(socialLoading);
 
   async function handleEmailLogin(event) {
@@ -110,16 +115,16 @@ export default function Login() {
   }
 
   async function handleResetPassword() {
-    const trimmedEmail = email.trim();
+    const trimmedEmail = resetEmail.trim();
 
     if (!trimmedEmail) {
-      setErrorMessage("비밀번호를 재설정할 이메일을 먼저 입력해주세요.");
+      setResetMessage("이메일을 입력해주세요.");
       return;
     }
 
     try {
-      setLoading(true);
-      setErrorMessage("");
+      setResetLoading(true);
+      setResetMessage("");
 
       const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
         redirectTo: `${window.location.origin}/update-password`,
@@ -129,13 +134,13 @@ export default function Login() {
         throw error;
       }
 
-      alert("비밀번호 재설정 이메일을 전송했습니다.");
+      setResetMessage("비밀번호 재설정 이메일을 전송했습니다.");
     } catch (error) {
       console.error("비밀번호 재설정 오류:", error);
 
-      setErrorMessage(error.message || "비밀번호 재설정 이메일 전송에 실패했습니다.");
+      setResetMessage(error.message || "비밀번호 재설정 이메일 전송에 실패했습니다.");
     } finally {
-      setLoading(false);
+      setResetLoading(false);
     }
   }
 
@@ -206,7 +211,11 @@ export default function Login() {
                   <button
                     type="button"
                     className={`text-s ${styles.textLink}`}
-                    onClick={handleResetPassword}
+                    onClick={() => {
+                      setResetEmail(email);
+                      setResetMessage("");
+                      setResetModalOpen(true);
+                    }}
                     disabled={isProcessing}
                   >
                     비밀번호를 잊으셨나요?
@@ -291,6 +300,131 @@ export default function Login() {
             </p>
           </div>
         </section>
+        {resetModalOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 2000,
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+            }}
+            onClick={() => {
+              if (!resetLoading) {
+                setResetModalOpen(false);
+              }
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "420px",
+                padding: "28px",
+                borderRadius: "24px",
+                backgroundColor: "#fff",
+              }}
+              onClick={event => event.stopPropagation()}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  marginBottom: "24px",
+                }}
+              >
+                <div>
+                  <h2 className="font-display dtext-2xl" style={{ margin: 0 }}>
+                    비밀번호 찾기
+                  </h2>
+
+                  <p
+                    className="text-sm"
+                    style={{
+                      margin: "8px 0 0",
+                      color: "#777",
+                    }}
+                  >
+                    가입한 이메일로 비밀번호 재설정 링크를 보내드릴게요.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setResetModalOpen(false)}
+                  disabled={resetLoading}
+                  style={{
+                    border: 0,
+                    background: "transparent",
+                    fontSize: "24px",
+                    cursor: "pointer",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <label
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                }}
+              >
+                <span className="text-sm">이메일</span>
+
+                <input
+                  className="text-sm"
+                  type="email"
+                  value={resetEmail}
+                  onChange={event => {
+                    setResetEmail(event.target.value);
+                    setResetMessage("");
+                  }}
+                  placeholder="you@example.com"
+                  disabled={resetLoading}
+                  style={{
+                    width: "100%",
+                    height: "50px",
+                    padding: "0 16px",
+                    boxSizing: "border-box",
+                    border: "1px solid #ead9c8",
+                    borderRadius: "999px",
+                    backgroundColor: "#fff8ee",
+                    outline: "none",
+                  }}
+                />
+              </label>
+
+              <div
+                style={{
+                  minHeight: "22px",
+                  marginTop: "8px",
+                  fontSize: "13px",
+                  color: "var(--brand-primary)",
+                }}
+              >
+                {resetMessage}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={resetLoading}
+                className={`text-button ${styles.primaryButton}`}
+                style={{
+                  width: "100%",
+                  marginTop: "12px",
+                }}
+              >
+                {resetLoading ? "전송 중..." : "재설정 메일 보내기"}
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </Layout>
   );
