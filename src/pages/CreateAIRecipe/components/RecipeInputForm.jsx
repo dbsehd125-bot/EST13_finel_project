@@ -345,11 +345,6 @@ export default function RecipeInputForm({
           </label>
 
           <label className={styles.checkboxItem}>
-            <input type="checkbox" checked={options.substitutes} onChange={() => handleOptionToggle('substitutes')} />
-            <span>대체 재료 추천</span>
-          </label>
-
-          <label className={styles.checkboxItem}>
             <input type="checkbox" checked={options.shoppinglist} onChange={() => handleOptionToggle('shoppinglist')} />
             <span>장보기 목록 생성</span>
           </label>
