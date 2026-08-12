@@ -19,6 +19,7 @@ import { useNavigate, useParams } from "react-router";
 
 import styles from "./RecipeDetail.module.css";
 import Layout from "../../components/Layout";
+import Notification from "../../components/Notification";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from "../../utils/AlanApi";
@@ -51,6 +52,28 @@ export default function RecipeDetail() {
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // 공통 알림
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  function showNotification(message, severity = "success") {
+    setNotification({
+      open: true,
+      message,
+      severity,
+    });
+  }
+
+  function closeNotification() {
+    setNotification(previous => ({
+      ...previous,
+      open: false,
+    }));
+  }
 
   // 좋아요 / 즐겨찾기
   const [liked, setLiked] = useState(false);
@@ -597,7 +620,7 @@ export default function RecipeDetail() {
     } catch (error) {
       console.error("레시피 좋아요 처리 오류:", error);
 
-      alert(error.message || "좋아요 처리에 실패했습니다.");
+      showNotification(error.message || "좋아요 처리에 실패했습니다.", "error");
     } finally {
       setLikeLoading(false);
     }
@@ -617,7 +640,7 @@ export default function RecipeDetail() {
       }, 1500);
     } catch (error) {
       console.error("링크 복사 실패:", error);
-      alert("링크를 복사하지 못했습니다.");
+      showNotification("링크를 복사하지 못했습니다.", "error");
     }
   };
 
@@ -705,7 +728,7 @@ export default function RecipeDetail() {
       );
     } catch (error) {
       console.error("연관 레시피 좋아요 처리 오류:", error);
-      alert(error.message || "좋아요 처리에 실패했습니다.");
+      showNotification(error.message || "좋아요 처리에 실패했습니다.", "error");
     } finally {
       setRelatedLikeLoadingIds(previousIds => {
         const nextIds = new Set(previousIds);
@@ -756,7 +779,7 @@ export default function RecipeDetail() {
     } catch (error) {
       console.error("레시피 즐겨찾기 처리 오류:", error);
 
-      alert(error.message || "즐겨찾기 처리에 실패했습니다.");
+      showNotification(error.message || "즐겨찾기 처리에 실패했습니다.", "error");
     } finally {
       setBookmarkLoading(false);
     }
@@ -773,7 +796,7 @@ export default function RecipeDetail() {
     }
 
     if (!file.type.startsWith("image/")) {
-      alert("이미지 파일만 첨부할 수 있습니다.");
+      showNotification("이미지 파일만 첨부할 수 있습니다.", "warning");
       event.target.value = "";
       return;
     }
@@ -781,7 +804,7 @@ export default function RecipeDetail() {
     const maxFileSize = 2 * 1024 * 1024;
 
     if (file.size > maxFileSize) {
-      alert("이미지는 2MB 이하만 첨부할 수 있습니다.");
+      showNotification("이미지는 2MB 이하만 첨부할 수 있습니다.", "warning");
       event.target.value = "";
       return;
     }
@@ -855,7 +878,7 @@ export default function RecipeDetail() {
      * 별점은 필수
      */
     if (reviewRating < 1) {
-      alert("별점을 선택해주세요.");
+      showNotification("별점을 선택해주세요.", "warning");
       return;
     }
 
@@ -913,10 +936,12 @@ export default function RecipeDetail() {
 
       setReviewImageFile(null);
       setReviewImagePreview("");
+
+      showNotification("완성 후기를 등록했습니다.", "success");
     } catch (error) {
       console.error("완성 후기 등록 오류:", error);
 
-      alert(error.message || "완성 후기 등록에 실패했습니다.");
+      showNotification(error.message || "완성 후기 등록에 실패했습니다.", "error");
     } finally {
       setCommentSubmitting(false);
     }
@@ -1403,6 +1428,12 @@ export default function RecipeDetail() {
           </div>
         </section>
       )}
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        onClose={closeNotification}
+      />
     </Layout>
   );
 }

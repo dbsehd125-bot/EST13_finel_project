@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 
 import { supabase } from "../../lib/supabaseClient";
 import Layout from "../../components/Layout";
+import Notification from "../../components/Notification";
 import styles from "./Auth.module.css";
 import authBack from "../../images/authback.png";
 
@@ -16,6 +17,20 @@ export default function UpdatePassword() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  function showNotification(message, severity = "success") {
+    setNotification({ open: true, message, severity });
+  }
+
+  function closeNotification() {
+    setNotification(previous => ({ ...previous, open: false }));
+  }
   const [recoveryReady, setRecoveryReady] = useState(false);
 
   useEffect(() => {
@@ -102,14 +117,16 @@ export default function UpdatePassword() {
         throw error;
       }
 
-      alert("비밀번호가 변경되었습니다.");
+      showNotification("비밀번호가 변경되었습니다.", "success");
 
       // 비밀번호 재설정 과정에서 만들어진 세션 종료
       await supabase.auth.signOut();
 
-      navigate("/login", {
-        replace: true,
-      });
+      window.setTimeout(() => {
+        navigate("/login", {
+          replace: true,
+        });
+      }, 800);
     } catch (error) {
       console.error("비밀번호 변경 오류:", error);
 
@@ -251,6 +268,12 @@ export default function UpdatePassword() {
             )}
           </div>
         </section>
+        <Notification
+          open={notification.open}
+          message={notification.message}
+          severity={notification.severity}
+          onClose={closeNotification}
+        />
       </main>
     </Layout>
   );

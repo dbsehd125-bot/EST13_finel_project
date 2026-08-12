@@ -26,6 +26,8 @@ import Masonry from "@mui/lab/Masonry";
 
 import { supabase } from "../../lib/supabaseClient";
 import Layout from "../../components/Layout";
+import Notification from "../../components/Notification";
+import ConfirmModal from "../../components/ConfirmModal";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./Community.module.css";
 
@@ -165,12 +167,39 @@ export default function Community() {
   const [likeActionIds, setLikeActionIds] = useState([]);
   const [bookmarkActionIds, setBookmarkActionIds] = useState([]);
 
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    type: "",
+  });
+  const [deleteCommentId, setDeleteCommentId] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
   const fileInputRef = useRef(null);
   const loadMoreRef = useRef(null);
   const loadingMoreRef = useRef(false);
 
   const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
   const detailModalOpen = Boolean(selectedPost);
+
+  function showNotification(message, severity = "success") {
+    setNotification({ open: true, message, severity });
+  }
+
+  function closeNotification() {
+    setNotification(previous => ({ ...previous, open: false }));
+  }
+
+  function closeConfirmModal() {
+    if (confirmLoading) return;
+    setConfirmModal({ open: false, type: "" });
+    setDeleteCommentId(null);
+  }
 
   // 좋아요/북마크 권한 문제 확인용 인증 상태 로그
   // access_token 같은 민감한 값은 출력하지 않는다.
@@ -538,7 +567,7 @@ export default function Community() {
 
     if (!session) {
       console.error("좋아요 요청 중단: Supabase 세션이 없습니다.");
-      alert("로그인 세션을 확인하지 못했습니다. 다시 로그인해주세요.");
+      showNotification("로그인 세션을 확인하지 못했습니다. 다시 로그인해주세요.", "error");
       return;
     }
 
@@ -592,7 +621,7 @@ export default function Community() {
       );
     } catch (error) {
       console.error("게시글 좋아요 처리 오류:", error);
-      alert(error.message || "좋아요 처리에 실패했습니다.");
+      showNotification(error.message || "좋아요 처리에 실패했습니다.", "error");
     } finally {
       setLikeActionIds(previousIds => previousIds.filter(id => id !== postId));
     }
@@ -610,7 +639,7 @@ export default function Community() {
 
     if (!session) {
       console.error("북마크 요청 중단: Supabase 세션이 없습니다.");
-      alert("로그인 세션을 확인하지 못했습니다. 다시 로그인해주세요.");
+      showNotification("로그인 세션을 확인하지 못했습니다. 다시 로그인해주세요.", "error");
       return;
     }
 
@@ -646,7 +675,7 @@ export default function Community() {
       );
     } catch (error) {
       console.error("게시글 북마크 처리 오류:", error);
-      alert(error.message || "북마크 처리에 실패했습니다.");
+      showNotification(error.message || "북마크 처리에 실패했습니다.", "error");
     } finally {
       setBookmarkActionIds(previousIds => previousIds.filter(id => id !== postId));
     }
@@ -812,16 +841,24 @@ export default function Community() {
     }
   }
 
-  async function handlePostDelete() {
+  function handlePostDeleteRequest() {
     if (!user || !selectedPost || selectedPost.userId !== user.id) return;
 
-    const shouldDelete = window.confirm("이 게시글을 삭제할까요? 삭제한 글은 복구할 수 없습니다.");
-    if (!shouldDelete) return;
+    setConfirmModal({
+      open: true,
+      type: "post",
+    });
+  }
+
+  async function handlePostDeleteConfirm() {
+    if (!user || !selectedPost || selectedPost.userId !== user.id) return;
 
     const postId = selectedPost.id;
     const imageUrl = selectedPost.image;
 
     try {
+      setConfirmLoading(true);
+
       const { error } = await supabase
         .from("community_posts")
         .delete()
@@ -835,10 +872,14 @@ export default function Community() {
       }
 
       setPosts(previousPosts => previousPosts.filter(post => post.id !== postId));
+      setConfirmModal({ open: false, type: "" });
       handleDetailModalClose();
+      showNotification("게시글을 삭제했습니다.", "success");
     } catch (error) {
       console.error("게시글 삭제 오류:", error);
-      alert(error.message || "게시글 삭제에 실패했습니다.");
+      showNotification(error.message || "게시글 삭제에 실패했습니다.", "error");
+    } finally {
+      setConfirmLoading(false);
     }
   }
 
@@ -859,7 +900,7 @@ export default function Community() {
 
     const trimmedContent = editingCommentText.trim();
     if (!trimmedContent) {
-      alert("댓글 내용을 입력해주세요.");
+      showNotification("댓글 내용을 입력해주세요.", "warning");
       return;
     }
 
@@ -883,24 +924,35 @@ export default function Community() {
       );
 
       handleCommentEditCancel();
+      showNotification("댓글을 수정했습니다.", "success");
     } catch (error) {
       console.error("댓글 수정 오류:", error);
-      alert(error.message || "댓글 수정에 실패했습니다.");
+      showNotification(error.message || "댓글 수정에 실패했습니다.", "error");
     } finally {
       setCommentActionId(null);
     }
   }
 
-  async function handleCommentDelete(commentId) {
+  function handleCommentDeleteRequest(commentId) {
     if (!user || !selectedPost) return;
 
     const targetComment = comments.find(comment => comment.id === commentId);
     if (!targetComment || targetComment.userId !== user.id) return;
 
-    const shouldDelete = window.confirm("이 댓글을 삭제할까요?");
-    if (!shouldDelete) return;
+    setDeleteCommentId(commentId);
+    setConfirmModal({
+      open: true,
+      type: "comment",
+    });
+  }
+
+  async function handleCommentDeleteConfirm() {
+    if (!user || !selectedPost || !deleteCommentId) return;
+
+    const commentId = deleteCommentId;
 
     try {
+      setConfirmLoading(true);
       setCommentActionId(commentId);
 
       const { error } = await supabase
@@ -932,11 +984,16 @@ export default function Community() {
       if (editingCommentId === commentId) {
         handleCommentEditCancel();
       }
+
+      setConfirmModal({ open: false, type: "" });
+      setDeleteCommentId(null);
+      showNotification("댓글을 삭제했습니다.", "success");
     } catch (error) {
       console.error("댓글 삭제 오류:", error);
-      alert(error.message || "댓글 삭제에 실패했습니다.");
+      showNotification(error.message || "댓글 삭제에 실패했습니다.", "error");
     } finally {
       setCommentActionId(null);
+      setConfirmLoading(false);
     }
   }
 
@@ -1123,7 +1180,7 @@ export default function Community() {
       );
     } catch (error) {
       console.error("댓글 등록 오류:", error);
-      alert(error.message || "댓글 등록에 실패했습니다.");
+      showNotification(error.message || "댓글 등록에 실패했습니다.", "error");
     } finally {
       setCommentSubmitting(false);
     }
@@ -1516,7 +1573,11 @@ export default function Community() {
                         <EditOutlined />
                       </IconButton>
 
-                      <IconButton type="button" aria-label="게시글 삭제" onClick={handlePostDelete}>
+                      <IconButton
+                        type="button"
+                        aria-label="게시글 삭제"
+                        onClick={handlePostDeleteRequest}
+                      >
                         <DeleteOutlined />
                       </IconButton>
                     </>
@@ -1576,7 +1637,7 @@ export default function Community() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleCommentDelete(comment.id)}
+                                  onClick={() => handleCommentDeleteRequest(comment.id)}
                                   disabled={commentActionId === comment.id}
                                 >
                                   삭제
@@ -2228,6 +2289,30 @@ export default function Community() {
           )}
         </div>
       </Dialog>
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        onClose={closeNotification}
+      />
+
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.type === "post" ? "게시글 삭제" : "댓글 삭제"}
+        message={
+          confirmModal.type === "post"
+            ? "이 게시글을 삭제할까요? 삭제한 게시글은 복구할 수 없습니다."
+            : "이 댓글을 삭제할까요? 삭제한 댓글은 복구할 수 없습니다."
+        }
+        confirmText="삭제하기"
+        cancelText="취소"
+        danger
+        loading={confirmLoading}
+        onCancel={closeConfirmModal}
+        onConfirm={
+          confirmModal.type === "post" ? handlePostDeleteConfirm : handleCommentDeleteConfirm
+        }
+      />
     </Layout>
   );
 }
