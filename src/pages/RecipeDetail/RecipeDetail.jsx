@@ -19,8 +19,8 @@ import { useNavigate, useParams } from "react-router";
 
 import styles from "./RecipeDetail.module.css";
 import Layout from "../../components/Layout";
-import Notification from "../../components/Notification";
 import { supabase } from "../../lib/supabaseClient";
+import { useNotification } from "../../context/NotificationContext";
 import { useAuth } from "../../context/AuthContext";
 import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from "../../utils/AlanApi";
 
@@ -29,6 +29,7 @@ const API_BASE = "/api/v1";
 export default function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const { user, authLoading } = useAuth();
 
@@ -54,26 +55,6 @@ export default function RecipeDetail() {
   const [errorMessage, setErrorMessage] = useState("");
 
   // 공통 알림
-  const [notification, setNotification] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-  function showNotification(message, severity = "success") {
-    setNotification({
-      open: true,
-      message,
-      severity,
-    });
-  }
-
-  function closeNotification() {
-    setNotification(previous => ({
-      ...previous,
-      open: false,
-    }));
-  }
 
   // 좋아요 / 즐겨찾기
   const [liked, setLiked] = useState(false);
@@ -1428,12 +1409,6 @@ export default function RecipeDetail() {
           </div>
         </section>
       )}
-      <Notification
-        open={notification.open}
-        message={notification.message}
-        severity={notification.severity}
-        onClose={closeNotification}
-      />
     </Layout>
   );
 }

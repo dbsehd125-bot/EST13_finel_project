@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { supabase } from "../../lib/supabaseClient";
+import { useNotification } from "../../context/NotificationContext";
 import Layout from "../../components/Layout";
-import Notification from "../../components/Notification";
 import styles from "./Auth.module.css";
 import authBack from "../../images/authback.png";
 import googleIcon from "../../images/google.png";
@@ -11,6 +11,7 @@ import kakaoIcon from "../../images/kakao.png";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,20 +19,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-
-  const [notification, setNotification] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-  function showNotification(message, severity = "success") {
-    setNotification({ open: true, message, severity });
-  }
-
-  function closeNotification() {
-    setNotification(previous => ({ ...previous, open: false }));
-  }
 
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -88,10 +75,7 @@ export default function Login() {
       }
 
       showNotification("로그인되었습니다.", "success");
-
-      window.setTimeout(() => {
-        navigate("/");
-      }, 800);
+      navigate("/");
     } catch (error) {
       console.error("이메일 로그인 오류:", error);
 
@@ -442,12 +426,6 @@ export default function Login() {
             </div>
           </div>
         )}
-        <Notification
-          open={notification.open}
-          message={notification.message}
-          severity={notification.severity}
-          onClose={closeNotification}
-        />
       </main>
     </Layout>
   );

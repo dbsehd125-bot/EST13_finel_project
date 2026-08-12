@@ -26,8 +26,8 @@ import Masonry from "@mui/lab/Masonry";
 
 import { supabase } from "../../lib/supabaseClient";
 import Layout from "../../components/Layout";
-import Notification from "../../components/Notification";
 import ConfirmModal from "../../components/ConfirmModal";
+import { useNotification } from "../../context/NotificationContext";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./Community.module.css";
 
@@ -132,6 +132,7 @@ export default function Community() {
   const navigate = useNavigate();
 
   const { user, authLoading } = useAuth();
+  const { showNotification } = useNotification();
 
   const [selectedCategory, setSelectedCategory] = useState("최신");
   const [posts, setPosts] = useState([]);
@@ -167,12 +168,6 @@ export default function Community() {
   const [likeActionIds, setLikeActionIds] = useState([]);
   const [bookmarkActionIds, setBookmarkActionIds] = useState([]);
 
-  const [notification, setNotification] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
   const [confirmModal, setConfirmModal] = useState({
     open: false,
     type: "",
@@ -186,14 +181,6 @@ export default function Community() {
 
   const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
   const detailModalOpen = Boolean(selectedPost);
-
-  function showNotification(message, severity = "success") {
-    setNotification({ open: true, message, severity });
-  }
-
-  function closeNotification() {
-    setNotification(previous => ({ ...previous, open: false }));
-  }
 
   function closeConfirmModal() {
     if (confirmLoading) return;
@@ -2289,12 +2276,6 @@ export default function Community() {
           )}
         </div>
       </Dialog>
-      <Notification
-        open={notification.open}
-        message={notification.message}
-        severity={notification.severity}
-        onClose={closeNotification}
-      />
 
       <ConfirmModal
         open={confirmModal.open}

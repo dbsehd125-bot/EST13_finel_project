@@ -18,17 +18,12 @@ export default function ConfirmModal({
       onClose={loading ? undefined : onCancel}
       maxWidth={false}
       sx={{
-        "& .MuiDialog-container": {
-          padding: "16px",
-        },
-
+        "& .MuiDialog-container": { padding: "16px" },
         "& .MuiDialog-paper": {
           width: "100%",
           maxWidth: "400px",
           margin: 0,
-
           borderRadius: "20px",
-
           boxShadow: "0 18px 50px rgba(64, 41, 31, 0.18)",
         },
       }}
@@ -36,7 +31,6 @@ export default function ConfirmModal({
       <DialogTitle
         sx={{
           padding: "24px 24px 8px",
-
           color: "var(--brand-brown)",
           fontFamily: "var(--font-display)",
           fontSize: "20px",
@@ -46,15 +40,10 @@ export default function ConfirmModal({
         {title}
       </DialogTitle>
 
-      <DialogContent
-        sx={{
-          padding: "8px 24px 20px !important",
-        }}
-      >
+      <DialogContent sx={{ padding: "8px 24px 20px !important" }}>
         <p
           style={{
             margin: 0,
-
             color: "#6b625e",
             fontFamily: "var(--font-body)",
             fontSize: "14px",
@@ -65,12 +54,7 @@ export default function ConfirmModal({
         </p>
       </DialogContent>
 
-      <DialogActions
-        sx={{
-          padding: "0 24px 24px",
-          gap: "8px",
-        }}
-      >
+      <DialogActions sx={{ padding: "0 24px 24px", gap: "8px" }}>
         <Button
           type="button"
           onClick={onCancel}
@@ -78,17 +62,11 @@ export default function ConfirmModal({
           sx={{
             minWidth: "84px",
             height: "42px",
-
             color: "var(--brand-brown)",
             backgroundColor: "var(--brand-cream)",
-
             borderRadius: "999px",
-
             fontFamily: "inherit",
-
-            "&:hover": {
-              backgroundColor: "var(--brand-beige)",
-            },
+            "&:hover": { backgroundColor: "var(--brand-beige)" },
           }}
         >
           {cancelText}
@@ -102,15 +80,11 @@ export default function ConfirmModal({
           sx={{
             minWidth: "92px",
             height: "42px",
-
             color: "#fff",
             backgroundColor: danger ? "#d94f27" : "var(--brand-primary)",
-
             borderRadius: "999px",
-
             fontFamily: "inherit",
             boxShadow: "none",
-
             "&:hover": {
               backgroundColor: danger ? "#bf4020" : "var(--brand-primary-dark)",
               boxShadow: "none",
