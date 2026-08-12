@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { supabase } from '../../lib/supabaseClient';
+import { Link, useNavigate } from 'react-router';
 import { Layout } from '../../components';
 import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Skeleton } from '@mui/material';
+import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import styles from './RecipeList.module.css';
-
 
 function FilterChip({ filterName, onRemove }) {
   return (
@@ -24,7 +25,7 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
         className={styles['recipe-image-container']} 
         style={{ 
           backgroundColor: 'var(--brand-light-gray)',
-          backgroundImage: `url(${recipe.image})`,
+          backgroundImage: recipe.image ? `url(${recipe.image})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
@@ -72,25 +73,48 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
   );
 }
 
-// 디바운스
+function RecipeCardSkeleton() {
+  return (
+    <div className={styles['recipe-card']}>
+      <Skeleton 
+        variant="rectangular" 
+        width="100%" 
+        height={180} 
+        style={{ borderRadius: '20px 20px 0 0' }}
+      />
+      <div className={styles['recipe-content']}>
+        <Skeleton variant="text" width="80%" height={24} style={{ marginBottom: '12px' }} />
+        <div className={styles['recipe-author']} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <Skeleton variant="circular" width={20} height={20} />
+          <Skeleton variant="text" width="40%" height={16} />
+        </div>
+        <div className={styles['recipe-meta-info']} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+          <Skeleton variant="text" width="30%" height={16} />
+          <Skeleton variant="text" width="20%" height={16} />
+        </div>
+        <div className={styles['recipe-stats']} style={{ display: 'flex', gap: '12px' }}>
+          <Skeleton variant="text" width="20%" height={16} />
+          <Skeleton variant="text" width="20%" height={16} />
+          <Skeleton variant="text" width="20%" height={16} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 메인 페이지
 export default function RecipeList() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [activeFilters, setActiveFilters] = useState([]);
   const [wishedIds, setWishedIds] = useState([]);
-
-  const toggleWish = (id) => {
-    setWishedIds(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleFilterChange = (filterName) => {
-    setActiveFilters(prev => 
-      prev.includes(filterName) 
-        ? prev.filter(f => f !== filterName)
-        : [...prev, filterName]
-    );
-  };
-
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('최신순');
@@ -103,144 +127,230 @@ export default function RecipeList() {
     sort: true,
   });
 
-  const toggleSection = (section) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-      if (searchTerm) {
-        console.log("레시피 목록 검색 실행 (디바운스 완료):", searchTerm);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // --- 더미 데이터 90개 생성 (임시 테스트용) ---
-  const initialDummyRecipes = Array.from({ length: 90 }, (_, i) => ({
-    id: `dummy-${i + 1}`,
-    category: ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'][i % 7],
-    title: `테스트 임시 레시피 ${i + 1}`,
-    author: `요리사 ${i + 1}`,
-    time: `${(i % 6 + 1) * 10}분`,
-    difficulty: ['매우 쉬움', '쉬움', '보통', '어려움'][i % 4],
-    rating: (Math.random() * 2 + 3).toFixed(1), // 3.0 ~ 5.0
-    views: Math.floor(Math.random() * 500) + 50,
-    comments: Math.floor(Math.random() * 50),
-    image: `https://picsum.photos/seed/recipe${i}/400/300`,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=user${i}`,
-    diet: ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'][i % 7]
-  }));
-
-  const [recipes, setRecipes] = useState(initialDummyRecipes);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchRecipes() {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('recipes')
-          .select('*')
-          .eq('is_public', true)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        
-        const mappedRecipes = (data || []).map(row => ({
-          id: row.id,
-          category: row.cuisine || row.category || '기타',
-          title: row.title,
-          author: row.author_nickname || '사용자',
-          time: row.cooking_time || row.time || '0분',
-          difficulty: row.difficulty || '보통',
-          rating: row.rating || 0,
-          views: row.views || 0,
-          comments: row.comments_count || 0,
-          image: row.thumbnail_url || row.image_url || '',
-          avatar: row.author_avatar || '',
-          diet: row.diet || ''
-        }));
-        
-        setRecipes([...mappedRecipes, ...initialDummyRecipes]);
-      } catch (err) {
-        console.error('레시피 목록 조회 오류:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchRecipes();
-  }, []);
+  const ITEMS_PER_PAGE = 9;
 
   const filterCategories = ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'];
   const filterDiets = ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'];
   const filterDifficulties = ['매우 쉬움', '쉬움', '보통', '어려움'];
+  const filterSortOptions = ['최신순', '평점순', '조회순', '좋아요순', '댓글순'];
 
-  const filteredRecipes = recipes.filter(recipe => {
-    const matchesSearch = recipe.title.includes(debouncedSearchTerm) || recipe.author.includes(debouncedSearchTerm);
-    
-    const activeCategories = activeFilters.filter(f => filterCategories.includes(f));
-    const activeDiets = activeFilters.filter(f => filterDiets.includes(f));
-    const activeDifficulties = activeFilters.filter(f => filterDifficulties.includes(f));
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
-    const matchesCategory = activeCategories.length === 0 || activeCategories.includes(recipe.category);
-    const matchesDiet = activeDiets.length === 0 || activeDiets.includes(recipe.category) || (recipe.diet && activeDiets.includes(recipe.diet));
-    const matchesDifficulty = activeDifficulties.length === 0 || activeDifficulties.includes(recipe.difficulty);
-
-    return matchesSearch && matchesCategory && matchesDiet && matchesDifficulty;
-  });
-
-  const filterSortOptions = ['최신순', '인기순', '조회순', '좋아요순', '댓글 많은 순'];
-
-  const sortedRecipes = [...filteredRecipes].sort((a, b) => {
-    const parseNum = (str) => parseInt(String(str).replace(/,/g, '')) || 0;
-    
-    switch (sortBy) {
-      case '최신순':
-        return b.id - a.id;
-      case '인기순':
-        return b.rating - a.rating;
-      case '조회순':
-      case '좋아요순':
-        return parseNum(b.views) - parseNum(a.views);
-      case '댓글 많은 순':
-        return parseNum(b.comments) - parseNum(a.comments);
-      default:
-        return 0;
-    }
-  });
-
-  // --- 페이지네이션 로직 ---
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // 필터나 검색어가 변경되면 1페이지로 이동
+  // 1. 검색어 디바운스 처리
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // 2. 사용자의 좋아요(찜) 목록 조회
+  useEffect(() => {
+    if (!user) {
+      setWishedIds([]);
+      return;
+    }
+    const fetchUserLikes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("recipe_likes")
+          .select("recipe_id")
+          .eq("user_id", user.id);
+        if (error) throw error;
+        setWishedIds((data || []).map(item => item.recipe_id));
+      } catch (err) {
+        console.error("좋아요 목록 조회 실패:", err);
+      }
+    };
+    fetchUserLikes();
+  }, [user]);
+
+  // 3. 레시피 데이터 조회 (검색, 필터, 정렬, 페이지네이션 적용)
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        let query = supabase.from("recipes").select("*", { count: "exact" });
+
+        // 검색 조건 적용
+        if (debouncedSearchTerm) {
+          query = query.or(`title.ilike.%${debouncedSearchTerm}%,nickname.ilike.%${debouncedSearchTerm}%`);
+        }
+
+        // 음식 종류 필터 적용
+        const activeCategories = activeFilters.filter(f => filterCategories.includes(f));
+        if (activeCategories.length > 0) {
+          query = query.in("cuisine", activeCategories);
+        }
+
+        // 난이도 필터 적용
+        const activeDifficulties = activeFilters.filter(f => filterDifficulties.includes(f));
+        if (activeDifficulties.length > 0) {
+          query = query.in("difficulty", activeDifficulties);
+        }
+
+        // 건강/식단 필터 적용 (tags text[] 컬럼 매칭)
+        const activeDiets = activeFilters.filter(f => filterDiets.includes(f));
+        if (activeDiets.length > 0) {
+          query = query.cs("tags", activeDiets);
+        }
+
+        // 정렬 적용
+        switch (sortBy) {
+          case '최신순':
+            query = query.order('created_at', { ascending: false });
+            break;
+          case '평점순':
+            query = query.order('rating', { ascending: false, nullsFirst: false });
+            break;
+          case '조회순':
+            query = query.order('views', { ascending: false, nullsFirst: false });
+            break;
+          case '좋아요순':
+            query = query.order('likes_count', { ascending: false, nullsFirst: false });
+            break;
+          case '댓글순':
+            query = query.order('comments_count', { ascending: false, nullsFirst: false });
+            break;
+          default:
+            query = query.order('created_at', { ascending: false });
+        }
+
+        // 페이지네이션 범위 설정
+        const from = (currentPage - 1) * ITEMS_PER_PAGE;
+        const to = from + ITEMS_PER_PAGE - 1;
+        query = query.range(from, to);
+
+        const { data, count, error: fetchError } = await query;
+        if (fetchError) throw fetchError;
+
+        const normalized = (data || []).map(r => ({
+          id: r.id,
+          category: r.cuisine || "기타",
+          title: r.title,
+          author: r.nickname || "레시피 장인",
+          avatar: r.author_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
+          image: r.thumbnail_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop",
+          time: r.cooking_time ? (String(r.cooking_time).includes("분") ? r.cooking_time : `${r.cooking_time}분`) : "30분",
+          difficulty: r.difficulty || "보통",
+          rating: r.rating || 4.8,
+          views: r.likes_count !== undefined ? String(r.likes_count) : "0",
+          comments: r.comments_count !== undefined ? String(r.comments_count) : "0"
+        }));
+
+        setRecipes(normalized);
+        setTotalCount(count || 0);
+      } catch (err) {
+        console.error("레시피 목록 페칭 에러:", err);
+        setError("레시피 목록을 불러오는 중 오류가 발생했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipes();
+  }, [debouncedSearchTerm, activeFilters, sortBy, currentPage]);
+
+  const handleFilterChange = (filterName) => {
+    setActiveFilters(prev => 
+      prev.includes(filterName) 
+        ? prev.filter(f => f !== filterName)
+        : [...prev, filterName]
+    );
     setCurrentPage(1);
-  }, [activeFilters, debouncedSearchTerm, sortBy]);
+  };
 
-  const PAGE_SIZE = 12;
-  const PAGEGP_SIZE = 5;
+  const handleSortChange = (option) => {
+    setSortBy(option);
+    setCurrentPage(1);
+  };
 
-  const count = sortedRecipes.length;
-  const pageCount = Math.max(1, Math.ceil(count / PAGE_SIZE));
-  const safePage = Math.min(currentPage, pageCount);
-  
-  const from = (safePage - 1) * PAGE_SIZE;
-  const currentRecipes = sortedRecipes.slice(from, from + PAGE_SIZE);
+  const toggleWish = async (recipeId) => {
+    if (!user) {
+      if (confirm("로그인이 필요한 서비스입니다. 로그인 페이지로 이동하시겠습니까?")) {
+        navigate("/login");
+      }
+      return;
+    }
 
-  const pageGP = Math.ceil(safePage / PAGEGP_SIZE);
-  const groupStart = (pageGP - 1) * PAGEGP_SIZE + 1;
-  const groupEnd = Math.min(groupStart + (PAGEGP_SIZE - 1), pageCount);
+    const isWished = wishedIds.includes(recipeId);
+    
+    // UI 낙관적 업데이트
+    setWishedIds(prev => 
+      isWished ? prev.filter(id => id !== recipeId) : [...prev, recipeId]
+    );
+    setRecipes(prev => 
+      prev.map(r => {
+        if (r.id === recipeId) {
+          const currentViews = parseInt(r.views) || 0;
+          return {
+            ...r,
+            views: String(isWished ? Math.max(0, currentViews - 1) : currentViews + 1)
+          };
+        }
+        return r;
+      })
+    );
 
-  const pageCountArray = [];
-  for (let i = groupStart; i <= groupEnd; i++) {
-    pageCountArray.push(i);
-  }
+    try {
+      if (isWished) {
+        const { error } = await supabase
+          .from("recipe_likes")
+          .delete()
+          .eq("recipe_id", recipeId)
+          .eq("user_id", user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("recipe_likes")
+          .insert({
+            recipe_id: recipeId,
+            user_id: user.id
+          });
+        if (error) throw error;
+      }
 
-  const prevGP = groupStart - PAGEGP_SIZE;
-  const nextGP = groupEnd + 1;
+      // recipes 테이블의 likes_count 필드 동기화
+      const targetRecipe = recipes.find(r => r.id === recipeId);
+      if (targetRecipe) {
+        const currentLikes = parseInt(targetRecipe.views) || 0;
+        const nextLikes = isWished ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+
+        const { error: countError } = await supabase
+          .from("recipes")
+          .update({ likes_count: nextLikes })
+          .eq("id", recipeId);
+        if (countError) throw countError;
+      }
+    } catch (err) {
+      console.error("좋아요 처리 에러:", err);
+      // 실패 시 롤백
+      setWishedIds(prev => 
+        isWished ? [...prev, recipeId] : prev.filter(id => id !== recipeId)
+      );
+      setRecipes(prev => 
+        prev.map(r => {
+          if (r.id === recipeId) {
+            const currentViews = parseInt(r.views) || 0;
+            return {
+              ...r,
+              views: String(isWished ? currentViews + 1 : Math.max(0, currentViews - 1))
+            };
+          }
+          return r;
+        })
+      );
+      alert("좋아요 처리에 실패했습니다: " + err.message);
+    }
+  };
+
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE) || 1;
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <Layout activeMenu="레시피 둘러보기">
@@ -253,7 +363,7 @@ export default function RecipeList() {
           </div>
         </section>
 
-        {/* [검색 및 필터 영역: */}
+        {/* 검색 및 필터 영역 */}
         <div className={styles['search-section']}>
           <div className={styles['main-search-bar']}>
             <Search size={20} className={styles['search-icon']} />
@@ -270,15 +380,15 @@ export default function RecipeList() {
               <FilterChip
                 key={filter}
                 filterName={filter}
-                onRemove={(name) => setActiveFilters(activeFilters.filter(item => item !== name))}
+                onRemove={(name) => handleFilterChange(name)}
               />
             ))}
-            <button className={`${styles['clear-filters']} text-button`} onClick={() => setActiveFilters([])}>모두 지우기</button>
+            <button className={`${styles['clear-filters']} text-button`} onClick={() => { setActiveFilters([]); setCurrentPage(1); }}>모두 지우기</button>
           </div>
         </div>
 
         <div className={styles['content-area']}>
-          {/* 필터 사이드바*/}
+          {/* 필터 사이드바 */}
           <aside className={styles['sidebar']}>
             <div className={styles['filter-group']}>
               <div className={`${styles['filter-header']} font-display dtext-xl`}>필터</div>
@@ -357,7 +467,7 @@ export default function RecipeList() {
                       type="radio" 
                       name="sort" 
                       checked={sortBy === option}
-                      onChange={() => setSortBy(option)}
+                      onChange={() => handleSortChange(option)}
                     /> 
                     {option}
                   </label>
@@ -366,10 +476,10 @@ export default function RecipeList() {
             </div>
           </aside>
 
-          {/* 메인 레시피 목록*/}
+          {/* 메인 레시피 목록 */}
           <main className={styles['recipe-main']}>
             <div className={styles['results-header']}>
-              <span className={`${styles['results-count']} text-sm`}>총 {sortedRecipes.length}개의 레시피</span>
+              <span className={`${styles['results-count']} text-sm`}>총 {totalCount}개의 레시피</span>
               <div className={styles['view-toggles']}>
                 <button 
                   className={`${styles['view-btn']} ${viewMode === 'recipe-grid-2col' ? styles['active'] : ''}`}
@@ -382,47 +492,78 @@ export default function RecipeList() {
               </div>
             </div>
 
-            <div className={styles[viewMode]}>
-              {currentRecipes.map(recipe => (
-                <RecipeCard 
-                  key={recipe.id} 
-                  recipe={recipe} 
-                  isWished={wishedIds.includes(recipe.id)}
-                  onToggleWish={() => toggleWish(recipe.id)}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className={styles[viewMode]}>
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <RecipeCardSkeleton key={idx} />
+                ))}
+              </div>
+            ) : error ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'red' }}>
+                <p>{error}</p>
+                <button 
+                  className="text-button" 
+                  onClick={() => setCurrentPage(1)}
+                  style={{
+                    backgroundColor: 'var(--brand-primary)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    marginTop: '12px'
+                  }}
+                >
+                  다시 시도
+                </button>
+              </div>
+            ) : recipes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '80px 40px', color: 'var(--brand-gray)' }}>
+                검색 조건에 맞는 레시피가 존재하지 않습니다.
+              </div>
+            ) : (
+              <div className={styles[viewMode]}>
+                {recipes.map(recipe => (
+                  <RecipeCard 
+                    key={recipe.id} 
+                    recipe={recipe} 
+                    isWished={wishedIds.includes(recipe.id)}
+                    onToggleWish={() => toggleWish(recipe.id)}
+                  />
+                ))}
+              </div>
+            )}
 
-            {/* Pagination */}
-            {count > 0 && (
-              <div className={styles['pagination']}>
-                {pageGP > 1 && (
-                  <button 
-                    className={`${styles['page-btn']} ${styles['nav-btn']}`}
-                    onClick={() => setCurrentPage(prevGP)}
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                )}
+            {/* 페이지네이션 */}
+            {!loading && !error && totalPages > 1 && (
+              <div className={styles['pagination']} style={{ marginTop: '40px' }}>
+                <button 
+                  className={`${styles['page-btn']} ${styles['nav-btn']}`}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  style={{ cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.5 : 1 }}
+                >
+                  <ChevronLeft size={16} />
+                </button>
                 
-                {pageCountArray.map(i => (
+                {pageNumbers.map(number => (
                   <button 
-                    key={i} 
-                    className={`${styles['page-btn']} ${safePage === i ? styles['active'] : ''} text-button`}
-                    onClick={() => setCurrentPage(i)}
+                    key={number}
+                    className={`${styles['page-btn']} ${currentPage === number ? styles['active'] : ''} text-button`}
+                    onClick={() => setCurrentPage(number)}
                   >
-                    {i}
+                    {number}
                   </button>
                 ))}
-                
-                {groupEnd < pageCount && (
-                  <button 
-                    className={`${styles['page-btn']} ${styles['nav-btn']}`}
-                    onClick={() => setCurrentPage(nextGP)}
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                )}
+
+                <button 
+                  className={`${styles['page-btn']} ${styles['nav-btn']}`}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{ cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.5 : 1 }}
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             )}
           </main>

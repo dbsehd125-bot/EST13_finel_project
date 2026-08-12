@@ -246,7 +246,7 @@ export default function Home() {
         const { data, error } = await supabase
           .from("recipes")
           .select("*")
-          .order("like_count", { ascending: false })
+          .order("likes_count", { ascending: false, nullsFirst: false })
           .limit(8);
 
         if (error) throw error;
@@ -257,14 +257,14 @@ export default function Home() {
             id: r.id,
             category: r.cuisine || "기타",
             title: r.title,
-            author: r.author || "레시피 장인",
+            author: r.nickname || "레시피 장인",
             avatar: r.author_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
             image: r.thumbnail_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop",
             time: r.cooking_time ? (String(r.cooking_time).includes("분") ? r.cooking_time : `${r.cooking_time}분`) : "30분",
             difficulty: r.difficulty || "보통",
             rating: r.rating || 4.8,
-            likes: r.like_count !== undefined ? String(r.like_count) : "0",
-            comments: r.comment_count || 0
+            likes: r.likes_count !== undefined ? String(r.likes_count) : "0",
+            comments: r.comments_count || 0
           }));
           setDbRecipes(normalized);
         }
