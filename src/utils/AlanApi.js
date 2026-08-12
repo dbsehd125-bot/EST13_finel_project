@@ -38,7 +38,7 @@ export function getNextAlanClientId() {
  * HTTP Status 코드가 401 또는 500 에러에 해당하는지 체크합니다.
  */
 export function isFailoverError(status) {
-  return status === 401 || status === 500;
+  return status === 401 || (status >= 500 && status < 600);
 }
 
 /**

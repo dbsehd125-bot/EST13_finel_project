@@ -113,6 +113,7 @@ export async function UploadRecipeToSupabase(recipeRawData, user) {
       cooking_time: recipeRawData.cooking_time,
       difficulty: recipeRawData.difficulty,
       servings: recipeRawData.servings,
+      diets: recipeRawData.diets,
       tags: recipeRawData.tags || [],
       ingredients: recipeRawData.ingredients || [],
       steps: updatedSteps,
