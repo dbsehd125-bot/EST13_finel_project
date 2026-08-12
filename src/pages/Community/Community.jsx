@@ -183,9 +183,10 @@ export default function Community() {
   const detailModalOpen = Boolean(selectedPost);
 
   function closeConfirmModal() {
-    if (confirmLoading) return;
-    setConfirmModal({ open: false, type: "" });
-    setDeleteCommentId(null);
+    setConfirmModal(previous => ({
+      ...previous,
+      open: false,
+    }));
   }
 
   // 좋아요/북마크 권한 문제 확인용 인증 상태 로그
