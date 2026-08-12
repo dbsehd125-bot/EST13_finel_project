@@ -7,7 +7,6 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import styles from './RecipeList.module.css';
 
-
 function FilterChip({ filterName, onRemove }) {
   return (
     <span className={`${styles['filter-chip']} text-button`}>
@@ -316,7 +315,7 @@ export default function RecipeList() {
         if (error) throw error;
       }
 
-      // recipes 테이블의 like_count 필드 동기화
+      // recipes 테이블의 likes_count 필드 동기화
       const targetRecipe = recipes.find(r => r.id === recipeId);
       if (targetRecipe) {
         const currentLikes = parseInt(targetRecipe.views) || 0;
