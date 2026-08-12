@@ -1,11 +1,17 @@
+/**
+ * 비밀번호 재설정 페이지
+ * - Supabase recovery session 유효 여부 확인
+ * - 새 비밀번호 유효성 검사 및 비밀번호 변경 처리
+ * - 변경 완료 후 recovery session을 종료하고 로그인 화면으로 이동
+ */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { supabase } from "../../lib/supabaseClient";
 import { useNotification } from "../../context/NotificationContext";
 import Layout from "../../components/Layout";
+import AuthVisual from "./components/AuthVisual";
 import styles from "./Auth.module.css";
-import authBack from "../../images/authback.png";
 
 export default function UpdatePassword() {
   const navigate = useNavigate();
@@ -13,10 +19,8 @@ export default function UpdatePassword() {
 
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-
   const [errorMessage, setErrorMessage] = useState("");
   const [recoveryReady, setRecoveryReady] = useState(false);
 
@@ -31,20 +35,12 @@ export default function UpdatePassword() {
         } = await supabase.auth.getSession();
 
         if (!mounted) return;
-
-        if (error) {
-          throw error;
-        }
-
-        if (session) {
-          setRecoveryReady(true);
-        }
+        if (error) throw error;
+        if (session) setRecoveryReady(true);
       } catch (error) {
         console.error("비밀번호 재설정 세션 확인 오류:", error);
       } finally {
-        if (mounted) {
-          setCheckingSession(false);
-        }
+        if (mounted) setCheckingSession(false);
       }
     }
 
@@ -70,51 +66,24 @@ export default function UpdatePassword() {
 
   async function handleUpdatePassword(event) {
     event.preventDefault();
-
     setErrorMessage("");
 
-    if (!password) {
-      setErrorMessage("새 비밀번호를 입력해주세요.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setErrorMessage("비밀번호는 6자 이상 입력해주세요.");
-      return;
-    }
-
-    if (!passwordConfirm) {
-      setErrorMessage("새 비밀번호를 한 번 더 입력해주세요.");
-      return;
-    }
-
-    if (password !== passwordConfirm) {
-      setErrorMessage("비밀번호가 일치하지 않습니다.");
-      return;
-    }
+    if (!password) return setErrorMessage("새 비밀번호를 입력해주세요.");
+    if (password.length < 6) return setErrorMessage("비밀번호는 6자 이상 입력해주세요.");
+    if (!passwordConfirm) return setErrorMessage("새 비밀번호를 한 번 더 입력해주세요.");
+    if (password !== passwordConfirm) return setErrorMessage("비밀번호가 일치하지 않습니다.");
 
     try {
       setLoading(true);
 
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
 
       showNotification("비밀번호가 변경되었습니다.", "success");
-
-      // 비밀번호 재설정 과정에서 만들어진 세션 종료
       await supabase.auth.signOut();
-
-      navigate("/login", {
-        replace: true,
-      });
+      navigate("/login", { replace: true });
     } catch (error) {
       console.error("비밀번호 변경 오류:", error);
-
       const message = error.message?.toLowerCase() ?? "";
 
       if (message.includes("same password")) {
@@ -145,46 +114,11 @@ export default function UpdatePassword() {
     <Layout>
       <main className={styles.authPage}>
         <section className={styles.authCard}>
-          {/* 왼쪽 이미지 영역 */}
-          <div className={styles.visual}>
-            <img src={authBack} alt="" />
+          <AuthVisual />
 
-            <div className={styles.visualOverlay}>
-              <div className={styles.brand}>
-                <div className={styles.brandIcon}>
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 2v3M8 3v2M16 3v2" />
-                    <path d="M4 11h16v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6z" />
-                    <path d="M3 11h18" />
-                  </svg>
-                </div>
-
-                <span className="font-display dtext-xl">깃깔나는 레시피</span>
-              </div>
-
-              <p className={`font-display dtext-2xl ${styles.slogan}`}>
-                한 끼의 생각이
-                <br />
-                레시피와 이미지로
-              </p>
-            </div>
-          </div>
-
-          {/* 오른쪽 비밀번호 변경 영역 */}
           <div className={styles.formArea}>
             <div className={styles.formHeader}>
               <h1 className="font-display dtext-2xl">새 비밀번호 설정</h1>
-
               <p className={`text-sm ${styles.description}`}>
                 새로 사용할 비밀번호를 입력해주세요.
               </p>
@@ -194,7 +128,6 @@ export default function UpdatePassword() {
               <form className={styles.form} onSubmit={handleUpdatePassword}>
                 <label className={styles.field}>
                   <span className="text-sm">새 비밀번호</span>
-
                   <input
                     className="text-sm"
                     type="password"
@@ -208,7 +141,6 @@ export default function UpdatePassword() {
 
                 <label className={styles.field}>
                   <span className="text-sm">새 비밀번호 확인</span>
-
                   <input
                     className="text-sm"
                     type="password"
