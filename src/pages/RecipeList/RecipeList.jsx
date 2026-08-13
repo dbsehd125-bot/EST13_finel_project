@@ -20,9 +20,9 @@ function FilterChip({ filterName, onRemove }) {
 function RecipeCard({ recipe, isWished, onToggleWish }) {
   return (
     <Link to={`/recipes/${recipe.id}`} className={styles['recipe-card']} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div 
-        className={styles['recipe-image-container']} 
-        style={{ 
+      <div
+        className={styles['recipe-image-container']}
+        style={{
           backgroundColor: 'var(--brand-light-gray)',
           backgroundImage: `url(${recipe.image})`,
           backgroundSize: 'cover',
@@ -30,26 +30,26 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
         }}
       >
         <span className={`${styles['category-badge']} text-s`}>{recipe.category}</span>
-        <button 
-          className={styles['like-btn']} 
+        <button
+          className={styles['like-btn']}
           onClick={(e) => {
             e.preventDefault();
             onToggleWish();
           }}
         >
-          <Heart 
-            size={18} 
-            fill={isWished ? "#FF5E36" : "none"} 
-            color={isWished ? "#FF5E36" : "currentColor"} 
+          <Heart
+            size={18}
+            fill={isWished ? "#FF5E36" : "none"}
+            color={isWished ? "#FF5E36" : "currentColor"}
           />
         </button>
       </div>
       <div className={styles['recipe-content']}>
         <h3 className={`${styles['recipe-title']} text-lg`}>{recipe.title}</h3>
         <div className={`${styles['recipe-author']} text-sm`}>
-          <div 
-            className={styles['author-avatar']} 
-            style={{ 
+          <div
+            className={styles['author-avatar']}
+            style={{
               backgroundColor: 'var(--brand-light-gray)',
               backgroundImage: `url(${recipe.avatar})`,
               backgroundSize: 'cover',
@@ -84,8 +84,8 @@ export default function RecipeList() {
   };
 
   const handleFilterChange = (filterName) => {
-    setActiveFilters(prev => 
-      prev.includes(filterName) 
+    setActiveFilters(prev =>
+      prev.includes(filterName)
         ? prev.filter(f => f !== filterName)
         : [...prev, filterName]
     );
@@ -142,7 +142,7 @@ export default function RecipeList() {
           .order(sortColumn, { ascending: false });
 
         if (error) throw error;
-        
+
         const mappedRecipes = (data || []).map(row => ({
           id: row.id,
           category: row.cuisine || row.category || '기타',
@@ -157,7 +157,7 @@ export default function RecipeList() {
           avatar: row.author_avatar || '',
           diet: row.diet || ''
         }));
-        
+
         setRecipes(mappedRecipes);
       } catch (err) {
         console.error('레시피 목록 조회 오류:', err);
@@ -165,7 +165,7 @@ export default function RecipeList() {
         setLoading(false);
       }
     }
-    
+
     fetchRecipes();
   }, [sortBy]);
 
@@ -175,7 +175,7 @@ export default function RecipeList() {
 
   const filteredRecipes = recipes.filter(recipe => {
     const matchesSearch = recipe.title.includes(debouncedSearchTerm) || recipe.author.includes(debouncedSearchTerm);
-    
+
     const activeCategories = activeFilters.filter(f => filterCategories.includes(f));
     const activeDiets = activeFilters.filter(f => filterDiets.includes(f));
     const activeDifficulties = activeFilters.filter(f => filterDifficulties.includes(f));
@@ -189,7 +189,7 @@ export default function RecipeList() {
 
   const filterSortOptions = ['최신순', '인기순', '조회순', '좋아요순', '댓글 많은 순'];
 
-  const sortedRecipes = filteredRecipes; // DB에서 이미 정렬되어 오므로 프론트엔드 정렬 생략
+  const sortedRecipes = filteredRecipes;
 
   // --- 페이지네이션 로직 ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -205,7 +205,7 @@ export default function RecipeList() {
   const count = sortedRecipes.length;
   const pageCount = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const safePage = Math.min(currentPage, pageCount);
-  
+
   const from = (safePage - 1) * PAGE_SIZE;
   const currentRecipes = sortedRecipes.slice(from, from + PAGE_SIZE);
 
@@ -263,81 +263,81 @@ export default function RecipeList() {
               <div className={`${styles['filter-header']} font-display dtext-xl`}>필터</div>
 
               <div className={styles['filter-category']}>
-                <div 
-                  className={`${styles['filter-title']} text-button`} 
+                <div
+                  className={`${styles['filter-title']} text-button`}
                   onClick={() => toggleSection('category')}
                 >
-                  음식 종류 
+                  음식 종류
                   <ChevronDown size={16} style={{ transform: openSections.category ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                 </div>
                 {openSections.category && filterCategories.map(cat => (
                   <label key={cat} className={`${styles['checkbox-label']} text-sm`}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={activeFilters.includes(cat)}
                       onChange={() => handleFilterChange(cat)}
-                    /> 
+                    />
                     {cat}
                   </label>
                 ))}
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div 
+                <div
                   className={`${styles['filter-title']} text-button`}
                   onClick={() => toggleSection('diet')}
                 >
-                  건강/식단 
+                  건강/식단
                   <ChevronDown size={16} style={{ transform: openSections.diet ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                 </div>
                 {openSections.diet && filterDiets.map(diet => (
                   <label key={diet} className={`${styles['checkbox-label']} text-sm`}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={activeFilters.includes(diet)}
                       onChange={() => handleFilterChange(diet)}
-                    /> 
+                    />
                     {diet}
                   </label>
                 ))}
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div 
+                <div
                   className={`${styles['filter-title']} text-button`}
                   onClick={() => toggleSection('difficulty')}
                 >
-                  난이도 
+                  난이도
                   <ChevronDown size={16} style={{ transform: openSections.difficulty ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                 </div>
                 {openSections.difficulty && filterDifficulties.map(diff => (
                   <label key={diff} className={`${styles['checkbox-label']} text-sm`}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={activeFilters.includes(diff)}
                       onChange={() => handleFilterChange(diff)}
-                    /> 
+                    />
                     {diff}
                   </label>
                 ))}
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div 
+                <div
                   className={`${styles['filter-title']} text-button`}
                   onClick={() => toggleSection('sort')}
                 >
-                  정렬 
+                  정렬
                   <ChevronDown size={16} style={{ transform: openSections.sort ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                 </div>
                 {openSections.sort && filterSortOptions.map(option => (
                   <label key={option} className={`${styles['radio-label']} text-sm`}>
-                    <input 
-                      type="radio" 
-                      name="sort" 
+                    <input
+                      type="radio"
+                      name="sort"
                       checked={sortBy === option}
                       onChange={() => setSortBy(option)}
-                    /> 
+                    />
                     {option}
                   </label>
                 ))}
@@ -350,11 +350,11 @@ export default function RecipeList() {
             <div className={styles['results-header']}>
               <span className={`${styles['results-count']} text-sm`}>총 {sortedRecipes.length}개의 레시피</span>
               <div className={styles['view-toggles']}>
-                <button 
+                <button
                   className={`${styles['view-btn']} ${viewMode === 'recipe-grid-2col' ? styles['active'] : ''}`}
                   onClick={() => setViewMode('recipe-grid-2col')}
                 ><LayoutGrid size={18} /></button>
-                <button 
+                <button
                   className={`${styles['view-btn']} ${viewMode === 'recipe-grid-3col' ? styles['active'] : ''}`}
                   onClick={() => setViewMode('recipe-grid-3col')}
                 ><Grid size={18} /></button>
@@ -363,9 +363,9 @@ export default function RecipeList() {
 
             <div className={styles[viewMode]}>
               {currentRecipes.map(recipe => (
-                <RecipeCard 
-                  key={recipe.id} 
-                  recipe={recipe} 
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
                   isWished={wishedIds.includes(recipe.id)}
                   onToggleWish={() => toggleWish(recipe.id)}
                 />
@@ -376,26 +376,26 @@ export default function RecipeList() {
             {count > 0 && (
               <div className={styles['pagination']}>
                 {pageGP > 1 && (
-                  <button 
+                  <button
                     className={`${styles['page-btn']} ${styles['nav-btn']}`}
                     onClick={() => setCurrentPage(prevGP)}
                   >
                     <ChevronLeft size={16} />
                   </button>
                 )}
-                
+
                 {pageCountArray.map(i => (
-                  <button 
-                    key={i} 
+                  <button
+                    key={i}
                     className={`${styles['page-btn']} ${safePage === i ? styles['active'] : ''} text-button`}
                     onClick={() => setCurrentPage(i)}
                   >
                     {i}
                   </button>
                 ))}
-                
+
                 {groupEnd < pageCount && (
-                  <button 
+                  <button
                     className={`${styles['page-btn']} ${styles['nav-btn']}`}
                     onClick={() => setCurrentPage(nextGP)}
                   >

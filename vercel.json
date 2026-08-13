@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://kdt-api-function.azurewebsites.net/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

@@ -7,9 +7,60 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
+
+  /**
+   * profiles 테이블에서 현재 사용자의 프로필 조회
+   */
+  async function loadProfile(userId) {
+    if (!userId) {
+      setProfile(null);
+      return null;
+    }
+
+    try {
+      setProfileLoading(true);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, nickname, avatar_url")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      setProfile(data ?? null);
+
+      return data ?? null;
+    } catch (error) {
+      console.error("프로필 조회 오류:", error);
+
+      setProfile(null);
+
+      return null;
+    } finally {
+      setProfileLoading(false);
+    }
+  }
+
+  /**
+   * 마이페이지에서 프로필을 수정한 뒤
+   * Header 등에 즉시 반영할 수 있도록 공개하는 함수
+   */
+  async function refreshProfile() {
+    if (!user?.id) {
+      setProfile(null);
+      return null;
+    }
+
+    return loadProfile(user.id);
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -25,18 +76,38 @@ export function AuthProvider({ children }) {
           console.error("세션 확인 오류:", error);
         }
 
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
+
+        const currentUser = currentSession?.user ?? null;
 
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        setUser(currentUser);
+
+        if (currentUser?.id) {
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("user_id, nickname, avatar_url")
+            .eq("user_id", currentUser.id)
+            .maybeSingle();
+
+          if (!mounted) return;
+
+          if (profileError) {
+            console.error("초기 프로필 조회 오류:", profileError);
+            setProfile(null);
+          } else {
+            setProfile(profileData ?? null);
+          }
+        } else {
+          setProfile(null);
+        }
       } catch (error) {
         console.error("세션 확인 오류:", error);
 
         if (mounted) {
           setSession(null);
           setUser(null);
+          setProfile(null);
         }
       } finally {
         if (mounted) {
@@ -50,13 +121,19 @@ export function AuthProvider({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
+
+      const currentUser = currentSession?.user ?? null;
 
       setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      setUser(currentUser);
       setAuthLoading(false);
+
+      if (currentUser?.id) {
+        void loadProfile(currentUser.id);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => {
@@ -81,10 +158,12 @@ export function AuthProvider({ children }) {
 
       setSession(null);
       setUser(null);
+      setProfile(null);
 
       return true;
     } catch (error) {
       console.error("로그아웃 오류:", error);
+
       return false;
     } finally {
       setLogoutLoading(false);
@@ -94,12 +173,15 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     session,
+    profile,
 
     authLoading,
+    profileLoading,
     logoutLoading,
 
     isLoggedIn: Boolean(session && user),
 
+    refreshProfile,
     logout,
   };
 
