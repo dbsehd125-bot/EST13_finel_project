@@ -29,16 +29,16 @@ export function useAiRecipe() {
 
   // Step 3: 조건 선택
   const [conditions, setConditions] = useState({
-    servings: '2인분',
-    cookingTime: '30분 이내',
-    difficulty: '쉬움',
+    servings: '1인분',
+    cookingTime: '10분 이내',
+    difficulty: '초간단',
     cuisine: '한식',
+    dietGoal: '해당없음',
   });
 
   // Step 4: 결과 생성 옵션
   const [options, setOptions] = useState({
     image: false,
-    substitutes: false,
     shoppinglist: false,
   });
 
@@ -141,8 +141,11 @@ export function useAiRecipe() {
 
     try {
       // [Step 1] Alan AI 텍스트 생성
+      const shoppingListInstruction = options.shoppinglist
+        ? `Include "shopping_list" array containing ONLY ingredients NOT in the available ingredients list [${ingredients.join(', ')}]. Format each item string starting with checkbox emoji like "☑️ 재료명 (필요 수량)".`
+        : `Set "shopping_list" as empty array [].`;
       const systemPrompt =
-        `You are a professional chef AI. Create a recipe in pure JSON format matching user conditions. [Rules] 1.Return ONLY a single valid JSON object. Do NOT include markdown blocks (\`\`\`json), greetings, or extra explanations. 2.JSON field values MUST be in KOREAN. [User Request] ${prompt} [Conditions] Ingredients: ${ingredients.join(', ')} / Servings: ${conditions.servings} / Time: ${conditions.cookingTime} / Difficulty: ${conditions.difficulty} / Cuisine: ${conditions.cuisine} / Exclude: ${excluded.length > 0 ? excluded.join(', ') : 'None'} [JSON Schema] {"title":"Korean Title","summary":"Korean Summary","cuisine":"${conditions.cuisine || '기타'}","cooking_time":"${conditions.cookingTime || '30분 이내'}","difficulty":"${conditions.difficulty || '보통'}","servings":"${conditions.servings || '2인분'}","tags":["Tag1","Tag2"],"ingredients":[{"name":"Korean Ingredient and amount","isSubstitutable":false,"substituteName":""}],"steps":[{"step":1,"title":"Korean Title","description":"Korean Description","tip":""}]}`
+        `You are a professional chef AI. Create a recipe in pure JSON format matching user conditions. [Rules] 1.Return ONLY a single valid JSON object. Do NOT include markdown blocks (\`\`\`json), greetings, or extra explanations. 2.JSON field values MUST be in KOREAN. [User Request] ${prompt} [Conditions] Ingredients: ${ingredients.join(', ')} / Servings: ${conditions.servings} / Time: ${conditions.cookingTime} / Difficulty: ${conditions.difficulty} / Cuisine: ${conditions.cuisine} / Diet Goal: ${conditions.dietGoal} / Exclude: ${excluded.length > 0 ? excluded.join(', ') : 'None'} / Shopping List Option: ${shoppingListInstruction} [JSON Schema] {"title":"Korean Title","summary":"Korean Summary","cuisine":"${conditions.cuisine || '기타'}","cooking_time":"${conditions.cookingTime || '30분 이내'}","difficulty":"${conditions.difficulty || '보통'}","servings":"${conditions.servings || '1인분'}","tags":["Tag1","Tag2"],"diets":"${conditions.dietGoal || '해당없음'}","ingredients":[{"name":"Korean Ingredient and amount","isSubstitutable":false,"substituteName":""}],"steps":[{"step":1,"title":"Korean Title","description":"Korean Description","tip":""}],"shopping_list":["☑️ 부족한 재료명 1 (필요 수량)","☑️ 부족한 재료명 2 (필요 수량)"]}`
           .replace(/\s+/g, ' ')
           .trim();
 
@@ -204,12 +207,14 @@ export function useAiRecipe() {
         const thumbnailUrl = (await fetchOpenAIImage(thumbnailPrompt)) || FALLBACK_URL;
         parsedRecipeJson.thumbnail_url = thumbnailUrl;
 
+        const currentSteps = Array.isArray(parsedRecipeJson.steps) ? parsedRecipeJson.steps : [];
+
         if (options.image && parsedRecipeJson.steps?.length > 0) {
           const updatedSteps = [];
           for (let i = 0; i < parsedRecipeJson.steps.length; i++) {
             const step = parsedRecipeJson.steps[i];
             const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT show the final dish, only this specific preparation step.`;
-            
+
             if (i > 0) {
               await new Promise((resolve) => setTimeout(resolve, 1500));
             }
@@ -224,7 +229,12 @@ export function useAiRecipe() {
           }
           parsedRecipeJson.steps = updatedSteps;
         } else {
-          parsedRecipeJson.steps = parsedRecipeJson.steps.map((step) => ({
+          // parsedRecipeJson.steps = parsedRecipeJson.steps.map((step) => ({
+          //   ...step,
+          //   image: null,
+          // }));
+
+          parsedRecipeJson.steps = (currentSteps || []).map((step) => ({
             ...step,
             image: null,
           }));

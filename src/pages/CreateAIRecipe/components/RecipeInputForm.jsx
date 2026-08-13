@@ -99,7 +99,7 @@ export default function RecipeInputForm({
         <div className={styles.selectGrid}>
           <div className={styles.selectField}>
             <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
-              인분
+              분량
             </label>
             <div>
               <select
@@ -150,9 +150,9 @@ export default function RecipeInputForm({
                 }}
               >
                 <option>10분 이내</option>
-                <option>15분 이내</option>
                 <option>30분 이내</option>
                 <option>1시간 이내</option>
+                <option>시간제한 없음</option>
               </select>
               <span className={`${styles.selectArrow} ${openSelects.cookingTime ? styles.selectArrowOpen : ''}`}>
                 <svg
@@ -227,7 +227,50 @@ export default function RecipeInputForm({
                 <option>양식</option>
                 <option>일식</option>
                 <option>중식</option>
-                <option>퓨전/기타</option>
+                <option>분식</option>
+                <option>디저트</option>
+                <option>야식</option>
+              </select>
+              <span className={`${styles.selectArrow} ${openSelects.cuisine ? styles.selectArrowOpen : ''}`}>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.selectField}>
+            <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
+              건강/식단
+            </label>
+            <div>
+              <select
+                className={styles.selectBox}
+                value={conditions.dietGoal}
+                onClick={() => toggleSelect('dietGoal')}
+                onBlur={() => closeSelect('dietGoal')}
+                onChange={(e) => {
+                  handleConditionChange('dietGoal', e.target.value);
+                  closeSelect('dietGoal');
+                }}
+              >
+                <option>해당없음</option>
+                <option>다이어트</option>
+                <option>고단백</option>
+                <option>저탄수화물</option>
+                <option>비건</option>
+                <option>채식</option>
+                <option>글루텐 프리</option>
+                <option>저염식</option>
               </select>
               <span className={`${styles.selectArrow} ${openSelects.cuisine ? styles.selectArrowOpen : ''}`}>
                 <svg
@@ -302,20 +345,7 @@ export default function RecipeInputForm({
           </label>
 
           <label className={styles.checkboxItem}>
-            <input
-              type="checkbox"
-              checked={options.substitutes}
-              onChange={() => handleOptionToggle('substitutes')}
-            />
-            <span>대체 재료 추천</span>
-          </label>
-
-          <label className={styles.checkboxItem}>
-            <input
-              type="checkbox"
-              checked={options.shoppinglist}
-              onChange={() => handleOptionToggle('shoppinglist')}
-            />
+            <input type="checkbox" checked={options.shoppinglist} onChange={() => handleOptionToggle('shoppinglist')} />
             <span>장보기 목록 생성</span>
           </label>
         </div>
