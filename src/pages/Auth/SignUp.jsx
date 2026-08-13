@@ -183,11 +183,8 @@ export default function SignUp() {
 
       navigate("/login", {
         replace: true,
-
         state: {
           from: redirectPath,
-          signUpEmail: email.trim(),
-          emailConfirmationRequired: true,
         },
       });
     } catch (error) {

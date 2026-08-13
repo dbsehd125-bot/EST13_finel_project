@@ -35,7 +35,12 @@ export default function Login() {
    *
    * 직접 로그인 페이지에 들어온 경우에는 "/"로 이동한다.
    */
-  const redirectPath = typeof location.state?.from === "string" ? location.state.from : "/";
+  const redirectPath =
+    typeof location.state?.from === "string" &&
+    location.state.from.startsWith("/") &&
+    !location.state.from.startsWith("//")
+      ? location.state.from
+      : "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -74,17 +74,6 @@
   gap: 12px;
 }
 
-.authorImage {
-  width: 42px;
-  height: 42px;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  background: var(--brand-light-gray);
-}
-
 .authorName,
 .date {
   margin: 0;
@@ -1274,10 +1263,6 @@
     justify-content: space-between;
 
     gap: 16px;
-  }
-
-  .authorImage {
-    display: none;
   }
 
   .rating {

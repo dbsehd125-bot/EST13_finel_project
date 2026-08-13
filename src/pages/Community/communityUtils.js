@@ -63,6 +63,5 @@ export function mapComment(row) {
     writer: row.nickname || "사용자",
     time: formatRelativeTime(row.created_at),
     content: row.content,
-    likes: row.like_count ?? 0,
   };
 }
