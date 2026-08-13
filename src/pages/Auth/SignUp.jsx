@@ -212,6 +212,11 @@ export default function SignUp() {
 
   return (
     <Layout>
+      <SEO
+        title="회원가입 | 깃깔나는 레시피"
+        description="깃깔나는 레시피에 가입하고 다양한 레시피와 커뮤니티 기능을 이용해보세요."
+        robots="noindex, nofollow"
+      />
       <main className={styles.authPage}>
         <section className={`${styles.authCard} ${styles.signupCard}`}>
           <AuthVisual />
