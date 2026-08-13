@@ -1,12 +1,53 @@
 /**
  * 커뮤니티 댓글 관리 Custom Hook
  * - 선택한 게시글의 댓글 목록 조회
+ * - 댓글 작성자의 profiles 정보 조회
  * - 댓글 작성, 수정, 삭제 처리
- * - 댓글 작성자 확인 및 댓글 관련 상태 관리
  */
 import { useEffect, useState } from "react";
+
 import { supabase } from "../../../lib/supabaseClient";
+import { getUserNickname } from "../../../utils/userProfile";
 import { mapComment } from "../communityUtils";
+
+/**
+ * 댓글 작성자의 현재 profiles 정보를 한 번에 조회해서 붙인다.
+ */
+async function attachProfilesToComments(comments) {
+  if (!Array.isArray(comments) || comments.length === 0) {
+    return [];
+  }
+
+  const userIds = [...new Set(comments.map(comment => comment.userId).filter(Boolean))];
+
+  if (userIds.length === 0) {
+    return comments.map(comment => ({
+      ...comment,
+      profile: null,
+    }));
+  }
+
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("user_id, nickname, avatar_url")
+    .in("user_id", userIds);
+
+  if (error) {
+    console.error("댓글 작성자 프로필 조회 오류:", error);
+
+    return comments.map(comment => ({
+      ...comment,
+      profile: null,
+    }));
+  }
+
+  const profileMap = new Map((profiles || []).map(profile => [profile.user_id, profile]));
+
+  return comments.map(comment => ({
+    ...comment,
+    profile: profileMap.get(comment.userId) || null,
+  }));
+}
 
 export default function useCommunityComments({
   user,
@@ -22,41 +63,57 @@ export default function useCommunityComments({
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const [editingCommentId, setEditingCommentId] = useState(null);
-
   const [editingCommentText, setEditingCommentText] = useState("");
 
   const [commentActionId, setCommentActionId] = useState(null);
 
+  /**
+   * 댓글 목록 + 작성자 profiles 조회
+   */
   useEffect(() => {
     if (!selectedPostId) {
       setComments([]);
       setCommentText("");
+
       return undefined;
     }
 
     let mounted = true;
 
     async function loadComments() {
-      setCommentLoading(true);
+      try {
+        setCommentLoading(true);
 
-      const { data, error } = await supabase
-        .from("community_comments")
-        .select("*")
-        .eq("post_id", selectedPostId)
-        .order("created_at", {
-          ascending: true,
-        });
+        const { data, error } = await supabase
+          .from("community_comments")
+          .select("*")
+          .eq("post_id", selectedPostId)
+          .order("created_at", {
+            ascending: true,
+          });
 
-      if (!mounted) return;
+        if (error) {
+          throw error;
+        }
 
-      if (error) {
+        const mappedComments = (data ?? []).map(mapComment);
+
+        const commentsWithProfiles = await attachProfilesToComments(mappedComments);
+
+        if (!mounted) return;
+
+        setComments(commentsWithProfiles);
+      } catch (error) {
         console.error("댓글 조회 오류:", error);
-        setComments([]);
-      } else {
-        setComments((data ?? []).map(mapComment));
-      }
 
-      setCommentLoading(false);
+        if (mounted) {
+          setComments([]);
+        }
+      } finally {
+        if (mounted) {
+          setCommentLoading(false);
+        }
+      }
     }
 
     void loadComments();
@@ -87,7 +144,7 @@ export default function useCommunityComments({
   }
 
   async function handleCommentEditSave(commentId) {
-    if (!user) return;
+    if (!user || commentActionId) return;
 
     const trimmedContent = editingCommentText.trim();
 
@@ -153,8 +210,6 @@ export default function useCommunityComments({
 
       setComments(previousComments => previousComments.filter(comment => comment.id !== commentId));
 
-      // DB의 comment_count는 Trigger가 자동으로 처리한다.
-      // 프론트에서는 화면에 보이는 댓글 수만 즉시 변경한다.
       setPosts(previousPosts =>
         previousPosts.map(post =>
           post.id === selectedPost.id
@@ -184,8 +239,13 @@ export default function useCommunityComments({
     }
   }
 
+  /**
+   * 새 댓글 등록
+   */
   async function handleCommentSubmit(event) {
     event.preventDefault();
+
+    if (commentSubmitting) return;
 
     if (!user) {
       return moveToLogin();
@@ -200,11 +260,7 @@ export default function useCommunityComments({
     try {
       setCommentSubmitting(true);
 
-      const nickname =
-        user.user_metadata?.nickname ||
-        user.user_metadata?.full_name ||
-        user.email?.split("@")[0] ||
-        "사용자";
+      const nickname = getUserNickname(user);
 
       const { data, error } = await supabase
         .from("community_comments")
@@ -217,14 +273,35 @@ export default function useCommunityComments({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setComments(previousComments => [...previousComments, mapComment(data)]);
+      const mappedComment = mapComment(data);
+
+      /**
+       * 새 댓글 등록 직후 현재 프로필을 조회해서 붙인다.
+       */
+      const { data: currentProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, nickname, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("현재 댓글 작성자 프로필 조회 오류:", profileError);
+      }
+
+      setComments(previousComments => [
+        ...previousComments,
+        {
+          ...mappedComment,
+          profile: currentProfile || null,
+        },
+      ]);
 
       setCommentText("");
 
-      // DB의 comment_count는 Trigger가 자동으로 처리한다.
-      // 프론트에서는 화면에 보이는 댓글 수만 즉시 변경한다.
       setPosts(previousPosts =>
         previousPosts.map(post =>
           post.id === selectedPost.id

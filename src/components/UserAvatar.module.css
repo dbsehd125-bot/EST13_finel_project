@@ -1,0 +1,46 @@
+.avatar {
+  flex-shrink: 0;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--brand-cream);
+}
+
+.fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--brand-primary);
+  font-family: var(--font-body);
+  font-weight: 600;
+  user-select: none;
+}
+
+/* 커뮤니티 댓글 등 작은 영역 */
+.sm {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+
+/* 커뮤니티 카드 / 레시피 후기 기본 */
+.md {
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+}
+
+/* 작성자 정보 등 */
+.lg {
+  width: 56px;
+  height: 56px;
+  font-size: 18px;
+}
+
+/* 마이페이지 */
+.xl {
+  width: 80px;
+  height: 80px;
+  font-size: 24px;
+}
