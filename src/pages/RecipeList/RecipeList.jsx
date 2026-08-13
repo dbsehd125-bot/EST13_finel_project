@@ -117,34 +117,29 @@ export default function RecipeList() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // --- 더미 데이터 90개 생성 (임시 테스트용) ---
-  const initialDummyRecipes = Array.from({ length: 90 }, (_, i) => ({
-    id: `dummy-${i + 1}`,
-    category: ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'][i % 7],
-    title: `테스트 임시 레시피 ${i + 1}`,
-    author: `요리사 ${i + 1}`,
-    time: `${(i % 6 + 1) * 10}분`,
-    difficulty: ['매우 쉬움', '쉬움', '보통', '어려움'][i % 4],
-    rating: (Math.random() * 2 + 3).toFixed(1), // 3.0 ~ 5.0
-    views: Math.floor(Math.random() * 500) + 50,
-    comments: Math.floor(Math.random() * 50),
-    image: `https://picsum.photos/seed/recipe${i}/400/300`,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=user${i}`,
-    diet: ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'][i % 7]
-  }));
-
-  const [recipes, setRecipes] = useState(initialDummyRecipes);
+  const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchRecipes() {
       try {
         setLoading(true);
+
+        let sortColumn = 'created_at';
+        switch (sortBy) {
+          case '인기순': sortColumn = 'rating'; break;
+          case '조회순': sortColumn = 'views'; break;
+          case '좋아요순': sortColumn = 'like_count'; break;
+          case '댓글 많은 순': sortColumn = 'comment_count'; break;
+          case '최신순':
+          default: sortColumn = 'created_at'; break;
+        }
+
         const { data, error } = await supabase
           .from('recipes')
           .select('*')
           .eq('is_public', true)
-          .order('created_at', { ascending: false });
+          .order(sortColumn, { ascending: false });
 
         if (error) throw error;
         
@@ -157,13 +152,13 @@ export default function RecipeList() {
           difficulty: row.difficulty || '보통',
           rating: row.rating || 0,
           views: row.views || 0,
-          comments: row.comments_count || 0,
+          comments: row.comment_count || row.comments_count || 0,
           image: row.thumbnail_url || row.image_url || '',
           avatar: row.author_avatar || '',
           diet: row.diet || ''
         }));
         
-        setRecipes([...mappedRecipes, ...initialDummyRecipes]);
+        setRecipes(mappedRecipes);
       } catch (err) {
         console.error('레시피 목록 조회 오류:', err);
       } finally {
@@ -172,7 +167,7 @@ export default function RecipeList() {
     }
     
     fetchRecipes();
-  }, []);
+  }, [sortBy]);
 
   const filterCategories = ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'];
   const filterDiets = ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'];
@@ -194,23 +189,7 @@ export default function RecipeList() {
 
   const filterSortOptions = ['최신순', '인기순', '조회순', '좋아요순', '댓글 많은 순'];
 
-  const sortedRecipes = [...filteredRecipes].sort((a, b) => {
-    const parseNum = (str) => parseInt(String(str).replace(/,/g, '')) || 0;
-    
-    switch (sortBy) {
-      case '최신순':
-        return b.id - a.id;
-      case '인기순':
-        return b.rating - a.rating;
-      case '조회순':
-      case '좋아요순':
-        return parseNum(b.views) - parseNum(a.views);
-      case '댓글 많은 순':
-        return parseNum(b.comments) - parseNum(a.comments);
-      default:
-        return 0;
-    }
-  });
+  const sortedRecipes = filteredRecipes; // DB에서 이미 정렬되어 오므로 프론트엔드 정렬 생략
 
   // --- 페이지네이션 로직 ---
   const [currentPage, setCurrentPage] = useState(1);
