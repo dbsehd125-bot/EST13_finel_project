@@ -31,6 +31,7 @@
 
 .header-left {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 36px;
 }
@@ -112,7 +113,98 @@
   gap: 16px;
 }
 
-/* 검색 및 알림 */
+/* =========================
+   검색
+========================= */
+
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-search-form {
+  display: flex;
+  width: 0;
+  align-items: center;
+  overflow: hidden;
+
+  background: var(--brand-cream);
+  border: 1px solid transparent;
+  border-radius: 999px;
+
+  opacity: 0;
+
+  transition:
+    width 0.25s ease,
+    opacity 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.header-search.open .header-search-form {
+  width: 220px;
+
+  border-color: var(--brand-divider);
+
+  opacity: 1;
+}
+
+.header-search-form:focus-within {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(242, 107, 58, 0.1);
+}
+
+.header-search-form input {
+  width: 100%;
+  min-width: 0;
+
+  padding: 9px 4px 9px 14px;
+
+  color: var(--brand-brown);
+  background: transparent;
+  border: 0;
+  outline: none;
+
+  font: inherit;
+  font-size: 13px;
+}
+
+.header-search-form input::placeholder {
+  color: var(--brand-gray);
+}
+
+.header-search-submit {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  margin-right: 2px;
+
+  color: var(--brand-gray);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.header-search-submit:hover:not(:disabled) {
+  color: var(--brand-primary);
+  background: var(--brand-beige);
+}
+
+.header-search-submit:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
 
 .icon-btn {
   display: flex;
@@ -133,35 +225,10 @@
     background-color 0.2s ease;
 }
 
-.icon-btn:hover {
+.icon-btn:hover,
+.search-btn.active {
   color: var(--brand-primary);
   background: var(--brand-light-gray);
-}
-
-.alarm-btn {
-  position: relative;
-}
-
-.alarm-dot {
-  position: absolute;
-  top: 3px;
-  right: 2px;
-
-  display: flex;
-  width: 16px;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-
-  color: #fff;
-  background: var(--brand-primary);
-  border: 1.5px solid #fff;
-  border-radius: 50%;
-
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
 }
 
 /* =========================
@@ -227,10 +294,6 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 10%, transparent);
 }
 
-/*
- * UserAvatar의 md 크기는 40px이므로
- * 바깥 Link 42px 안에 정확히 들어간다.
- */
 .avatar > * {
   width: 100%;
   height: 100%;
@@ -364,6 +427,10 @@
     gap: 12px;
   }
 
+  .header-search.open .header-search-form {
+    width: 190px;
+  }
+
   .btn-create {
     padding: 8px 14px;
     font-size: 13px;
@@ -411,13 +478,17 @@
   }
 
   .mobile-menu.open {
-    max-height: 520px;
+    max-height: 600px;
     padding-block: 14px 24px;
 
     border-bottom-color: var(--brand-divider);
 
     opacity: 1;
     visibility: visible;
+  }
+
+  .mobile-search-form {
+    display: none;
   }
 
   .mobile-nav {
@@ -555,12 +626,6 @@
     display: none !important;
   }
 
-  .search-btn,
-  .alarm-btn,
-  .btn-create {
-    display: none;
-  }
-
   .avatar {
     width: 32px;
     height: 32px;
@@ -581,6 +646,78 @@
 
   .mobile-menu.open {
     padding-block: 12px 22px;
+  }
+
+  /* 모바일 검색 */
+
+  .mobile-search-form {
+    display: flex;
+    width: 100%;
+    max-width: 1280px;
+    align-items: center;
+
+    margin: 0 auto 14px;
+
+    background: var(--brand-cream);
+    border: 1px solid var(--brand-divider);
+    border-radius: 999px;
+  }
+
+  .mobile-search-form:focus-within {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(242, 107, 58, 0.1);
+  }
+
+  .mobile-search-form input {
+    min-width: 0;
+    flex: 1;
+
+    padding: 12px 4px 12px 16px;
+
+    color: var(--brand-brown);
+    background: transparent;
+    border: 0;
+    outline: none;
+
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .mobile-search-form input::placeholder {
+    color: var(--brand-gray);
+  }
+
+  .mobile-search-form button {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+
+    margin-right: 3px;
+
+    color: var(--brand-gray);
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+
+    cursor: pointer;
+
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .mobile-search-form button:hover:not(:disabled) {
+    color: var(--brand-primary);
+    background: var(--brand-beige);
+  }
+
+  .mobile-search-form button:disabled {
+    cursor: default;
+    opacity: 0.45;
   }
 
   .mobile-nav {

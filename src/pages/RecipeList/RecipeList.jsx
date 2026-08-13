@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Layout } from '../../components';
 import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@mui/material';
@@ -105,7 +105,11 @@ function RecipeCardSkeleton() {
 // 메인 페이지
 export default function RecipeList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+
+  // Header에서 전달된 검색어
+  const urlSearchTerm = searchParams.get('search')?.trim() || '';
 
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,8 +119,8 @@ export default function RecipeList() {
 
   const [activeFilters, setActiveFilters] = useState([]);
   const [wishedIds, setWishedIds] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(urlSearchTerm);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlSearchTerm);
   const [sortBy, setSortBy] = useState('최신순');
   const [viewMode, setViewMode] = useState('recipe-grid-3col');
 
@@ -137,6 +141,13 @@ export default function RecipeList() {
   const toggleSection = (section) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
+
+  // Header에서 새로운 검색어가 전달되면 기존 검색창에 반영
+  useEffect(() => {
+    setSearchTerm(urlSearchTerm);
+    setDebouncedSearchTerm(urlSearchTerm);
+    setCurrentPage(1);
+  }, [urlSearchTerm]);
 
   // 1. 검색어 디바운스 처리
   useEffect(() => {
