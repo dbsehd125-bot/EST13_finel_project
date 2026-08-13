@@ -138,10 +138,11 @@
 .cardText {
   color: var(--brand-brown);
 
-  font-size: clamp(15px, 1.35vw, 18px);
+  font-size: 16px;
   font-weight: 500;
   line-height: 1.6;
 
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
@@ -480,6 +481,7 @@
   font-size: 15px;
   line-height: 1.6;
 
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
