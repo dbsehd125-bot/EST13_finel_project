@@ -37,6 +37,9 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
+
   const { user, profile, isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
 
   const displayName =
@@ -53,6 +56,25 @@ export default function Header() {
     setMenuOpen(false);
   }
 
+  function closeSearch() {
+    setSearchOpen(false);
+  }
+
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+
+    const keyword = searchKeyword.trim();
+
+    if (!keyword) {
+      return;
+    }
+
+    closeMenu();
+    closeSearch();
+
+    navigate(`/recipes?search=${encodeURIComponent(keyword)}`);
+  }
+
   async function handleLogout() {
     if (logoutLoading) return;
 
@@ -64,11 +86,13 @@ export default function Header() {
     }
 
     closeMenu();
+    closeSearch();
     navigate("/");
   }
 
   const handleRegisterClick = () => {
     closeMenu();
+    closeSearch();
 
     if (isLoggedIn) {
       navigate("/register");
@@ -81,7 +105,14 @@ export default function Header() {
     <header className="header">
       <div className="header-inner">
         <div className="header-left">
-          <Link to="/" className="logo" onClick={closeMenu}>
+          <Link
+            to="/"
+            className="logo"
+            onClick={() => {
+              closeMenu();
+              closeSearch();
+            }}
+          >
             <div className="logo-badge">
               <svg
                 width="20"
@@ -110,6 +141,7 @@ export default function Header() {
                 to={item.path}
                 end={item.end}
                 className={({ isActive }) => `text-sm ${isActive ? "active" : ""}`}
+                onClick={closeSearch}
               >
                 {item.label}
               </NavLink>
@@ -118,41 +150,82 @@ export default function Header() {
         </div>
 
         <div className="header-right">
-          <button type="button" className="icon-btn search-btn hide-on-mobile" aria-label="검색">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-          </button>
+          <div className={`header-search ${searchOpen ? "open" : ""}`}>
+            {searchOpen && (
+              <form className="header-search-form" onSubmit={handleSearchSubmit}>
+                <input
+                  type="search"
+                  value={searchKeyword}
+                  onChange={event => setSearchKeyword(event.target.value)}
+                  placeholder="레시피 검색"
+                  aria-label="레시피 검색어"
+                  autoFocus
+                />
 
-          <button type="button" className="icon-btn alarm-btn hide-on-mobile" aria-label="알림">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
+                <button
+                  type="submit"
+                  className="header-search-submit"
+                  aria-label="검색 실행"
+                  disabled={!searchKeyword.trim()}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+                </button>
+              </form>
+            )}
 
-            <span className="alarm-dot">1</span>
-          </button>
+            <button
+              type="button"
+              className={`icon-btn search-btn hide-on-mobile ${searchOpen ? "active" : ""}`}
+              aria-label={searchOpen ? "검색창 닫기" : "검색"}
+              aria-expanded={searchOpen}
+              onClick={() => setSearchOpen(previous => !previous)}
+            >
+              {searchOpen ? (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              ) : (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+              )}
+            </button>
+          </div>
 
           <button
             type="button"
@@ -167,7 +240,10 @@ export default function Header() {
               to="/mypage"
               className="avatar"
               aria-label={`${displayName} 마이페이지로 이동`}
-              onClick={closeMenu}
+              onClick={() => {
+                closeMenu();
+                closeSearch();
+              }}
             >
               <UserAvatar src={avatarUrl} name={displayName} size="md" />
             </Link>
@@ -185,7 +261,7 @@ export default function Header() {
                   {logoutLoading ? "로그아웃 중..." : "로그아웃"}
                 </button>
               ) : (
-                <Link to="/login" className="login-link text-sm">
+                <Link to="/login" className="login-link text-sm" onClick={closeSearch}>
                   로그인
                 </Link>
               ))}
@@ -197,7 +273,10 @@ export default function Header() {
             aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
-            onClick={() => setMenuOpen(previous => !previous)}
+            onClick={() => {
+              closeSearch();
+              setMenuOpen(previous => !previous);
+            }}
           >
             <span />
             <span />
@@ -207,6 +286,33 @@ export default function Header() {
       </div>
 
       <div id="mobile-menu" className={`mobile-menu ${menuOpen ? "open" : ""}`}>
+        <form className="mobile-search-form" onSubmit={handleSearchSubmit}>
+          <input
+            type="search"
+            value={searchKeyword}
+            onChange={event => setSearchKeyword(event.target.value)}
+            placeholder="레시피를 검색해보세요"
+            aria-label="레시피 검색어"
+          />
+
+          <button type="submit" aria-label="검색" disabled={!searchKeyword.trim()}>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </button>
+        </form>
+
         <nav className="mobile-nav" aria-label="모바일 메뉴">
           {menuItems.map(item => (
             <NavLink
