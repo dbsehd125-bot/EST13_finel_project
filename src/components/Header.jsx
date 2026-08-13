@@ -71,8 +71,13 @@ export default function Header() {
 
     closeMenu();
     closeSearch();
+    setSearchKeyword("");
 
-    navigate(`/recipes?search=${encodeURIComponent(keyword)}`);
+    navigate('/recipes', {
+  state: {
+    searchKeyword: keyword,
+  },
+});
   }
 
   async function handleLogout() {
