@@ -10,15 +10,19 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
 
   const [authLoading, setAuthLoading] = useState(true);
+
   const [profileLoading, setProfileLoading] = useState(false);
+
   const [logoutLoading, setLogoutLoading] = useState(false);
 
   /**
-   * profiles 테이블에서 현재 사용자의 프로필 조회
+   * profiles 테이블에서
+   * 현재 로그인 사용자의 프로필 조회
    */
   async function loadProfile(userId) {
     if (!userId) {
       setProfile(null);
+
       return null;
     }
 
@@ -50,12 +54,13 @@ export function AuthProvider({ children }) {
   }
 
   /**
-   * 마이페이지에서 프로필을 수정한 뒤
-   * Header 등에 즉시 반영할 수 있도록 공개하는 함수
+   * 마이페이지 등에서 프로필을 변경한 뒤
+   * Header 등에 즉시 반영하기 위한 함수
    */
   async function refreshProfile() {
     if (!user?.id) {
       setProfile(null);
+
       return null;
     }
 
@@ -65,6 +70,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
 
+    /**
+     * 앱 시작 시 기존 Supabase 세션 복구
+     */
     async function loadSession() {
       try {
         const {
@@ -76,7 +84,9 @@ export function AuthProvider({ children }) {
           console.error("세션 확인 오류:", error);
         }
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         const currentUser = currentSession?.user ?? null;
 
@@ -90,10 +100,13 @@ export function AuthProvider({ children }) {
             .eq("user_id", currentUser.id)
             .maybeSingle();
 
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
 
           if (profileError) {
             console.error("초기 프로필 조회 오류:", profileError);
+
             setProfile(null);
           } else {
             setProfile(profileData ?? null);
@@ -118,10 +131,16 @@ export function AuthProvider({ children }) {
 
     loadSession();
 
+    /**
+     * 로그인 / 로그아웃 /
+     * OAuth 완료 등 인증 상태 변경 감지
+     */
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       const currentUser = currentSession?.user ?? null;
 
@@ -138,10 +157,14 @@ export function AuthProvider({ children }) {
 
     return () => {
       mounted = false;
+
       subscription.unsubscribe();
     };
   }, []);
 
+  /**
+   * 로그아웃
+   */
   async function logout() {
     if (logoutLoading) {
       return false;
