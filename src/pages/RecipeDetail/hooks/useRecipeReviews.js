@@ -1,6 +1,7 @@
 /**
  * 레시피 완성 후기 관리 Custom Hook
  * - 현재 레시피의 후기 목록 조회 및 평균 별점 계산
+ * - 후기 작성자의 profiles 정보 조회
  * - 후기 별점, 내용, 첨부 이미지 입력 상태 관리
  * - 이미지 유효성 검사와 Supabase Storage 업로드
  * - 후기 DB 등록 실패 시 먼저 업로드한 이미지 자동 삭제
@@ -9,8 +10,55 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "../../../lib/supabaseClient";
+import { getUserNickname } from "../../../utils/userProfile";
 
 const REVIEW_IMAGE_BUCKET = "recipe-images";
+
+/**
+ * 후기 목록에 작성자의 profiles 정보를 붙인다.
+ *
+ * 댓글마다 profiles를 하나씩 조회하지 않고,
+ * 필요한 user_id를 모아서 한 번에 조회한다.
+ */
+async function attachProfilesToComments(comments) {
+  if (!Array.isArray(comments) || comments.length === 0) {
+    return [];
+  }
+
+  const userIds = [...new Set(comments.map(comment => comment.user_id).filter(Boolean))];
+
+  if (userIds.length === 0) {
+    return comments.map(comment => ({
+      ...comment,
+      profile: null,
+    }));
+  }
+
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("user_id, nickname, avatar_url")
+    .in("user_id", userIds);
+
+  /**
+   * 프로필 조회가 실패해도
+   * 후기 자체는 보여줄 수 있게 기존 데이터를 반환한다.
+   */
+  if (error) {
+    console.error("후기 작성자 프로필 조회 오류:", error);
+
+    return comments.map(comment => ({
+      ...comment,
+      profile: null,
+    }));
+  }
+
+  const profileMap = new Map((profiles || []).map(profile => [profile.user_id, profile]));
+
+  return comments.map(comment => ({
+    ...comment,
+    profile: profileMap.get(comment.user_id) || null,
+  }));
+}
 
 export default function useRecipeReviews({
   recipe,
@@ -30,9 +78,12 @@ export default function useRecipeReviews({
 
   /**
    * 레시피별 완성 후기 조회
+   * + 후기 작성자의 profiles 정보 조회
    */
   useEffect(() => {
     if (!recipe?.id) return;
+
+    let cancelled = false;
 
     const fetchComments = async () => {
       try {
@@ -53,17 +104,29 @@ export default function useRecipeReviews({
 
         if (error) throw error;
 
-        setComments(data || []);
+        const commentsWithProfiles = await attachProfilesToComments(data || []);
+
+        if (cancelled) return;
+
+        setComments(commentsWithProfiles);
       } catch (error) {
         console.error("완성 후기 조회 오류:", error);
 
-        setComments([]);
+        if (!cancelled) {
+          setComments([]);
+        }
       } finally {
-        setCommentLoading(false);
+        if (!cancelled) {
+          setCommentLoading(false);
+        }
       }
     };
 
     fetchComments();
+
+    return () => {
+      cancelled = true;
+    };
   }, [recipe?.id]);
 
   /**
@@ -96,7 +159,9 @@ export default function useRecipeReviews({
     if (!recipe?.id) return;
 
     navigate("/login", {
-      state: { from: `/recipes/${recipe.id}` },
+      state: {
+        from: `/recipes/${recipe.id}`,
+      },
     });
   };
 
@@ -131,7 +196,7 @@ export default function useRecipeReviews({
   };
 
   /**
-   * 선택한 이미지 제거
+   * 선택한 후기 이미지 제거
    */
   const handleRemoveReviewImage = () => {
     if (reviewImagePreview) {
@@ -145,9 +210,8 @@ export default function useRecipeReviews({
   /**
    * 후기 이미지 Storage 업로드
    *
-   * 기존에는 public URL만 반환했지만,
-   * DB insert가 실패했을 때 파일을 다시 삭제할 수 있도록
-   * Storage path도 함께 반환한다.
+   * DB insert 실패 시 삭제할 수 있도록
+   * public URL과 Storage path를 모두 반환한다.
    */
   const uploadReviewImage = async file => {
     if (!file || !user) return null;
@@ -163,7 +227,9 @@ export default function useRecipeReviews({
         upsert: false,
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      throw uploadError;
+    }
 
     const { data: publicUrlData } = supabase.storage
       .from(REVIEW_IMAGE_BUCKET)
@@ -181,7 +247,9 @@ export default function useRecipeReviews({
   const handleCommentSubmit = async event => {
     event.preventDefault();
 
-    if (authLoading || commentSubmitting || !recipe?.id) return;
+    if (authLoading || commentSubmitting || !recipe?.id) {
+      return;
+    }
 
     if (!user) {
       return moveToLogin();
@@ -189,6 +257,7 @@ export default function useRecipeReviews({
 
     if (reviewRating < 1) {
       showNotification("별점을 선택해주세요.", "warning");
+
       return;
     }
 
@@ -207,17 +276,17 @@ export default function useRecipeReviews({
         const uploadResult = await uploadReviewImage(reviewImageFile);
 
         uploadedImageUrl = uploadResult?.url || null;
+
         uploadedImagePath = uploadResult?.path || null;
       }
 
-      const nickname =
-        user.user_metadata?.nickname ||
-        user.user_metadata?.full_name ||
-        user.email?.split("@")[0] ||
-        "사용자";
+      const nickname = getUserNickname(user);
 
       /**
        * 후기 DB 등록
+       *
+       * avatar_url은 recipe_comments에 저장하지 않는다.
+       * 현재 프로필 이미지는 profiles 테이블에서 조회한다.
        */
       const { data, error } = await supabase
         .from("recipe_comments")
@@ -234,7 +303,28 @@ export default function useRecipeReviews({
 
       if (error) throw error;
 
-      setComments(previousComments => [...previousComments, data]);
+      /**
+       * 방금 등록한 사용자의 현재 프로필을 조회해서
+       * 새 후기에 바로 붙인다.
+       *
+       * 페이지 새로고침 없이도 Avatar가 즉시 보인다.
+       */
+      const { data: currentProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, nickname, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("현재 사용자 프로필 조회 오류:", profileError);
+      }
+
+      const newComment = {
+        ...data,
+        profile: currentProfile || null,
+      };
+
+      setComments(previousComments => [...previousComments, newComment]);
 
       setCommentText("");
       setReviewRating(0);
@@ -252,10 +342,9 @@ export default function useRecipeReviews({
       console.error("완성 후기 등록 오류:", error);
 
       /**
-       * Storage 업로드까지는 성공했는데
-       * recipe_comments insert가 실패한 경우
-       *
-       * 사용되지 않는 이미지가 Storage에 남지 않도록 롤백한다.
+       * Storage 업로드는 성공했지만
+       * recipe_comments insert 등이 실패했다면
+       * 사용되지 않는 이미지 삭제
        */
       if (uploadedImagePath) {
         const { error: removeError } = await supabase.storage

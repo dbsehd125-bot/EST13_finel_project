@@ -93,15 +93,6 @@
   border-bottom: 1px solid var(--brand-divider);
 }
 
-.profileImage {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-
-  background: var(--brand-light-gray);
-  border-radius: 50%;
-}
-
 .profileName {
   display: flex;
   min-width: 0;
@@ -443,15 +434,6 @@
   gap: 12px;
 }
 
-.modalProfileImage {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-
-  background: var(--brand-light-gray);
-  border-radius: 50%;
-}
-
 .modalNickname,
 .modalTime {
   margin: 0;
@@ -545,15 +527,6 @@
 
 .modalCommentItem:last-child {
   margin-bottom: 0;
-}
-
-.commentProfileImage {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-
-  background: var(--brand-light-gray);
-  border-radius: 50%;
 }
 
 .commentContent {
@@ -1219,11 +1192,6 @@
     padding: 13px 14px;
   }
 
-  .profileImage {
-    width: 38px;
-    height: 38px;
-  }
-
   .cardNickname {
     font-size: 14px;
   }
@@ -1289,11 +1257,6 @@
     gap: 9px;
   }
 
-  .modalProfileImage {
-    width: 40px;
-    height: 40px;
-  }
-
   .modalNickname {
     font-size: 14px;
   }
@@ -1320,11 +1283,6 @@
   .modalCommentItem {
     gap: 9px;
     margin-bottom: 18px;
-  }
-
-  .commentProfileImage {
-    width: 36px;
-    height: 36px;
   }
 
   .commentContent p {
