@@ -240,12 +240,6 @@ export default function CommunityDetailModal({
                         ) : (
                           <p>{comment.content}</p>
                         )}
-
-                        <div className={styles.commentLike}>
-                          <FavoriteBorder fontSize="small" />
-
-                          <span>{comment.likes}</span>
-                        </div>
                       </div>
                     </div>
                   );
