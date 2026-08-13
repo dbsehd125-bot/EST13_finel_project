@@ -1,6 +1,7 @@
 /**
  * 레시피 상세 데이터 관리 Custom Hook
  * - 현재 레시피와 같은 cuisine의 연관 레시피 조회
+ * - 레시피 작성자의 profiles 정보 조회
  * - 잘못된 레시피 ID / 존재하지 않는 레시피 / 조회 오류 구분
  * - 상세 페이지 진입 시 조회수 증가
  * - 저장된 AI 단계 요약 사용
@@ -119,9 +120,43 @@ export default function useRecipeData(id) {
           return;
         }
 
+        /**
+         * 레시피 작성자의 현재 profiles 정보 조회
+         *
+         * recipes에는 user_id만 저장하고,
+         * 현재 닉네임/프로필 이미지는 profiles에서 가져온다.
+         */
+        let authorProfile = null;
+
+        if (recipeData.user_id) {
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("user_id, nickname, avatar_url")
+            .eq("user_id", recipeData.user_id)
+            .maybeSingle();
+
+          if (profileError) {
+            /**
+             * 프로필 조회 실패만으로
+             * 레시피 상세 전체를 에러 처리하지 않는다.
+             */
+            console.error("레시피 작성자 프로필 조회 실패:", profileError);
+          } else {
+            authorProfile = profileData ?? null;
+          }
+        }
+
         if (cancelled) return;
 
-        setRecipe(recipeData);
+        /**
+         * recipe.profile 형태로 작성자 프로필을 붙인다.
+         */
+        const recipeWithProfile = {
+          ...recipeData,
+          profile: authorProfile,
+        };
+
+        setRecipe(recipeWithProfile);
 
         /**
          * 연관 레시피 조회
@@ -361,6 +396,7 @@ export default function useRecipeData(id) {
           `레시피명: ${recipe.title}. 조리 단계: ${stepText}`;
 
         let alanClientId = getCurrentAlanClientId();
+
         let response = null;
 
         /**
@@ -380,6 +416,7 @@ export default function useRecipeData(id) {
             console.warn("Alan AI 요약 네트워크 오류:", networkError);
 
             alanClientId = getNextAlanClientId();
+
             continue;
           }
 
@@ -390,6 +427,7 @@ export default function useRecipeData(id) {
 
           if (isFailoverError(currentResponse.status)) {
             alanClientId = getNextAlanClientId();
+
             continue;
           }
 
