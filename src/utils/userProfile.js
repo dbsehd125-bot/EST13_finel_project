@@ -11,13 +11,6 @@ export function getUserNickname(user) {
 }
 
 /**
- * Supabase Auth user metadata에서 프로필 이미지 반환
- */
-export function getUserAvatarUrl(user) {
-  return user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
-}
-
-/**
  * profiles 데이터를 우선 사용하고,
  * 없으면 기존 저장된 닉네임으로 fallback
  */

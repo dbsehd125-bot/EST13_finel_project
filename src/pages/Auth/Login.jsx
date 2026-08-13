@@ -2,10 +2,11 @@
  * 로그인 페이지
  * - 이메일/비밀번호 로그인 처리
  * - Google/Kakao 소셜 로그인 연결
+ * - 로그인 필요 페이지에서 진입한 경우 로그인 성공 후 원래 페이지로 복귀
  * - 비밀번호 재설정 이메일 요청 모달 관리
  */
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 
 import { supabase } from "../../lib/supabaseClient";
 import { useNotification } from "../../context/NotificationContext";
@@ -18,7 +19,28 @@ import styles from "./Auth.module.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const { showNotification } = useNotification();
+
+  /**
+   * 로그인 필요 페이지에서 넘겨준 원래 경로
+   *
+   * 예)
+   * navigate("/login", {
+   *   state: {
+   *     from: "/recipes/10",
+   *   },
+   * });
+   *
+   * 직접 로그인 페이지에 들어온 경우에는 "/"로 이동한다.
+   */
+  const redirectPath =
+    typeof location.state?.from === "string" &&
+    location.state.from.startsWith("/") &&
+    !location.state.from.startsWith("//")
+      ? location.state.from
+      : "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,14 +53,19 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState("");
 
   const { socialLoading, handleSocialLogin } = useSocialLogin({
+    redirectPath,
     onErrorClear: () => setErrorMessage(""),
     onError: setErrorMessage,
   });
 
   const isProcessing = loading || Boolean(socialLoading);
 
+  /**
+   * 이메일 / 비밀번호 로그인
+   */
   async function handleEmailLogin(event) {
     event.preventDefault();
+
     setErrorMessage("");
 
     const trimmedEmail = email.trim();
@@ -61,21 +88,32 @@ export default function Login() {
         password,
       });
 
-      if (error) throw error;
-      if (!data.session) throw new Error("로그인 세션을 생성하지 못했습니다.");
+      if (error) {
+        throw error;
+      }
 
-      const {
-        data: { session: storedSession },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError) throw sessionError;
-      if (!storedSession) throw new Error("로그인 세션 저장에 실패했습니다.");
+      /**
+       * signInWithPassword 성공 결과에 이미 session이 있으므로
+       * 별도로 getSession()을 다시 호출할 필요가 없다.
+       */
+      if (!data.session) {
+        throw new Error("로그인 세션을 생성하지 못했습니다.");
+      }
 
       showNotification("로그인되었습니다.", "success");
-      navigate("/");
+
+      /**
+       * 로그인 페이지를 history에 남기지 않도록 replace 사용
+       *
+       * 로그인 후 뒤로가기를 눌렀을 때
+       * 다시 /login으로 돌아가는 현상을 방지한다.
+       */
+      navigate(redirectPath, {
+        replace: true,
+      });
     } catch (error) {
       console.error("이메일 로그인 오류:", error);
+
       const message = error.message?.toLowerCase() ?? "";
 
       if (message.includes("invalid login credentials")) {
@@ -90,11 +128,15 @@ export default function Login() {
     }
   }
 
+  /**
+   * 비밀번호 재설정 이메일 요청
+   */
   async function handleResetPassword() {
     const trimmedEmail = resetEmail.trim();
 
     if (!trimmedEmail) {
       setResetMessage("이메일을 입력해주세요.");
+
       return;
     }
 
@@ -106,10 +148,14 @@ export default function Login() {
         redirectTo: `${window.location.origin}/update-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
       setResetMessage("비밀번호 재설정 이메일을 전송했습니다.");
     } catch (error) {
       console.error("비밀번호 재설정 오류:", error);
+
       setResetMessage(error.message || "비밀번호 재설정 이메일 전송에 실패했습니다.");
     } finally {
       setResetLoading(false);
@@ -131,12 +177,14 @@ export default function Login() {
           <div className={styles.formArea}>
             <div className={styles.formHeader}>
               <h1 className="font-display dtext-2xl">로그인</h1>
+
               <p className={`text-sm ${styles.description}`}>다시 만나서 반가워요!</p>
             </div>
 
             <form className={styles.form} onSubmit={handleEmailLogin}>
               <label className={styles.field}>
                 <span className="text-sm">이메일</span>
+
                 <input
                   className="text-sm"
                   type="email"
@@ -151,6 +199,7 @@ export default function Login() {
               <label className={styles.field}>
                 <div className={styles.labelRow}>
                   <span className="text-sm">비밀번호</span>
+
                   <button
                     type="button"
                     className={`text-s ${styles.textLink}`}
@@ -191,7 +240,9 @@ export default function Login() {
 
             <div className={styles.divider}>
               <span />
+
               <p className="text-s">또는</p>
+
               <span />
             </div>
 
@@ -203,7 +254,13 @@ export default function Login() {
 
             <p className={`text-s ${styles.switchText}`}>
               계정이 없으신가요?{" "}
-              <Link to="/signup" className={styles.textLink}>
+              <Link
+                to="/signup"
+                state={{
+                  from: redirectPath,
+                }}
+                className={styles.textLink}
+              >
                 회원가입
               </Link>
             </p>

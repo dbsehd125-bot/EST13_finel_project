@@ -4,6 +4,7 @@
  * - 게시글 작성자의 profiles 정보 조회
  * - 무한 스크롤을 위한 페이지 단위 추가 조회
  * - 게시글 좋아요 및 북마크 상태 조회·변경
+ * - 게시글 좋아요는 RPC를 통해 원자적으로 처리
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -51,16 +52,23 @@ async function attachProfilesToPosts(posts) {
 
 export default function useCommunityFeed({ user, authLoading, moveToLogin, showNotification }) {
   const [selectedCategory, setSelectedCategory] = useState("최신");
+
   const [posts, setPosts] = useState([]);
+
   const [postsLoading, setPostsLoading] = useState(true);
+
   const [categoryLoading, setCategoryLoading] = useState(false);
+
   const [loadingMore, setLoadingMore] = useState(false);
+
   const [hasMorePosts, setHasMorePosts] = useState(true);
+
   const [pageError, setPageError] = useState("");
 
   const [selectedPostId, setSelectedPostId] = useState(null);
 
   const [likeActionIds, setLikeActionIds] = useState([]);
+
   const [bookmarkActionIds, setBookmarkActionIds] = useState([]);
 
   const loadMoreRef = useRef(null);
@@ -72,7 +80,9 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
    * 현재 사용자의 게시글 좋아요 / 북마크 상태 조회
    */
   async function loadMyPostReactions(postIds) {
-    if (!user || !postIds?.length) return;
+    if (!user || !postIds?.length) {
+      return;
+    }
 
     const [likeResult, bookmarkResult] = await Promise.allSettled([
       supabase
@@ -159,6 +169,7 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
     }
 
     const from = reset ? 0 : posts.length;
+
     const to = from + POSTS_PER_PAGE - 1;
 
     if (showLoading) {
@@ -168,6 +179,7 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
     }
 
     loadingMoreRef.current = true;
+
     setPageError("");
 
     try {
@@ -250,10 +262,19 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
   }, []);
 
   /**
-   * 로그인 상태 변경 시 좋아요/북마크 상태 갱신
+   * 로그인 상태 또는 게시글 목록이 변경되면
+   * 현재 사용자의 좋아요 / 북마크 상태를 다시 조회한다.
+   *
+   * 새로고침 직후에는 Auth 복구와 게시글 조회가
+   * 서로 다른 시점에 끝날 수 있기 때문에
+   * posts의 ID 목록도 dependency로 사용한다.
    */
+  const postIdsKey = posts.map(post => post.id).join(",");
+
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+      return;
+    }
 
     if (!user) {
       setPosts(previousPosts =>
@@ -267,10 +288,14 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
       return;
     }
 
-    if (posts.length > 0) {
-      void loadMyPostReactions(posts.map(post => post.id));
+    if (!postIdsKey) {
+      return;
     }
-  }, [authLoading, user?.id]);
+
+    const postIds = postIdsKey.split(",").map(Number);
+
+    void loadMyPostReactions(postIds);
+  }, [authLoading, user?.id, postIdsKey]);
 
   /**
    * 무한 스크롤
@@ -313,10 +338,19 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
   ]);
 
   /**
-   * 좋아요
+   * 게시글 좋아요
+   *
+   * 좋아요 추가/취소는
+   * toggle_community_post_like RPC에서 처리한다.
+   *
+   * community_post_likes에 INSERT/DELETE가 발생하면
+   * 기존 DB trigger가 community_posts.like_count를 갱신하고,
+   * RPC는 최종 liked 상태와 like_count를 반환한다.
    */
   async function handleLikeToggle(postId) {
-    if (authLoading) return;
+    if (authLoading) {
+      return;
+    }
 
     if (!user) {
       return moveToLogin();
@@ -328,38 +362,45 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
 
     const targetPost = posts.find(post => post.id === postId);
 
-    if (!targetPost) return;
+    if (!targetPost) {
+      return;
+    }
 
     try {
       setLikeActionIds(previousIds => [...previousIds, postId]);
 
-      if (targetPost.liked) {
-        const { error } = await supabase
-          .from("community_post_likes")
-          .delete()
-          .eq("post_id", postId)
-          .eq("user_id", user.id);
+      const { data, error } = await supabase.rpc("toggle_community_post_like", {
+        target_post_id: postId,
+      });
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("community_post_likes").insert({
-          post_id: postId,
-          user_id: user.id,
-        });
-
-        if (error) throw error;
+      if (error) {
+        throw error;
       }
 
-      const nextLikeCount = targetPost.liked
-        ? Math.max(0, targetPost.likes - 1)
-        : targetPost.likes + 1;
+      /**
+       * PostgreSQL RETURNS TABLE 함수는
+       * Supabase에서 배열 형태로 반환된다.
+       */
+      const result = Array.isArray(data) ? data[0] : data;
 
+      if (!result) {
+        throw new Error("좋아요 처리 결과를 받지 못했습니다.");
+      }
+
+      const nextLiked = Boolean(result.is_liked);
+
+      const nextLikeCount = Number(result.new_like_count ?? 0);
+
+      /**
+       * 카드와 상세 모달은 같은 posts 상태를 사용하므로
+       * 여기 한 번만 갱신하면 양쪽 UI가 동시에 반영된다.
+       */
       setPosts(previousPosts =>
         previousPosts.map(post =>
           post.id === postId
             ? {
                 ...post,
-                liked: !targetPost.liked,
+                liked: nextLiked,
                 likes: nextLikeCount,
               }
             : post,
@@ -378,7 +419,9 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
    * 북마크
    */
   async function handleBookmarkToggle(postId) {
-    if (authLoading) return;
+    if (authLoading) {
+      return;
+    }
 
     if (!user) {
       return moveToLogin();
@@ -390,7 +433,9 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
 
     const targetPost = posts.find(post => post.id === postId);
 
-    if (!targetPost) return;
+    if (!targetPost) {
+      return;
+    }
 
     try {
       setBookmarkActionIds(previousIds => [...previousIds, postId]);
@@ -402,14 +447,18 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
           .eq("post_id", postId)
           .eq("user_id", user.id);
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       } else {
         const { error } = await supabase.from("community_post_bookmarks").insert({
           post_id: postId,
           user_id: user.id,
         });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       }
 
       setPosts(previousPosts =>
@@ -440,9 +489,13 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
     }
 
     setSelectedCategory(category);
+
     setCategoryLoading(true);
+
     setHasMorePosts(true);
+
     setSelectedPostId(null);
+
     setPageError("");
 
     try {

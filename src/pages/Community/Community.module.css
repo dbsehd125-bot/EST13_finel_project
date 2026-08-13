@@ -522,7 +522,7 @@
   align-items: flex-start;
   gap: 10px;
 
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .modalCommentItem:last-child {
@@ -587,7 +587,7 @@
 }
 
 .commentContent p {
-  margin: 4px 0;
+  margin: 7px 0 0;
 
   color: var(--brand-brown);
   font-size: 13px;
@@ -595,15 +595,6 @@
 
   overflow-wrap: anywhere;
   word-break: keep-all;
-}
-
-.commentLike {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-
-  color: var(--brand-gray);
-  font-size: 12px;
 }
 
 .commentEditArea {
