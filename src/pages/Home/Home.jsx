@@ -246,7 +246,7 @@ export default function Home() {
         const { data, error } = await supabase
           .from("recipes")
           .select("*")
-          .order("likes_count", { ascending: false, nullsFirst: false })
+          .order("like_count", { ascending: false, nullsFirst: false })
           .limit(8);
 
         if (error) throw error;
@@ -263,7 +263,7 @@ export default function Home() {
             time: r.cooking_time ? (String(r.cooking_time).includes("분") ? r.cooking_time : `${r.cooking_time}분`) : "30분",
             difficulty: r.difficulty || "보통",
             rating: r.rating || 4.8,
-            likes: r.likes_count !== undefined ? String(r.likes_count) : "0",
+            likes: r.like_count !== undefined ? String(r.like_count) : "0",
             comments: r.comments_count || 0
           }));
           setDbRecipes(normalized);
