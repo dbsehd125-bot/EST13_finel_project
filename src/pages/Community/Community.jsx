@@ -24,18 +24,40 @@ import useCommunityWrite from "./hooks/useCommunityWrite";
 
 export default function Community() {
   const navigate = useNavigate();
-  const { user, authLoading } = useAuth();
+
+  /**
+   * profile도 같이 가져온다.
+   *
+   * 새 게시글 작성 시 Auth metadata가 아니라
+   * profiles.nickname을 우선 사용하기 위해 필요하다.
+   */
+  const { user, profile, authLoading } = useAuth();
+
   const { showNotification } = useNotification();
 
-  const [confirmModal, setConfirmModal] = useState({ open: false, type: "" });
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    type: "",
+  });
+
   const [deleteCommentId, setDeleteCommentId] = useState(null);
+
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   function moveToLogin() {
-    navigate("/login", { state: { from: "/community" } });
+    navigate("/login", {
+      state: {
+        from: "/community",
+      },
+    });
   }
 
-  const feed = useCommunityFeed({ user, authLoading, moveToLogin, showNotification });
+  const feed = useCommunityFeed({
+    user,
+    authLoading,
+    moveToLogin,
+    showNotification,
+  });
 
   const comments = useCommunityComments({
     user,
@@ -48,6 +70,13 @@ export default function Community() {
 
   const write = useCommunityWrite({
     user,
+
+    /**
+     * 현재 로그인 사용자의
+     * profiles 데이터 전달
+     */
+    profile,
+
     authLoading,
     selectedPost: feed.selectedPost,
     selectedCategory: feed.selectedCategory,
@@ -63,41 +92,63 @@ export default function Community() {
 
   function handleDetailModalClose() {
     feed.setSelectedPostId(null);
+
     comments.resetCommentState();
   }
 
   function closeConfirmModal() {
-    setConfirmModal(previous => ({ ...previous, open: false }));
+    setConfirmModal(previous => ({
+      ...previous,
+      open: false,
+    }));
   }
 
   function handlePostDeleteRequest() {
-    if (!user || !feed.selectedPost || feed.selectedPost.userId !== user.id) return;
-    setConfirmModal({ open: true, type: "post" });
+    if (!user || !feed.selectedPost || feed.selectedPost.userId !== user.id) {
+      return;
+    }
+
+    setConfirmModal({
+      open: true,
+      type: "post",
+    });
   }
 
   async function handlePostDeleteConfirm() {
-    if (!user || !feed.selectedPost || feed.selectedPost.userId !== user.id) return;
+    if (!user || !feed.selectedPost || feed.selectedPost.userId !== user.id) {
+      return;
+    }
 
     const postId = feed.selectedPost.id;
+
     const imageUrl = feed.selectedPost.image;
 
     try {
       setConfirmLoading(true);
+
       const { error } = await supabase
         .from("community_posts")
         .delete()
         .eq("id", postId)
         .eq("user_id", user.id);
-      if (error) throw error;
 
-      if (imageUrl) await write.removeCommunityImageByUrl(imageUrl);
+      if (error) {
+        throw error;
+      }
+
+      if (imageUrl) {
+        await write.removeCommunityImageByUrl(imageUrl);
+      }
 
       feed.setPosts(previousPosts => previousPosts.filter(post => post.id !== postId));
+
       closeConfirmModal();
       handleDetailModalClose();
+
       showNotification("게시글을 삭제했습니다.", "success");
     } catch (error) {
       console.error("게시글 삭제 오류:", error);
+
       showNotification(error.message || "게시글 삭제에 실패했습니다.", "error");
     } finally {
       setConfirmLoading(false);
@@ -105,22 +156,40 @@ export default function Community() {
   }
 
   function handleCommentDeleteRequest(commentId) {
-    if (!user || !feed.selectedPost) return;
+    if (!user || !feed.selectedPost) {
+      return;
+    }
+
     const targetComment = comments.comments.find(comment => comment.id === commentId);
-    if (!targetComment || targetComment.userId !== user.id) return;
+
+    if (!targetComment || targetComment.userId !== user.id) {
+      return;
+    }
 
     setDeleteCommentId(commentId);
-    setConfirmModal({ open: true, type: "comment" });
+
+    setConfirmModal({
+      open: true,
+      type: "comment",
+    });
   }
 
   async function handleCommentDeleteConfirm() {
-    if (!deleteCommentId) return;
+    if (!deleteCommentId) {
+      return;
+    }
 
     try {
       setConfirmLoading(true);
+
       const deleted = await comments.deleteComment(deleteCommentId);
-      if (!deleted) return;
+
+      if (!deleted) {
+        return;
+      }
+
       closeConfirmModal();
+
       setDeleteCommentId(null);
     } finally {
       setConfirmLoading(false);
@@ -221,6 +290,7 @@ export default function Community() {
         loading={confirmLoading}
         onCancel={() => {
           closeConfirmModal();
+
           setDeleteCommentId(null);
         }}
         onConfirm={
