@@ -73,11 +73,11 @@ export default function Header() {
     closeSearch();
     setSearchKeyword("");
 
-    navigate('/recipes', {
-  state: {
-    searchKeyword: keyword,
-  },
-});
+    navigate("/recipes", {
+      state: {
+        searchKeyword: keyword,
+      },
+    });
   }
 
   async function handleLogout() {
@@ -243,14 +243,14 @@ export default function Header() {
           {isLoggedIn && (
             <Link
               to="/mypage"
-              className="avatar"
+              className="header-avatar"
               aria-label={`${displayName} 마이페이지로 이동`}
               onClick={() => {
                 closeMenu();
                 closeSearch();
               }}
             >
-              <UserAvatar src={avatarUrl} name={displayName} size="md" />
+              <UserAvatar src={avatarUrl} name={displayName} size="header" />
             </Link>
           )}
 

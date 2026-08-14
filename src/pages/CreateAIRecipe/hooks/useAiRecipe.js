@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../../context/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
 import { RecipeJsonToMarkdown } from '../RecipeJsonToMarkdown';
 import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from '../../../utils/AlanApi';
-import { UploadRecipeToSupabase } from '../UploadRecipeToSupabase';
 
 const API_BASE = '/api/v1';
 const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -203,7 +202,7 @@ export function useAiRecipe() {
 
       try {
         const mainTitle = parsedRecipeJson.title || '요리';
-        const thumbnailPrompt = `Professional studio food photography of ${mainTitle}, ${conditions.cuisine} cuisine, beautifully plated, warm lighting, 4k.`;
+        const thumbnailPrompt = `Professional studio food photography of ${mainTitle}, ${conditions.cuisine} cuisine, beautifully plated, warm lighting, no text, 4k.`;
         const thumbnailUrl = (await fetchOpenAIImage(thumbnailPrompt)) || FALLBACK_URL;
         parsedRecipeJson.thumbnail_url = thumbnailUrl;
 
@@ -273,34 +272,37 @@ export function useAiRecipe() {
     }, 1200);
   };
 
-  // 레시피 Supabase에 게시/등록하기
+  // 등록하기 화면으로 이동
   const handlePublish = async () => {
+    // 1. 레시피 결과 데이터가 없는 경우
     if (!result || !result.raw) {
       alert('저장할 레시피 데이터가 없습니다. 먼저 레시피를 생성해 주세요.');
       return;
     }
 
+    // 2. 비회원인 경우: AuthGuardModal 팝업
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
 
-    try {
-      setIsPublishing(true);
-      const response = await UploadRecipeToSupabase(result.raw, user);
+    // 3. 로그인된 상태인 경우: AI JSON 데이터 갖고 등록 페이지로 라우팅
+    navigate('/register', {
+      state: {
+        recipe: result.raw,
+        isFromAICreater: true,
+      },
+    });
+  };
 
-      if (response.success && response.savedRecipe) {
-        alert('레시피가 DB 및 스토리지에 성공적으로 등록되었습니다!');
-        navigate(`/register?id=${response.savedRecipe.id}`);
-      } else {
-        alert(`레시피 등록에 실패했습니다: ${response.detail || response.error}`);
-      }
-    } catch (error) {
-      console.error('게시하기 처리 중 에러:', error);
-      alert('레시피를 게시하는 도중 오류가 발생했습니다.');
-    } finally {
-      setIsPublishing(false);
-    }
+  // 🔒 로그인 모달에서 [로그인하러 가기] 클릭 시 실행할 함수
+  const handleConfirmAuthModal = () => {
+    setIsAuthModalOpen(false);
+
+    // 로그인 완료 후 다시 현재 화면으로 돌아올 수 있도록 current path 저장 전달
+    navigate('/auth/login', {
+      state: { from: location.pathname },
+    });
   };
 
   return {

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
 import { Layout } from "../../components";
+import SEO from "../../components/SEO";
 import { supabase } from "../../lib/supabaseClient";
 import "./Home.css";
 
@@ -506,6 +507,11 @@ export default function Home() {
 
   return (
     <Layout activeMenu="홈" fullWidth={true}>
+      <SEO
+        title="깃깔나는 레시피 - AI 냉장고 털기 및 맞춤형 식단 추천"
+        description="남은 재료나 떠오른 메뉴를 입력하면 AI가 레시피와 요리 이미지를 추천해 드립니다. 일주일 맞춤형 식단과 인기 레시피를 만나보세요!"
+        url="/"
+      />
       {/* 1. 메인 히어로 섹션 */}
       <section className="hero-section">
         <div className="hero-container">

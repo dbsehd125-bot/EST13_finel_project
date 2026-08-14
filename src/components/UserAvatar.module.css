@@ -17,6 +17,13 @@
   user-select: none;
 }
 
+/* 헤더 프로필 */
+.header {
+  width: 46px;
+  height: 46px;
+  font-size: 16px;
+}
+
 /* 커뮤니티 댓글 등 작은 영역 */
 .sm {
   width: 32px;
