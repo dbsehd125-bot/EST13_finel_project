@@ -32,6 +32,7 @@ export default function RecipeSteps({ steps }) {
                   src={step.image}
                   alt={`${step.step}단계 ${step.title}`}
                   loading="lazy"
+                  decoding="async"
                 />
               </div>
             )}

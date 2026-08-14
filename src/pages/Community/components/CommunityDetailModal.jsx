@@ -105,7 +105,8 @@ export default function CommunityDetailModal({
             <img
               className={styles.modalImage}
               src={selectedPost.image}
-              alt={selectedPost.imageAlt}
+              alt={selectedPost.imageAlt || `${postNickname}님의 커뮤니티 게시글 이미지`}
+              decoding="async"
             />
           </div>
         )}

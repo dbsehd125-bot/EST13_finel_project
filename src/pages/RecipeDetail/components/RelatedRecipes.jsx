@@ -36,7 +36,12 @@ export default function RelatedRecipes({
             onClick={() => onRecipeClick(recipe.id)}
           >
             <div className={styles.relatedImageArea}>
-              <img src={recipe.thumbnail_url} alt={recipe.title} />
+              <img
+                src={recipe.thumbnail_url}
+                alt={`${recipe.title} 레시피`}
+                loading="lazy"
+                decoding="async"
+              />
               <span className={`text-s ${styles.relatedTag}`}>{recipe.cuisine}</span>
 
               <button
