@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { supabase } from '../../lib/supabaseClient';
 import Layout from '../../components/Layout';
+import SEO from '../../components/SEO';
 import styles from './RegistRecipe.module.css';
 
 /* ==========================================================================
@@ -918,6 +919,11 @@ export default function RegistRecipe() {
 
   return (
     <Layout activeMenu="AI 레시피">
+      <SEO
+        title="레시피 등록하기 | 깃깔나는 레시피"
+        description="단계별로 입력하면 완성! AI 도우미가 작성을 도와드려요."
+        url="/register"
+      />
       <div className="container" style={{ paddingTop: '20px', paddingBottom: '60px' }}>
         {/* 상단 타이틀 영역 */}
         <div className={styles.headerArea}>
