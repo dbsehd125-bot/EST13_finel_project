@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
+import { useSearchParams, useLocation, useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabaseClient';
+import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, isEmpty } from '@mui/material';
+import { UploadRecipeToSupabase } from './hooks/UploadRecipeToSupabase';
 import Layout from '../../components/Layout';
 import SEO from '../../components/SEO';
 import styles from './RegistRecipe.module.css';
@@ -455,9 +457,8 @@ function Step3Steps({ formData, updateFormData }) {
         ],
   );
 
-  // 상위 formData 동기화
-  const handleTipChange = (index, value) => {
-    const updatedSteps = cookingSteps.map((step, idx) => (idx === index ? { ...step, tip: value || null } : step));
+  // 상위 formData 및 로컬 상태 동기화
+  const syncSteps = (updatedSteps) => {
     setCookingSteps(updatedSteps);
     updateFormData('cookingSteps', updatedSteps);
   };
@@ -466,6 +467,13 @@ function Step3Steps({ formData, updateFormData }) {
   const handleStepChange = (index, field, value) => {
     const updatedSteps = steps.map((step, i) => (i === index ? { ...step, [field]: value } : step));
     syncSteps(updatedSteps);
+  };
+
+  // 조리 팁 수정
+  const handleTipChange = (index, value) => {
+    const updatedSteps = cookingSteps.map((step, idx) => (idx === index ? { ...step, tip: value || null } : step));
+    setCookingSteps(updatedSteps);
+    updateFormData('cookingSteps', updatedSteps);
   };
 
   // 특정 단계의 Tip 내용만 초기화하는 함수
@@ -499,7 +507,7 @@ function Step3Steps({ formData, updateFormData }) {
 
             {/* 조리 과정 내용 (ReadOnly) */}
             <div className={styles.inputGroup} style={{ marginBottom: '14px' }}>
-              <textarea className={styles.readOnlyTextarea} value={step.instruction} readOnly rows={2} />
+              <textarea className={styles.readOnlyTextarea} value={step.description} readOnly rows={2} />
             </div>
 
             {/* 단계별 조리 팁 입력 필드 (Nullable) */}
@@ -513,7 +521,7 @@ function Step3Steps({ formData, updateFormData }) {
                 <button
                   type="button"
                   onClick={() => handleResetTip(idx)}
-                  disabled={!step.tip} // 팁 내용이 없을 때는 비활성화
+                  disabled={!step.tip}
                   style={{
                     border: 'none',
                     backgroundColor: 'transparent',
@@ -559,24 +567,51 @@ function Step3Steps({ formData, updateFormData }) {
    Step 4 컴포넌트: 이미지 확인 및 썸네일 업로드
    ========================================================================== */
 function Step4Image({ formData, updateFormData }) {
-  // 썸네일 이미지 상태 (AI 생성 기본값 또는 사용자 직접 업로드 파일)
-  const [thumbnail, setThumbnail] = useState(
-    formData.thumbnail || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-  );
+  const FALLBACK_THUMBNAIL =
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+  const TRANSPARENT_IMAGE = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
-  // 단계별 조리 과정 이미지 목록 (ReadOnly 갤러리용 더미 데이터)
-  const stepImages = formData.stepImages || [
-    { stepNumber: 1, url: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=400&q=80' },
-    { stepNumber: 2, url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80' },
-    {
-      stepNumber: 3,
-      url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      stepNumber: 4,
-      url: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=400&q=80',
-    },
-  ];
+  const [thumbnail, setThumbnail] = useState(formData.thumbnail_url || FALLBACK_THUMBNAIL);
+
+  const getStepImagesGrid = () => {
+    const steps = formData.cookingSteps || [];
+
+    // 조리 단계별로 생성된 이미지 URL 배열 추출
+    const validImages = steps
+      .map((step, idx) => ({
+        stepNumber: step.step || idx + 1,
+        url: step.image || null,
+      }))
+      .filter((item) => item.url);
+
+    // 💡 4개 이상인 경우: 상위 4개만 추출
+    const slicedImages = validImages.slice(0, 4);
+
+    // 💡 4개 미만인 경우: 2x2 그리드 배치를 위해 4개 슬롯 채우기
+    const gridItems = Array.from({ length: 4 }, (_, idx) => {
+      if (slicedImages[idx]) {
+        return { ...slicedImages[idx], isEmpty: false };
+      }
+      // 이미지가 없거나 4개 미만인 빈 슬롯은 투명 이미지 처리
+      return {
+        stepNumber: idx + 1,
+        url: TRANSPARENT_IMAGE,
+        isEmpty: true,
+      };
+    });
+
+    return gridItems;
+  };
+
+  const [stepGridItems, setStepGridItems] = useState(getStepImagesGrid);
+
+  // formData 변경 시 썸네일 및 단계별 이미지 자동 업데이트
+  useEffect(() => {
+    if (formData.thumbnail_url) {
+      setThumbnail(formData.thumbnail_url);
+    }
+    setStepGridItems(getStepImagesGrid());
+  }, [formData]);
 
   // 사용자가 파일 선택 시 썸네일 프리뷰 교체
   const handleThumbnailChange = (e) => {
@@ -584,7 +619,7 @@ function Step4Image({ formData, updateFormData }) {
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setThumbnail(imageUrl);
-      updateFormData('thumbnail', imageUrl);
+      updateFormData('thumbnail_url', imageUrl);
     }
   };
 
@@ -629,7 +664,7 @@ function Step4Image({ formData, updateFormData }) {
           </div>
 
           <div className={styles.stepImageGrid}>
-            {stepImages.map((item) => (
+            {stepGridItems.map((item) => (
               <div key={item.stepNumber} className={styles.squareImageWrapper}>
                 <img src={item.url} alt={`STEP ${item.stepNumber} 조리 과정`} className={styles.squareImg} />
                 <span className={styles.imageStepTag}>STEP {item.stepNumber}</span>
@@ -685,16 +720,16 @@ function Step5PreviewAndOptions({ formData, updateFormData }) {
           {/* 대표 썸네일 */}
           {formData.thumbnail && (
             <div className={styles.previewImageWrapper}>
-              <img src={formData.thumbnail} alt="대표 요리 이미지" className={styles.previewImage} />
+              <img src={formData.thumbnail_url} alt="대표 요리 이미지" className={styles.previewImage} />
             </div>
           )}
 
           {/* 메타 정보 칩 (카테고리, 시간, 난이도, 인분) */}
           <div className={styles.previewMetaRow}>
             <span>🏷️ {formData.category}</span>
-            <span>⏱️ {formData.cookingTime}분</span>
-            <span>🔥 난이도 {formData.difficulty}</span>
-            <span>👥 {formData.servings}인분</span>
+            <span>⏱️ {formData.cookingTime}</span>
+            <span>🔥 {formData.difficulty}</span>
+            <span>👥 {formData.servings}</span>
           </div>
 
           {/* 재료 리스트 요약 */}
@@ -804,70 +839,95 @@ function Step5PreviewAndOptions({ formData, updateFormData }) {
    Main RegistRecipe 페이지 컴포넌트
    ========================================================================== */
 export default function RegistRecipe() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // 잘못된 접근 안내 모달 상태
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+
   // URL 쿼리 스트링으로 현재 step 상태 유지 (?step=1)
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentStep = parseInt(searchParams.get('step') || '1', 10);
   const recipeId = searchParams.get('id');
+  const [savedDraftId, setSavedDraftId] = useState(recipeId || null);
+  const currentStep = parseInt(searchParams.get('step') || '1', 10);
 
-  // 로딩 상태 (프리셋 데이터 불러올 동안 표시)
+  // 로딩 상태
   const [isLoadingPreset, setIsLoadingPreset] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // CreateAIRecipe에서 라우팅으로 넘어온 JSON 데이터
+  const aiRecipePreset = location.state?.recipe || null;
+
+  useEffect(() => {
+    const navEntries = performance.getEntriesByType('navigation');
+    const isReloaded = navEntries.length > 0 && navEntries[0].type === 'reload';
+
+    // 🔒 새로고침을 했거나, location.state에 AI 레시피 데이터가 없는 경우 (URL 직접 타핑 진입)
+    if (isReloaded || !aiRecipePreset) {
+      setIsAccessModalOpen(true);
+    }
+  }, [location.state, aiRecipePreset]);
+
+  // 모달 확인 버튼 클릭 시 레시피 생성 페이지로 리다이렉트
+  const handleConfirmAccessError = () => {
+    setIsAccessModalOpen(false);
+    navigate('/ai', { replace: true });
+  };
+
+  // 권한 없음 모달 확인 클릭 시 메인 화면으로 이동
+  const handleConfirmPermissionError = () => {
+    setIsPermissionModalOpen(false);
+    navigate('/', { replace: true });
+  };
 
   // 통합 폼 상태 데이터
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '한식',
-    cookingTime: '10분 이내',
-    difficulty: '초간간',
-    servings: '1인분',
-    tags: [],
-    ingredients: [],
-    cookingSteps: [],
-    images: [],
-    thumbnail_url: '',
-    isPublic: true,
-  });
+  const [formData, setFormData] = useState(() => {
+    if (aiRecipePreset) {
+      const parsedData = {
+        // step 1
+        title: aiRecipePreset.title || '',
+        description: aiRecipePreset.summary || '',
+        category: aiRecipePreset.cuisine || '한식',
+        cookingTime: aiRecipePreset.cooking_time || '10분 이내',
+        difficulty: aiRecipePreset.difficulty || '초간단',
+        servings: aiRecipePreset.servings || '1인분',
+        tags: aiRecipePreset.tags || [],
+        diet_goal: aiRecipePreset.diets || '해당없음',
+        // step 2
+        ingredients: aiRecipePreset.ingredients || [],
+        // step 3
+        cookingSteps: aiRecipePreset.steps || [],
+        // step 4
+        images: aiRecipePreset.steps?.map((s) => s.image).filter(Boolean) || [],
+        thumbnail_url: aiRecipePreset.thumbnail_url || '',
+        // step 5
+        isPublic: true,
+      };
 
-  // 💡 URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
-  useEffect(() => {
-    if (!recipeId) return;
+      return parsedData;
+    }
 
-    const fetchRecipePreset = async () => {
-      try {
-        setIsLoadingPreset(true);
-
-        const { data, error } = await supabase.from('recipes').select('*').eq('id', recipeId).single();
-
-        if (error) {
-          console.error('레시피 프리셋 조회 실패:', error.message);
-          return;
-        }
-
-        if (data) {
-          setFormData({
-            title: data.title || '',
-            description: data.summary || '',
-            category: data.cuisine || '한식',
-            cookingTime: String(data.cooking_time || '30').replace(/[^0-9]/g, ''), // 숫자만 추출
-            difficulty: data.difficulty || '보통',
-            servings: String(data.servings || '2').replace(/[^0-9]/g, ''),
-            tags: data.tags || [],
-            ingredients: data.ingredients || [],
-            cookingSteps: data.steps || [],
-            images: data.steps?.map((s) => s.image).filter(Boolean) || [],
-            thumbnail_url: data.thumbnail_url || '',
-            isPublic: true,
-          });
-        }
-      } catch (err) {
-        console.error('프리셋 로딩 중 오류:', err);
-      } finally {
-        setIsLoadingPreset(false);
-      }
+    return {
+      // step 1
+      title: '',
+      description: '',
+      category: '한식',
+      cookingTime: '10분 이내',
+      difficulty: '초간단',
+      servings: '1인분',
+      tags: [],
+      diet_goal: '해당없음',
+      // step 2
+      ingredients: [],
+      // step 3
+      cookingSteps: [],
+      // step 4
+      images: [],
+      thumbnail_url: '',
+      // step 5
+      isPublic: true,
     };
-
-    fetchRecipePreset();
-  }, [recipeId]);
+  });
 
   // 상태 업데이트 함수
   const updateFormData = (key, value) => {
@@ -882,12 +942,10 @@ export default function RegistRecipe() {
     { id: 5, label: '미리 보기' },
   ];
 
-  // 단계 이동 (URL SearchParam 업데이트로 뒤로가기 내비게이션 대응)
+  // 단계 이동
   const goToStep = (stepNumber) => {
     if (stepNumber >= 1 && stepNumber <= steps.length) {
-      const newParams = { step: stepNumber };
-      if (recipeId) newParams.id = recipeId;
-      setSearchParams(newParams);
+      setSearchParams({ step: stepNumber }, { state: location.state });
     }
   };
 
@@ -917,6 +975,171 @@ export default function RegistRecipe() {
     }
   };
 
+  // URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
+  useEffect(() => {
+    if (!recipeId) return;
+
+    const fetchRecipePreset = async () => {
+      try {
+        setIsLoadingPreset(true);
+
+        const { data, error } = await supabase.from('recipes').select('*').eq('id', recipeId).single();
+
+        if (error) {
+          console.error('레시피 프리셋 조회 실패:', error.message);
+          return;
+        }
+
+        if (data) {
+          setFormData({
+            // step 1
+            title: data.title || '',
+            description: data.summary || '',
+            category: data.cuisine || '한식',
+            cookingTime: data.cooking_time || '10분 이내',
+            difficulty: data.difficulty || '초간단',
+            servings: data.servings || '1인분',
+            tags: data.tags || [],
+            diet_goal: data.diets || '해당없음',
+            // step 2
+            ingredients: data.ingredients || [],
+            // step 3
+            cookingSteps: data.steps || [],
+            // step 4
+            images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+            thumbnail_url: data.thumbnail_url || '',
+            // step 5
+            isPublic: true, // ***컬럼 추가***
+          });
+        }
+      } catch (err) {
+        console.error('프리셋 로딩 중 오류:', err);
+      } finally {
+        setIsLoadingPreset(false);
+      }
+    };
+
+    fetchRecipePreset();
+  }, [recipeId]);
+
+  // [가장 최근 임시저장 프리셋 불러오기]
+  const handleLoadRecentDraft = async () => {
+    try {
+      setIsLoadingPreset(true);
+
+      // isTempSaved가 true인 데이터 중 가장 최신의 것 1건 조회
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('istempsaved', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Supabase DB 데이터를 formData 형태로 바인딩
+        setFormData({
+          title: data.title || '',
+          description: data.summary || '',
+          category: data.cuisine || '한식',
+          cookingTime: data.cooking_time || '10분 이내',
+          difficulty: data.difficulty || '초간단',
+          servings: data.servings || '1인분',
+          tags: data.tags || [],
+          diet_goal: data.diets || '해당없음',
+          ingredients: data.ingredients || [],
+          cookingSteps: data.steps || [],
+          images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+          thumbnail_url: data.thumbnail_url || '',
+          isPublic: true,
+        });
+
+        setIsAccessModalOpen(false);
+        alert('최근에 임시 저장된 레시피 데이터를 성공적으로 불러왔습니다!');
+      } else {
+        // 임시저장 레시피가 DB에 없는 경우
+        alert('임시 저장된 레시피가 없습니다. 레시피 생성 페이지로 이동합니다.');
+        setIsAccessModalOpen(false);
+        navigate('/ai', { replace: true });
+      }
+    } catch (err) {
+      console.error('임시 저장 데이터 불러오기 실패:', err);
+      alert('임시 저장 데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoadingPreset(false);
+    }
+  };
+
+  // [레시피 생성하기]
+  const handleGoToCreatePage = () => {
+    setIsAccessModalOpen(false);
+    navigate('/ai', { replace: true });
+  };
+
+  // [임시저장]
+  const handleSaveDraft = async () => {
+    try {
+      setIsSaving(true);
+
+      // 1. 현재 로그인한 유저 세션 가져오기
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        alert('로그인이 필요합니다. 로그인 후 임시 저장을 이용해 주세요.');
+        return;
+      }
+
+      // 2. formData를 UploadRecipeToSupabase 규격에 맞게 매핑
+      const recipeRawData = {
+        title: formData.title,
+        summary: formData.description,
+        cuisine: formData.category,
+        cooking_time: formData.cookingTime,
+        difficulty: formData.difficulty,
+        servings: formData.servings,
+        tags: formData.tags,
+        diets: formData.diet_goal,
+        ingredients: formData.ingredients,
+        steps: formData.cookingSteps,
+        thumbnail_url: formData.thumbnail_url,
+      };
+
+      // 3. 이미 생성된 임시저장 ID가 있는 경우: UPDATE 실행
+      if (savedDraftId) {
+        const result = await UploadRecipeToSupabase(recipeRawData, user, true, savedDraftId);
+
+        if (result.success) {
+          alert('임시 저장된 레시피가 수정 반영되었습니다.');
+        } else {
+          alert(`임시 저장 수정 실패: ${result.detail || result.error}`);
+        }
+      }
+      // 4. 처음 임시저장을 누른 경우: INSERT 실행 후 반환된 ID 보관
+      else {
+        const result = await UploadRecipeToSupabase(recipeRawData, user, true);
+
+        if (result.success && result.savedRecipe) {
+          setSavedDraftId(result.savedRecipe.id);
+          alert('현재 작성 중인 레시피가 임시 저장되었습니다.');
+        } else {
+          alert(`임시 저장 실패: ${result.detail || result.error}`);
+        }
+      }
+    } catch (err) {
+      console.error('임시 저장 실패:', err);
+      alert('임시 저장 도중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <Layout activeMenu="AI 레시피">
       <SEO
@@ -935,7 +1158,7 @@ export default function RegistRecipe() {
           </p>
         </div>
 
-        {/* 5단계 알약 인디케이터 바 */}
+        {/* 5단계 인디케이터 바 */}
         <div className={styles.stepNav}>
           {steps.map((step) => {
             const isActive = currentStep === step.id;
@@ -959,14 +1182,26 @@ export default function RegistRecipe() {
         {/* 하단 액션 버튼 바 */}
         <div className={styles.bottomActionBar}>
           <div className={styles.leftActions}>
-            <button type="button" className={styles.actionBtn} data-tooltip="임시 저장">
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={handleSaveDraft}
+              disabled={isSaving}
+              data-tooltip="임시 저장"
+            >
               <span className={styles.btnIcon}>💾</span>
-              <span className={styles.btnText}>임시 저장</span>
+              <span className={styles.btnText}>{isSaving ? '저장 중...' : '임시 저장'}</span>
             </button>
 
-            <button type="button" className={styles.actionBtn} onClick={() => goToStep(5)} data-tooltip="미리 보기">
-              <span className={styles.btnIcon}>👁</span>
-              <span className={styles.btnText}>미리 보기</span>
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={() => goToStep(5)}
+              disabled={isSaving}
+              data-tooltip="임시 저장"
+            >
+              <span className={styles.btnIcon}>📁</span>
+              <span className={styles.btnText}>불러오기</span>
             </button>
           </div>
 
@@ -988,6 +1223,7 @@ export default function RegistRecipe() {
               onClick={() => {
                 if (currentStep === steps.length) {
                   alert('레시피가 성공적으로 등록되었습니다!');
+                  /**handleFinalSubmit */
                 } else {
                   goToStep(currentStep + 1);
                 }
@@ -1000,6 +1236,72 @@ export default function RegistRecipe() {
           </div>
         </div>
       </div>
+
+      {/* 🚨 잘못된 접근 및 프리셋 없음 통합 MUI 모달 */}
+      <Dialog
+        open={isAccessModalOpen}
+        onClose={handleGoToCreatePage}
+        aria-labelledby="access-dialog-title"
+        aria-describedby="access-dialog-description"
+        PaperProps={{
+          style: {
+            borderRadius: '16px',
+            padding: '12px 8px',
+            minWidth: '340px',
+            maxWidth: '440px',
+          },
+        }}
+      >
+        <DialogTitle id="access-dialog-title" style={{ fontWeight: 600, color: '#333', textAlign: 'center' }}>
+          ⚠️ 적용된 레시피 프리셋이 없습니다
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText
+            id="access-dialog-description"
+            style={{ color: '#666', lineHeight: '1.5', textAlign: 'center' }}
+          >
+            현재 적용 중인 레시피 프리셋 데이터를 찾을 수 없습니다.
+            <br />
+            <strong>임시 저장해둔 레시피</strong>를 불러오시거나, <strong>새 AI 레시피</strong>를 생성해 주세요.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions style={{ padding: '12px 24px 16px 24px', flexDirection: 'column', gap: '8px' }}>
+          {/* 버튼 1: 최근 임시저장 레시피 불러오기 */}
+          <Button
+            onClick={handleLoadRecentDraft}
+            variant="contained"
+            disableElevation
+            fullWidth
+            style={{
+              backgroundColor: 'var(--brand-primary, #f05a24)',
+              color: '#fff',
+              fontWeight: 600,
+              borderRadius: '8px',
+              padding: '10px',
+              margin: 0,
+            }}
+          >
+            가장 최근 저장한 프리셋 불러오기
+          </Button>
+
+          {/* 버튼 2: 레시피 생성하기 */}
+          <Button
+            onClick={handleGoToCreatePage}
+            variant="outlined"
+            fullWidth
+            style={{
+              borderColor: '#ccc',
+              color: '#555',
+              fontWeight: 600,
+              borderRadius: '8px',
+              padding: '10px',
+              margin: 0,
+            }}
+          >
+            레시피 생성하기
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }

@@ -43,6 +43,7 @@ export default function CreateAIRecipe() {
     handleGenerateRecipe,
     handleRefineSubmit,
     handlePublish,
+    handleConfirmAuthModal,
   } = useAiRecipe();
 
   return (
@@ -118,6 +119,7 @@ export default function CreateAIRecipe() {
       <AuthGuardModal
         open={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        onConfirm={handleConfirmAuthModal}
         message="게시하기 기능은 로그인 후 이용하실 수 있습니다."
       />
     </Layout>
