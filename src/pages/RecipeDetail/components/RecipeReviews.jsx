@@ -84,6 +84,7 @@ export default function RecipeReviews({
                       src={comment.image_url}
                       alt={`${nickname}님의 완성 후기`}
                       loading="lazy"
+                      decoding="async"
                     />
                   )}
                 </div>

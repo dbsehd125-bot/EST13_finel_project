@@ -47,7 +47,12 @@ export default function RecipeOverview({
   return (
     <>
       <section className={styles.hero}>
-        <img src={recipe.thumbnail_url} alt={recipe.title} />
+        <img
+          src={recipe.thumbnail_url}
+          alt={`${recipe.title} 완성 이미지`}
+          fetchPriority="high"
+          decoding="async"
+        />
       </section>
 
       <section className={styles.intro}>
