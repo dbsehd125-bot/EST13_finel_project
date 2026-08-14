@@ -220,7 +220,7 @@ export default function RecipeList() {
             query = query.order('rating', { ascending: false, nullsFirst: false });
             break;
           case '조회순':
-            query = query.order('views', { ascending: false, nullsFirst: false });
+            query = query.order('view_count', { ascending: false, nullsFirst: false });
             break;
           case '좋아요순':
             query = query.order('like_count', { ascending: false, nullsFirst: false });

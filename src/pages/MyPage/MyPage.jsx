@@ -97,6 +97,60 @@ export default function MyPage() {
   const [likedRecipes, setLikedRecipes] = useState([]);
   const [loadingLiked, setLoadingLiked] = useState(false);
 
+  const [bookmarkedRecipes, setBookmarkedRecipes] = useState([]);
+  const [loadingBookmarked, setLoadingBookmarked] = useState(false);
+
+  // 저장한(즐겨찾기) 레시피 불러오기
+  useEffect(() => {
+    async function fetchBookmarkedRecipes() {
+      if (!user) return;
+      try {
+        setLoadingBookmarked(true);
+        // 1. 유저가 즐겨찾기한 recipe_id 목록 조회
+        const { data: bookmarksData, error: bookmarksError } = await supabase
+          .from('recipe_bookmarks')
+          .select('recipe_id')
+          .eq('user_id', user.id);
+          
+        if (bookmarksError) throw bookmarksError;
+        
+        const recipeIds = bookmarksData.map(bookmark => bookmark.recipe_id);
+        
+        if (recipeIds.length === 0) {
+          setBookmarkedRecipes([]);
+          return;
+        }
+
+        // 2. 해당 id들의 레시피 데이터 조회
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('*')
+          .in('id', recipeIds);
+          
+        if (recipesError) throw recipesError;
+
+        const mappedRecipes = (recipesData || []).map(row => ({
+          id: row.id,
+          title: row.title,
+          views: row.views || 0,
+          likes: row.like_count || row.likes || 0,
+          image: row.thumbnail_url || row.image_url || '',
+          isPublic: row.is_public || false
+        }));
+
+        setBookmarkedRecipes(mappedRecipes);
+      } catch (err) {
+        console.error('저장한 레시피 목록 조회 오류:', err);
+      } finally {
+        setLoadingBookmarked(false);
+      }
+    }
+
+    if (activeTab === '저장한 레시피') {
+      fetchBookmarkedRecipes();
+    }
+  }, [user, activeTab]);
+
   // 좋아요한 레시피 불러오기
   useEffect(() => {
     async function fetchLikedRecipes() {
@@ -346,10 +400,22 @@ export default function MyPage() {
         )}
 
         {activeTab === '저장한 레시피' && (
-          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
-            <p className="text-lg">아직 저장한 레시피가 없습니다.</p>
-            <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 저장해보세요!</p>
-          </div>
+          loadingBookmarked ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">로딩 중...</p>
+            </div>
+          ) : bookmarkedRecipes.length === 0 ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">아직 저장한 레시피가 없습니다.</p>
+              <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 저장해보세요!</p>
+            </div>
+          ) : (
+            <div className={styles['recipe-grid']}>
+              {bookmarkedRecipes.map(recipe => (
+                <MyRecipeCard key={recipe.id} recipe={recipe} isLikedCard={true} />
+              ))}
+            </div>
+          )
         )}
 
         {activeTab === '좋아요한 레시피' && (
