@@ -1,10 +1,12 @@
 /**
  * 레시피 완성 후기 영역 컴포넌트
- * - 등록된 후기의 작성자, 별점, 내용, 이미지 표시
+ * - 등록된 후기의 작성자 프로필, 닉네임, 별점, 내용, 이미지 표시
  * - 별점 선택, 후기 내용 입력, 이미지 첨부를 위한 작성 폼 제공
  * - 실제 조회·등록 로직은 useRecipeReviews hook에 위임
  */
 import { AddPhotoAlternateOutlined, Star, StarBorder } from "@mui/icons-material";
+
+import UserAvatar from "../../../components/UserAvatar";
 
 import styles from "../RecipeDetail.module.css";
 import { formatDate } from "../recipeDetailUtils";
@@ -32,38 +34,63 @@ export default function RecipeReviews({
         <p className="text-sm">완성 후기를 불러오는 중입니다.</p>
       ) : comments.length > 0 ? (
         <div className={styles.commentList}>
-          {comments.map(comment => (
-            <article key={comment.id} className={styles.commentItem}>
-              <div className={styles.commentHeader}>
-                <div>
-                  <strong className="text-sm">{comment.nickname || "사용자"}</strong>
+          {comments.map(comment => {
+            const nickname = comment.profile?.nickname || comment.nickname || "사용자";
 
-                  <div className={styles.reviewStars}>
-                    {[1, 2, 3, 4, 5].map(star =>
-                      star <= Number(comment.rating) ? (
-                        <Star key={star} fontSize="small" />
-                      ) : (
-                        <StarBorder key={star} fontSize="small" />
-                      ),
-                    )}
+            const avatarUrl = comment.profile?.avatar_url || null;
+
+            return (
+              <article key={comment.id} className={styles.commentItem}>
+                <div className={styles.commentHeader}>
+                  <div className={styles.commentAuthor}>
+                    <UserAvatar src={avatarUrl} name={nickname} size="md" />
+
+                    <div className={styles.commentAuthorInfo}>
+                      <strong className="text-sm">{nickname}</strong>
+
+                      <div className={styles.reviewStars} aria-label={`${comment.rating}점`}>
+                        {[1, 2, 3, 4, 5].map(star =>
+                          star <= Number(comment.rating) ? (
+                            <Star key={star} fontSize="small" />
+                          ) : (
+                            <StarBorder key={star} fontSize="small" />
+                          ),
+                        )}
+                      </div>
+                    </div>
                   </div>
+
+                  <span className="text-s">{formatDate(comment.created_at)}</span>
                 </div>
 
-                <span className="text-s">{formatDate(comment.created_at)}</span>
-              </div>
+                <div
+                  className={`${styles.commentBody} ${
+                    comment.image_url ? styles.commentBodyWithImage : ""
+                  }`}
+                >
+                  <div className={styles.commentTextArea}>
+                    {comment.content ? (
+                      <p className="text-sm">{comment.content}</p>
+                    ) : (
+                      <p className={`text-sm ${styles.commentContentEmpty}`}>
+                        사진으로 남긴 완성 후기입니다.
+                      </p>
+                    )}
+                  </div>
 
-              {comment.content && <p className="text-sm">{comment.content}</p>}
-
-              {comment.image_url && (
-                <img
-                  className={styles.commentImage}
-                  src={comment.image_url}
-                  alt={`${comment.nickname || "사용자"}님의 완성 후기`}
-                  loading="lazy"
-                />
-              )}
-            </article>
-          ))}
+                  {comment.image_url && (
+                    <img
+                      className={styles.commentImage}
+                      src={comment.image_url}
+                      alt={`${nickname}님의 완성 후기`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <p className={`text-sm ${styles.emptyComment}`}>아직 등록된 완성 후기가 없습니다.</p>
@@ -99,6 +126,7 @@ export default function RecipeReviews({
           {reviewImagePreview && (
             <div className={styles.reviewImagePreview}>
               <img src={reviewImagePreview} alt="후기 이미지 미리보기" />
+
               <button
                 type="button"
                 className={styles.removeReviewImage}
@@ -122,7 +150,9 @@ export default function RecipeReviews({
           <div className={styles.reviewFormActions}>
             <label className={styles.imageUploadButton}>
               <AddPhotoAlternateOutlined />
+
               <span className="text-sm">사진 추가</span>
+
               <input
                 type="file"
                 accept="image/*"

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useLocation } from 'react-router';
 import { Layout } from '../../components';
 import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@mui/material';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
+import SEO from "../../components/SEO";
 import styles from './RecipeList.module.css';
 
 function FilterChip({ filterName, onRemove }) {
@@ -105,7 +106,11 @@ function RecipeCardSkeleton() {
 // 메인 페이지
 export default function RecipeList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+
+  // Header에서 전달된 검색어
+  const headerSearchKeyword = location.state?.searchKeyword?.trim() || '';
 
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +142,13 @@ export default function RecipeList() {
   const toggleSection = (section) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
+
+  // Header에서 새로운 검색어가 전달되면 기존 검색창에 반영
+  useEffect(() => {
+    if (!headerSearchKeyword) return;
+
+    setSearchTerm(headerSearchKeyword);
+  }, [headerSearchKeyword]);
 
   // 1. 검색어 디바운스 처리
   useEffect(() => {
@@ -206,16 +218,20 @@ export default function RecipeList() {
             query = query.order('created_at', { ascending: false });
             break;
           case '평점순':
+            // rating 컬럼 기준 내림차순 정렬 (값 없는 것은 맨 뒤로)
             query = query.order('rating', { ascending: false, nullsFirst: false });
             break;
           case '조회순':
-            query = query.order('views', { ascending: false, nullsFirst: false });
+            query = query.order('view_count', { ascending: false, nullsFirst: false });
             break;
           case '좋아요순':
-            query = query.order('likes_count', { ascending: false, nullsFirst: false });
+            query = query.order('like_count', { ascending: false, nullsFirst: false });
             break;
           case '댓글순':
-            query = query.order('comments_count', { ascending: false, nullsFirst: false });
+            // comments_count가 1 이상인 레시피만 담아서 내림차순 정렬
+            query = query
+              .gt('comments_count', 0)
+              .order('comments_count', { ascending: false });
             break;
           default:
             query = query.order('created_at', { ascending: false });
@@ -239,7 +255,7 @@ export default function RecipeList() {
           time: r.cooking_time ? (String(r.cooking_time).includes("분") ? r.cooking_time : `${r.cooking_time}분`) : "30분",
           difficulty: r.difficulty || "보통",
           rating: r.rating || 4.8,
-          views: r.likes_count !== undefined ? String(r.likes_count) : "0",
+          views: r.like_count !== undefined ? String(r.like_count) : "0",
           comments: r.comments_count !== undefined ? String(r.comments_count) : "0"
         }));
 
@@ -312,10 +328,10 @@ export default function RecipeList() {
             recipe_id: recipeId,
             user_id: user.id
           });
-        if (error) throw error;
+        if (error && error.code !== '23505') throw error;
       }
 
-      // recipes 테이블의 likes_count 필드 동기화
+      // recipes 테이블의 like_count 필드 동기화
       const targetRecipe = recipes.find(r => r.id === recipeId);
       if (targetRecipe) {
         const currentLikes = parseInt(targetRecipe.views) || 0;
@@ -323,7 +339,7 @@ export default function RecipeList() {
 
         const { error: countError } = await supabase
           .from("recipes")
-          .update({ likes_count: nextLikes })
+          .update({ like_count: nextLikes })
           .eq("id", recipeId);
         if (countError) throw countError;
       }
@@ -354,6 +370,11 @@ export default function RecipeList() {
 
   return (
     <Layout activeMenu="레시피 둘러보기">
+      <SEO
+        title="레시피 둘러보기 | 깃깔나는 레시피"
+        description="다양한 레시피를 검색하고 음식 종류, 난이도, 식단별로 원하는 레시피를 찾아보세요."
+        url="/recipes"
+      />
       <div className={styles['recipe-list-page']}>
         {/* 페이지 타이틀 헤더 */}
         <section className={styles['page-header']}>

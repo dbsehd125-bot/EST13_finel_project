@@ -17,6 +17,8 @@ import {
   Star,
 } from "@mui/icons-material";
 
+import UserAvatar from "../../../components/UserAvatar";
+
 import styles from "../RecipeDetail.module.css";
 import { formatDate } from "../recipeDetailUtils";
 
@@ -34,22 +36,39 @@ export default function RecipeOverview({
   onBookmarkToggle,
   onShare,
 }) {
+  /**
+   * profiles의 현재 닉네임을 우선 사용하고,
+   * profiles가 없을 경우 기존 recipes.nickname을 fallback으로 사용한다.
+   */
+  const authorName = recipe.profile?.nickname || recipe.nickname || "사용자";
+
+  const authorAvatarUrl = recipe.profile?.avatar_url || null;
+
   return (
     <>
       <section className={styles.hero}>
-        <img src={recipe.thumbnail_url} alt={recipe.title} />
+        <img
+          src={recipe.thumbnail_url}
+          alt={`${recipe.title} 완성 이미지`}
+          fetchPriority="high"
+          decoding="async"
+        />
       </section>
 
       <section className={styles.intro}>
         <p className={`text-sm ${styles.category}`}>{recipe.cuisine}</p>
+
         <h1 className={`font-display dtext-4xl ${styles.title}`}>{recipe.title}</h1>
+
         <p className={`text-m ${styles.description}`}>{recipe.summary}</p>
 
         <div className={styles.authorRow}>
           <div className={styles.author}>
-            <div className={styles.authorImage} />
+            <UserAvatar src={authorAvatarUrl} name={authorName} size="md" />
+
             <div>
-              <p className={`text-sm ${styles.authorName}`}>{recipe.nickname || "사용자"}</p>
+              <p className={`text-sm ${styles.authorName}`}>{authorName}</p>
+
               <p className={`text-s ${styles.date}`}>{formatDate(recipe.created_at)}</p>
             </div>
           </div>
@@ -69,6 +88,7 @@ export default function RecipeOverview({
                 />
               ))}
             </div>
+
             <span>{comments.length > 0 ? averageRating.toFixed(1) : "0.0"}</span>
           </div>
         </div>
@@ -77,32 +97,40 @@ export default function RecipeOverview({
       <section className={styles.recipeInfo}>
         <div className={styles.infoItem}>
           <AccessTimeOutlined />
+
           <div>
             <span className="text-s">조리 시간</span>
+
             <strong className="text-sm">{recipe.cooking_time}</strong>
           </div>
         </div>
 
         <div className={styles.infoItem}>
           <LocalDiningOutlined />
+
           <div>
             <span className="text-s">난이도</span>
+
             <strong className="text-sm">{recipe.difficulty}</strong>
           </div>
         </div>
 
         <div className={styles.infoItem}>
           <GroupOutlined />
+
           <div>
             <span className="text-s">인분</span>
+
             <strong className="text-sm">{recipe.servings}</strong>
           </div>
         </div>
 
         <div className={styles.infoItem}>
           <RemoveRedEyeOutlined />
+
           <div>
             <span className="text-s">조회 수</span>
+
             <strong className="text-sm">{Number(recipe.view_count ?? 0).toLocaleString()}</strong>
           </div>
         </div>
@@ -115,7 +143,9 @@ export default function RecipeOverview({
           onClick={onLikeToggle}
           disabled={likeLoading}
           aria-pressed={liked}
-          style={{ color: liked ? "var(--brand-primary)" : undefined }}
+          style={{
+            color: liked ? "var(--brand-primary)" : undefined,
+          }}
         >
           {liked ? <Favorite /> : <FavoriteBorderOutlined />}
           좋아요 {likeCount}
@@ -127,7 +157,9 @@ export default function RecipeOverview({
           onClick={onBookmarkToggle}
           disabled={bookmarkLoading}
           aria-pressed={bookmarked}
-          style={{ color: bookmarked ? "var(--brand-primary)" : undefined }}
+          style={{
+            color: bookmarked ? "var(--brand-primary)" : undefined,
+          }}
         >
           {bookmarked ? <Bookmark /> : <BookmarkBorderOutlined />}
           즐겨찾기
@@ -139,6 +171,7 @@ export default function RecipeOverview({
           onClick={onShare}
         >
           <ShareOutlined />
+
           {shareCopied ? "복사됨" : "공유"}
         </button>
       </section>

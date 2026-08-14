@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
 import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SEO from "../../components/SEO";
 import styles from './MyPage.module.css';
 
 function TabButton({ tab, activeTab, onClick }) {
@@ -17,7 +18,7 @@ function TabButton({ tab, activeTab, onClick }) {
   );
 }
 
-function MyRecipeCard({ recipe, onTogglePublic }) {
+function MyRecipeCard({ recipe, onTogglePublic, isLikedCard }) {
   const navigate = useNavigate();
 
   return (
@@ -26,18 +27,20 @@ function MyRecipeCard({ recipe, onTogglePublic }) {
       onClick={() => navigate(`/recipes/${recipe.id}`)}
       style={{ cursor: 'pointer' }}
     >
-      <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
-        <span 
-          className={`text-s ${styles['privacy-badge']} ${recipe.isPublic ? styles['public'] : styles['private']}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onTogglePublic(recipe.id);
-          }}
-          style={{ cursor: 'pointer' }}
-          title="공개/비공개 전환"
-        >
-          {recipe.isPublic ? '공개' : '비공개'}
-        </span>
+      <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)', backgroundImage: recipe.image ? `url(${recipe.image})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        {!isLikedCard && (
+          <span 
+            className={`text-s ${styles['privacy-badge']} ${recipe.isPublic ? styles['public'] : styles['private']}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePublic && onTogglePublic(recipe.id);
+            }}
+            style={{ cursor: 'pointer' }}
+            title="공개/비공개 전환"
+          >
+            {recipe.isPublic ? '공개' : '비공개'}
+          </span>
+        )}
       </div>
       <div className={styles['recipe-content']}>
         <h3 className={`text-lg ${styles['recipe-title']}`}>{recipe.title}</h3>
@@ -45,10 +48,12 @@ function MyRecipeCard({ recipe, onTogglePublic }) {
           <span><Eye size={14} /> {recipe.views}</span>
           <span><Heart size={14} /> {recipe.likes}</span>
         </div>
-        <div className={styles['recipe-actions']}>
-          <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}><Pencil size={14} /> 수정</button>
-          <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}>🗑 삭제</button>
-        </div>
+        {!isLikedCard && (
+          <div className={styles['recipe-actions']}>
+            <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}><Pencil size={14} /> 수정</button>
+            <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}>🗑 삭제</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -89,6 +94,114 @@ export default function MyPage() {
 
   const [recipeData, setRecipeData] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [likedRecipes, setLikedRecipes] = useState([]);
+  const [loadingLiked, setLoadingLiked] = useState(false);
+
+  const [bookmarkedRecipes, setBookmarkedRecipes] = useState([]);
+  const [loadingBookmarked, setLoadingBookmarked] = useState(false);
+
+  // 저장한(즐겨찾기) 레시피 불러오기
+  useEffect(() => {
+    async function fetchBookmarkedRecipes() {
+      if (!user) return;
+      try {
+        setLoadingBookmarked(true);
+        // 1. 유저가 즐겨찾기한 recipe_id 목록 조회
+        const { data: bookmarksData, error: bookmarksError } = await supabase
+          .from('recipe_bookmarks')
+          .select('recipe_id')
+          .eq('user_id', user.id);
+          
+        if (bookmarksError) throw bookmarksError;
+        
+        const recipeIds = bookmarksData.map(bookmark => bookmark.recipe_id);
+        
+        if (recipeIds.length === 0) {
+          setBookmarkedRecipes([]);
+          return;
+        }
+
+        // 2. 해당 id들의 레시피 데이터 조회
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('*')
+          .in('id', recipeIds);
+          
+        if (recipesError) throw recipesError;
+
+        const mappedRecipes = (recipesData || []).map(row => ({
+          id: row.id,
+          title: row.title,
+          views: row.views || 0,
+          likes: row.like_count || row.likes || 0,
+          image: row.thumbnail_url || row.image_url || '',
+          isPublic: row.is_public || false
+        }));
+
+        setBookmarkedRecipes(mappedRecipes);
+      } catch (err) {
+        console.error('저장한 레시피 목록 조회 오류:', err);
+      } finally {
+        setLoadingBookmarked(false);
+      }
+    }
+
+    if (activeTab === '저장한 레시피') {
+      fetchBookmarkedRecipes();
+    }
+  }, [user, activeTab]);
+
+  // 좋아요한 레시피 불러오기
+  useEffect(() => {
+    async function fetchLikedRecipes() {
+      if (!user) return;
+      try {
+        setLoadingLiked(true);
+        // 1. 유저가 좋아요한 recipe_id 목록 조회
+        const { data: likesData, error: likesError } = await supabase
+          .from('recipe_likes')
+          .select('recipe_id')
+          .eq('user_id', user.id);
+          
+        if (likesError) throw likesError;
+        
+        const recipeIds = likesData.map(like => like.recipe_id);
+        
+        if (recipeIds.length === 0) {
+          setLikedRecipes([]);
+          return;
+        }
+
+        // 2. 해당 id들의 레시피 데이터 조회
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('*')
+          .in('id', recipeIds);
+          
+        if (recipesError) throw recipesError;
+
+        const mappedRecipes = (recipesData || []).map(row => ({
+          id: row.id,
+          title: row.title,
+          views: row.views || 0,
+          likes: row.like_count || row.likes || 0,
+          image: row.thumbnail_url || row.image_url || '',
+          isPublic: row.is_public || false
+        }));
+
+        setLikedRecipes(mappedRecipes);
+      } catch (err) {
+        console.error('좋아요한 레시피 목록 조회 오류:', err);
+      } finally {
+        setLoadingLiked(false);
+      }
+    }
+
+    if (activeTab === '좋아요한 레시피') {
+      fetchLikedRecipes();
+    }
+  }, [user, activeTab]);
 
   useEffect(() => {
     async function fetchMyRecipes() {
@@ -152,6 +265,12 @@ export default function MyPage() {
 
   return (
     <Layout activeMenu="커뮤니티">
+      <SEO
+        title="마이페이지 | 깃깔나는 레시피"
+        description="나만의 깃깔나는 레시피 공간입니다."
+        url="/mypage"
+        robots="noindex, nofollow"
+      />
       <div className={styles['mypage-container']}>
         {/* 사용자 프로필 영역 */}
         <div className={styles['profile-section']}>
@@ -288,16 +407,40 @@ export default function MyPage() {
         )}
 
         {activeTab === '저장한 레시피' && (
-          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
-            <p className="text-lg">아직 저장한 레시피가 없습니다.</p>
-            <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 저장해보세요!</p>
-          </div>
+          loadingBookmarked ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">로딩 중...</p>
+            </div>
+          ) : bookmarkedRecipes.length === 0 ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">아직 저장한 레시피가 없습니다.</p>
+              <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 저장해보세요!</p>
+            </div>
+          ) : (
+            <div className={styles['recipe-grid']}>
+              {bookmarkedRecipes.map(recipe => (
+                <MyRecipeCard key={recipe.id} recipe={recipe} isLikedCard={true} />
+              ))}
+            </div>
+          )
         )}
 
         {activeTab === '좋아요한 레시피' && (
-          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
-            <p className="text-lg">아직 좋아요를 누른 레시피가 없습니다.</p>
-          </div>
+          loadingLiked ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">로딩 중...</p>
+            </div>
+          ) : likedRecipes.length === 0 ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">아직 좋아요를 누른 레시피가 없습니다.</p>
+            </div>
+          ) : (
+            <div className={styles['recipe-grid']}>
+              {likedRecipes.map(recipe => (
+                <MyRecipeCard key={recipe.id} recipe={recipe} isLikedCard={true} />
+              ))}
+            </div>
+          )
         )}
 
         {activeTab === '요리 후기' && (

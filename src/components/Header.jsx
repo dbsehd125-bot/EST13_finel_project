@@ -1,31 +1,33 @@
-import { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router';
+import { useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router";
 
-import { useAuth } from '../context/AuthContext';
-import './Header.css';
-import AuthGuardModal from '../components/AuthGuardModal';
+import { useAuth } from "../context/AuthContext";
+import UserAvatar from "./UserAvatar";
+import AuthGuardModal from "./AuthGuardModal";
+
+import "./Header.css";
 
 const menuItems = [
   {
-    id: 'home',
-    label: '홈',
-    path: '/',
+    id: "home",
+    label: "홈",
+    path: "/",
     end: true,
   },
   {
-    id: 'recipes',
-    label: '레시피 둘러보기',
-    path: '/recipes',
+    id: "recipes",
+    label: "레시피 둘러보기",
+    path: "/recipes",
   },
   {
-    id: 'ai',
-    label: 'AI 레시피',
-    path: '/ai',
+    id: "ai",
+    label: "AI 레시피",
+    path: "/ai",
   },
   {
-    id: 'community',
-    label: '커뮤니티',
-    path: '/community',
+    id: "community",
+    label: "커뮤니티",
+    path: "/community",
   },
 ];
 
@@ -35,10 +37,47 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  const { user, profile, isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
+
+  const displayName =
+    profile?.nickname ||
+    user?.user_metadata?.nickname ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "사용자";
+
+  const avatarUrl =
+    profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
   function closeMenu() {
     setMenuOpen(false);
+  }
+
+  function closeSearch() {
+    setSearchOpen(false);
+  }
+
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+
+    const keyword = searchKeyword.trim();
+
+    if (!keyword) {
+      return;
+    }
+
+    closeMenu();
+    closeSearch();
+    setSearchKeyword("");
+
+    navigate("/recipes", {
+      state: {
+        searchKeyword: keyword,
+      },
+    });
   }
 
   async function handleLogout() {
@@ -47,19 +86,21 @@ export default function Header() {
     const success = await logout();
 
     if (!success) {
-      alert('로그아웃에 실패했습니다.');
+      alert("로그아웃에 실패했습니다.");
       return;
     }
 
     closeMenu();
-    navigate('/');
+    closeSearch();
+    navigate("/");
   }
 
   const handleRegisterClick = () => {
     closeMenu();
+    closeSearch();
 
     if (isLoggedIn) {
-      navigate('/register');
+      navigate("/register");
     } else {
       setIsModalOpen(true);
     }
@@ -69,8 +110,14 @@ export default function Header() {
     <header className="header">
       <div className="header-inner">
         <div className="header-left">
-          {/* 로고 */}
-          <Link to="/" className="logo" onClick={closeMenu}>
+          <Link
+            to="/"
+            className="logo"
+            onClick={() => {
+              closeMenu();
+              closeSearch();
+            }}
+          >
             <div className="logo-badge">
               <svg
                 width="20"
@@ -92,14 +139,14 @@ export default function Header() {
             <span className="logo-title font-display dtext-xl">깃깔나는 레시피</span>
           </Link>
 
-          {/* 데스크톱 내비게이션 */}
           <nav className="nav" aria-label="주요 메뉴">
-            {menuItems.map((item) => (
+            {menuItems.map(item => (
               <NavLink
                 key={item.id}
                 to={item.path}
                 end={item.end}
-                className={({ isActive }) => `text-sm ${isActive ? 'active' : ''}`}
+                className={({ isActive }) => `text-sm ${isActive ? "active" : ""}`}
+                onClick={closeSearch}
               >
                 {item.label}
               </NavLink>
@@ -108,8 +155,152 @@ export default function Header() {
         </div>
 
         <div className="header-right">
-          {/* 검색 */}
-          <button type="button" className="icon-btn search-btn hide-on-mobile" aria-label="검색">
+          <div className={`header-search ${searchOpen ? "open" : ""}`}>
+            {searchOpen && (
+              <form className="header-search-form" onSubmit={handleSearchSubmit}>
+                <input
+                  type="search"
+                  value={searchKeyword}
+                  onChange={event => setSearchKeyword(event.target.value)}
+                  placeholder="레시피 검색"
+                  aria-label="레시피 검색어"
+                  autoFocus
+                />
+
+                <button
+                  type="submit"
+                  className="header-search-submit"
+                  aria-label="검색 실행"
+                  disabled={!searchKeyword.trim()}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+                </button>
+              </form>
+            )}
+
+            <button
+              type="button"
+              className={`icon-btn search-btn hide-on-mobile ${searchOpen ? "active" : ""}`}
+              aria-label={searchOpen ? "검색창 닫기" : "검색"}
+              aria-expanded={searchOpen}
+              onClick={() => setSearchOpen(previous => !previous)}
+            >
+              {searchOpen ? (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              ) : (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="btn-create text-button hide-on-mobile"
+            onClick={handleRegisterClick}
+          >
+            + 레시피 등록하기
+          </button>
+
+          {isLoggedIn && (
+            <Link
+              to="/mypage"
+              className="header-avatar"
+              aria-label={`${displayName} 마이페이지로 이동`}
+              onClick={() => {
+                closeMenu();
+                closeSearch();
+              }}
+            >
+              <UserAvatar src={avatarUrl} name={displayName} size="header" />
+            </Link>
+          )}
+
+          <div className="auth-action">
+            {!authLoading &&
+              (isLoggedIn ? (
+                <button
+                  type="button"
+                  className="login-link logout-button text-sm"
+                  onClick={handleLogout}
+                  disabled={logoutLoading}
+                >
+                  {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+                </button>
+              ) : (
+                <Link to="/login" className="login-link text-sm" onClick={closeSearch}>
+                  로그인
+                </Link>
+              ))}
+          </div>
+
+          <button
+            type="button"
+            className={`menu-btn ${menuOpen ? "open" : ""}`}
+            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            onClick={() => {
+              closeSearch();
+              setMenuOpen(previous => !previous);
+            }}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+        </div>
+      </div>
+
+      <div id="mobile-menu" className={`mobile-menu ${menuOpen ? "open" : ""}`}>
+        <form className="mobile-search-form" onSubmit={handleSearchSubmit}>
+          <input
+            type="search"
+            value={searchKeyword}
+            onChange={event => setSearchKeyword(event.target.value)}
+            placeholder="레시피를 검색해보세요"
+            aria-label="레시피 검색어"
+          />
+
+          <button type="submit" aria-label="검색" disabled={!searchKeyword.trim()}>
             <svg
               width="20"
               height="20"
@@ -125,99 +316,15 @@ export default function Header() {
               <path d="M21 21l-4.35-4.35" />
             </svg>
           </button>
+        </form>
 
-          {/* 알림 */}
-          <button type="button" className="icon-btn alarm-btn hide-on-mobile" aria-label="알림">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-
-            <span className="alarm-dot">1</span>
-          </button>
-
-          {/* 레시피 등록 */}
-          {/* <Link to="/register" className="btn-create text-button">
-            + 레시피 등록하기
-          </Link> */}
-          <button type="button" className="btn-create text-button hide-on-mobile" onClick={handleRegisterClick}>
-            + 레시피 등록하기
-          </button>
-
-          {/* 로그인 상태일 때만 마이페이지 표시 */}
-          {isLoggedIn && (
-            <Link to="/mypage" className="avatar" aria-label="마이페이지로 이동" onClick={closeMenu}>
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--brand-gray)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </Link>
-          )}
-
-          {/* 데스크톱 로그인 / 로그아웃 */}
-          <div className="auth-action">
-            {!authLoading &&
-              (isLoggedIn ? (
-                <button
-                  type="button"
-                  className="login-link logout-button text-sm"
-                  onClick={handleLogout}
-                  disabled={logoutLoading}
-                >
-                  {logoutLoading ? '로그아웃 중...' : '로그아웃'}
-                </button>
-              ) : (
-                <Link to="/login" className="login-link text-sm">
-                  로그인
-                </Link>
-              ))}
-          </div>
-
-          {/* 태블릿·모바일 햄버거 버튼 */}
-          <button
-            type="button"
-            className={`menu-btn ${menuOpen ? 'open' : ''}`}
-            aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
-            onClick={() => setMenuOpen((previous) => !previous)}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-        </div>
-      </div>
-
-      {/* 태블릿·모바일 펼침 메뉴 */}
-      <div id="mobile-menu" className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         <nav className="mobile-nav" aria-label="모바일 메뉴">
-          {menuItems.map((item) => (
+          {menuItems.map(item => (
             <NavLink
               key={item.id}
               to={item.path}
               end={item.end}
-              className={({ isActive }) => `text-m ${isActive ? 'active' : ''}`}
+              className={({ isActive }) => `text-m ${isActive ? "active" : ""}`}
               onClick={closeMenu}
             >
               {item.label}
@@ -226,9 +333,6 @@ export default function Header() {
         </nav>
 
         <div className="mobile-menu-actions">
-          {/* <Link to="/register" className="mobile-create text-button" onClick={closeMenu}>
-            레시피 등록하기
-          </Link> */}
           <button type="button" className="mobile-create text-button" onClick={handleRegisterClick}>
             레시피 등록하기
           </button>
@@ -241,7 +345,7 @@ export default function Header() {
                 onClick={handleLogout}
                 disabled={logoutLoading}
               >
-                {logoutLoading ? '로그아웃 중...' : '로그아웃'}
+                {logoutLoading ? "로그아웃 중..." : "로그아웃"}
               </button>
             ) : (
               <Link to="/login" className="mobile-login text-button" onClick={closeMenu}>
@@ -251,7 +355,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* 로그인 안내 공통 모달 렌더링 추가 */}
       <AuthGuardModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </header>
   );

@@ -4,6 +4,13 @@ import { Alert, Snackbar } from "@mui/material";
 
 const NotificationContext = createContext(null);
 
+const NOTIFICATION_DURATION = {
+  success: 1000,
+  info: 1500,
+  warning: 2000,
+  error: 3000,
+};
+
 export function NotificationProvider({ children }) {
   const [notification, setNotification] = useState({
     open: false,
@@ -34,9 +41,12 @@ export function NotificationProvider({ children }) {
 
       <Snackbar
         open={notification.open}
-        autoHideDuration={3000}
+        autoHideDuration={NOTIFICATION_DURATION[notification.severity] ?? 1500}
         onClose={closeNotification}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
         sx={{
           top: {
             xs: "76px !important",
@@ -61,9 +71,11 @@ export function NotificationProvider({ children }) {
             fontSize: "14px",
             alignItems: "center",
             boxShadow: "0 12px 32px rgba(64, 41, 31, 0.18)",
+
             "&.MuiAlert-filledSuccess": {
               backgroundColor: "var(--brand-primary)",
             },
+
             "&.MuiAlert-filledInfo": {
               backgroundColor: "var(--brand-brown)",
             },
