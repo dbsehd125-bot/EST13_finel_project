@@ -719,7 +719,7 @@ h3 {
 .previewMetaRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   font-size: 0.85rem;
   color: var(--brand-brown);
   background-color: #ffffff;
