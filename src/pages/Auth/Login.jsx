@@ -17,6 +17,8 @@ import PasswordResetModal from "./components/PasswordResetModal";
 import useSocialLogin from "./hooks/useSocialLogin";
 import styles from "./Auth.module.css";
 
+import SEO from "../../components/SEO";
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
