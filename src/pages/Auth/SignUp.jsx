@@ -18,6 +18,8 @@ import useSocialLogin from "./hooks/useSocialLogin";
 import { FOOD_CATEGORIES } from "./authConstants";
 import styles from "./Auth.module.css";
 
+import SEO from "../../components/SEO";
+
 export default function SignUp() {
   const navigate = useNavigate();
   const location = useLocation();

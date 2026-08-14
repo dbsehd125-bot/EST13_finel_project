@@ -20,6 +20,8 @@ import useRecipeData from "./hooks/useRecipeData";
 import useRecipeReactions from "./hooks/useRecipeReactions";
 import useRecipeReviews from "./hooks/useRecipeReviews";
 
+import SEO from "../../components/SEO";
+
 export default function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
