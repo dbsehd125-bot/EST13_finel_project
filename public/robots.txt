@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://est-fe-13-3st-finalproject.vercel.app/sitemap.xml

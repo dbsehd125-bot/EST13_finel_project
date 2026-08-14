@@ -13,6 +13,8 @@ import Layout from "../../components/Layout";
 import AuthVisual from "./components/AuthVisual";
 import styles from "./Auth.module.css";
 
+import SEO from "../../components/SEO";
+
 export default function UpdatePassword() {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
@@ -112,6 +114,12 @@ export default function UpdatePassword() {
 
   return (
     <Layout>
+      <SEO
+        title="비밀번호 변경 | 깃깔나는 레시피"
+        description="깃깔나는 레시피 계정의 비밀번호를 새롭게 설정합니다."
+        url="/update-password"
+        robots="noindex, nofollow"
+      />
       <main className={styles.authPage}>
         <section className={styles.authCard}>
           <AuthVisual />
