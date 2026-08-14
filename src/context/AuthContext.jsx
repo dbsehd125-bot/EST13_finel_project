@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { supabase } from "../lib/supabaseClient";
 
@@ -10,16 +10,14 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
 
   const [authLoading, setAuthLoading] = useState(true);
-
   const [profileLoading, setProfileLoading] = useState(false);
-
   const [logoutLoading, setLogoutLoading] = useState(false);
 
   /**
    * profiles 테이블에서
    * 현재 로그인 사용자의 프로필 조회
    */
-  async function loadProfile(userId) {
+  const loadProfile = useCallback(async userId => {
     if (!userId) {
       setProfile(null);
 
@@ -51,13 +49,13 @@ export function AuthProvider({ children }) {
     } finally {
       setProfileLoading(false);
     }
-  }
+  }, []);
 
   /**
    * 마이페이지 등에서 프로필을 변경한 뒤
    * Header 등에 즉시 반영하기 위한 함수
    */
-  async function refreshProfile() {
+  const refreshProfile = useCallback(async () => {
     if (!user?.id) {
       setProfile(null);
 
@@ -65,7 +63,7 @@ export function AuthProvider({ children }) {
     }
 
     return loadProfile(user.id);
-  }
+  }, [user?.id, loadProfile]);
 
   useEffect(() => {
     let mounted = true;
@@ -160,12 +158,12 @@ export function AuthProvider({ children }) {
 
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadProfile]);
 
   /**
    * 로그아웃
    */
-  async function logout() {
+  const logout = useCallback(async () => {
     if (logoutLoading) {
       return false;
     }
@@ -191,22 +189,31 @@ export function AuthProvider({ children }) {
     } finally {
       setLogoutLoading(false);
     }
-  }
+  }, [logoutLoading]);
 
-  const value = {
-    user,
-    session,
-    profile,
+  /**
+   * Context value 메모이제이션
+   *
+   * Provider가 다시 렌더링될 때마다
+   * 불필요하게 새로운 객체가 생성되는 것을 방지
+   */
+  const value = useMemo(
+    () => ({
+      user,
+      session,
+      profile,
 
-    authLoading,
-    profileLoading,
-    logoutLoading,
+      authLoading,
+      profileLoading,
+      logoutLoading,
 
-    isLoggedIn: Boolean(session && user),
+      isLoggedIn: Boolean(session && user),
 
-    refreshProfile,
-    logout,
-  };
+      refreshProfile,
+      logout,
+    }),
+    [user, session, profile, authLoading, profileLoading, logoutLoading, refreshProfile, logout],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
