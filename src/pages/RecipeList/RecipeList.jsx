@@ -223,7 +223,7 @@ export default function RecipeList() {
             query = query.order('views', { ascending: false, nullsFirst: false });
             break;
           case '좋아요순':
-            query = query.order('likes_count', { ascending: false, nullsFirst: false });
+            query = query.order('like_count', { ascending: false, nullsFirst: false });
             break;
           case '댓글순':
             query = query.order('comments_count', { ascending: false, nullsFirst: false });
@@ -250,7 +250,7 @@ export default function RecipeList() {
           time: r.cooking_time ? (String(r.cooking_time).includes("분") ? r.cooking_time : `${r.cooking_time}분`) : "30분",
           difficulty: r.difficulty || "보통",
           rating: r.rating || 4.8,
-          views: r.likes_count !== undefined ? String(r.likes_count) : "0",
+          views: r.like_count !== undefined ? String(r.like_count) : "0",
           comments: r.comments_count !== undefined ? String(r.comments_count) : "0"
         }));
 
@@ -323,10 +323,10 @@ export default function RecipeList() {
             recipe_id: recipeId,
             user_id: user.id
           });
-        if (error) throw error;
+        if (error && error.code !== '23505') throw error;
       }
 
-      // recipes 테이블의 likes_count 필드 동기화
+      // recipes 테이블의 like_count 필드 동기화
       const targetRecipe = recipes.find(r => r.id === recipeId);
       if (targetRecipe) {
         const currentLikes = parseInt(targetRecipe.views) || 0;
@@ -334,7 +334,7 @@ export default function RecipeList() {
 
         const { error: countError } = await supabase
           .from("recipes")
-          .update({ likes_count: nextLikes })
+          .update({ like_count: nextLikes })
           .eq("id", recipeId);
         if (countError) throw countError;
       }
