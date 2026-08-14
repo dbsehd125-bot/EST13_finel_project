@@ -304,6 +304,22 @@ export default function useRecipeReviews({
       if (error) throw error;
 
       /**
+       * 댓글 등록 성공 시 recipes 테이블의 comments_count +1 업데이트
+       * 이를 통해 '댓글순' 정렬이 올바르게 동작한다.
+       */
+      const { data: currentRecipe } = await supabase
+        .from('recipes')
+        .select('comments_count')
+        .eq('id', recipe.id)
+        .single();
+
+      const currentCount = currentRecipe?.comments_count || 0;
+      await supabase
+        .from('recipes')
+        .update({ comments_count: currentCount + 1 })
+        .eq('id', recipe.id);
+
+      /**
        * 방금 등록한 사용자의 현재 프로필을 조회해서
        * 새 후기에 바로 붙인다.
        *

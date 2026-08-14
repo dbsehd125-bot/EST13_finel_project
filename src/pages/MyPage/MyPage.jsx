@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
 import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SEO from "../../components/SEO";
 import styles from './MyPage.module.css';
 
 function TabButton({ tab, activeTab, onClick }) {
@@ -264,6 +265,12 @@ export default function MyPage() {
 
   return (
     <Layout activeMenu="커뮤니티">
+      <SEO
+        title="마이페이지 | 깃깔나는 레시피"
+        description="나만의 깃깔나는 레시피 공간입니다."
+        url="/mypage"
+        robots="noindex, nofollow"
+      />
       <div className={styles['mypage-container']}>
         {/* 사용자 프로필 영역 */}
         <div className={styles['profile-section']}>
