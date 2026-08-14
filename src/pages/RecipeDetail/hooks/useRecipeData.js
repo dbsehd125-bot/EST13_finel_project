@@ -491,6 +491,9 @@ export default function useRecipeData(id) {
           throw saveError;
         }
 
+        // 정상 완료되었으므로 더 이상 cleanup에서 해제할 claim 없음
+        claimToken = null;
+
         /**
          * DB가 반환한 값을 우선 사용
          */
@@ -557,6 +560,13 @@ export default function useRecipeData(id) {
 
     return () => {
       cancelled = true;
+
+      if (claimToken) {
+        void supabase.rpc("release_recipe_ai_summary_claim", {
+          target_recipe_id: recipe.id,
+          claim_token: claimToken,
+        });
+      }
     };
   }, [recipe?.id, recipe?.ai_step_summaries]);
 
