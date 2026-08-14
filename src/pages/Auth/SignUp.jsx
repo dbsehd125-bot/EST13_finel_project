@@ -216,7 +216,8 @@ export default function SignUp() {
     <Layout>
       <SEO
         title="회원가입 | 깃깔나는 레시피"
-        description="깃깔나는 레시피에 가입하고 다양한 레시피와 커뮤니티 기능을 이용해보세요."
+        description="깃깔나는 레시피에 가입하고 AI 레시피 생성과 커뮤니티 기능을 이용해보세요."
+        url="/signup"
         robots="noindex, nofollow"
       />
       <main className={styles.authPage}>

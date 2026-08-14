@@ -81,6 +81,8 @@ export default function RecipeDetail() {
         title={`${recipe.title} | 깃깔나는 레시피`}
         description={recipe.summary}
         image={recipe.thumbnail_url}
+        url={`/recipes/${recipe.id}`}
+        type="article"
       />
       <RecipeOverview
         recipe={recipe}
