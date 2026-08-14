@@ -170,6 +170,11 @@ export default function Login() {
 
   return (
     <Layout>
+      <SEO
+        title="로그인 | 깃깔나는 레시피"
+        description="깃깔나는 레시피에 로그인하고 나만의 레시피와 커뮤니티를 이용해보세요."
+        robots="noindex, nofollow"
+      />
       <main className={styles.authPage}>
         <section className={styles.authCard}>
           <AuthVisual />

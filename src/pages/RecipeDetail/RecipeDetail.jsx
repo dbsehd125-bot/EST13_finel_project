@@ -75,6 +75,11 @@ export default function RecipeDetail() {
 
   return (
     <Layout activeMenu="레시피 둘러보기">
+      <SEO
+        title={`${recipe.title} | 깃깔나는 레시피`}
+        description={recipe.summary}
+        image={recipe.thumbnail_url}
+      />
       <RecipeOverview
         recipe={recipe}
         comments={reviews.comments}

@@ -22,6 +22,8 @@ import useCommunityFeed from "./hooks/useCommunityFeed";
 import useCommunityComments from "./hooks/useCommunityComments";
 import useCommunityWrite from "./hooks/useCommunityWrite";
 
+import SEO from "../../components/SEO";
+
 export default function Community() {
   const navigate = useNavigate();
 
@@ -198,6 +200,10 @@ export default function Community() {
 
   return (
     <Layout activeMenu="커뮤니티">
+      <SEO
+        title="요리 커뮤니티 | 깃깔나는 레시피"
+        description="요리 후기와 질문, 자유로운 이야기를 나누고 다른 사용자의 레시피를 만나보세요."
+      />
       <CommunityHeader
         selectedCategory={feed.selectedCategory}
         onCategoryChange={feed.handleCategoryChange}
