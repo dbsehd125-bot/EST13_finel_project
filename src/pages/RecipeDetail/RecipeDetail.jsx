@@ -7,6 +7,7 @@
 import { useNavigate, useParams } from "react-router";
 
 import Layout from "../../components/Layout";
+import SEO from "../../components/SEO";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 
@@ -20,7 +21,69 @@ import useRecipeData from "./hooks/useRecipeData";
 import useRecipeReactions from "./hooks/useRecipeReactions";
 import useRecipeReviews from "./hooks/useRecipeReviews";
 
-import SEO from "../../components/SEO";
+const DEFAULT_OG_IMAGE = "https://est-fe-13-3st-finalproject.vercel.app/og-default.png";
+
+/**
+ * Recipe JSON-LD용 재료 문자열 변환
+ *
+ * 예)
+ * { name: "양파", amount: "1", unit: "개" }
+ * -> "양파 1개"
+ */
+function formatIngredientForJsonLd(ingredient) {
+  if (typeof ingredient === "string") {
+    return ingredient;
+  }
+
+  if (!ingredient || typeof ingredient !== "object") {
+    return "";
+  }
+
+  const name = ingredient.name || "";
+  const amount = ingredient.amount || ingredient.quantity || "";
+  const unit = ingredient.unit || "";
+
+  return `${name} ${amount}${unit}`.trim();
+}
+
+/**
+ * cooking_time을 Schema.org에서 사용하는
+ * ISO 8601 Duration 형식으로 변환
+ *
+ * 예)
+ * "30분" -> "PT30M"
+ * "1시간" -> "PT1H"
+ * "1시간 30분" -> "PT1H30M"
+ */
+function convertCookingTimeToIsoDuration(cookingTime) {
+  if (!cookingTime) {
+    return undefined;
+  }
+
+  const text = String(cookingTime).trim();
+
+  const hourMatch = text.match(/(\d+)\s*시간/);
+  const minuteMatch = text.match(/(\d+)\s*분/);
+
+  const hours = hourMatch ? Number(hourMatch[1]) : 0;
+  const minutes = minuteMatch ? Number(minuteMatch[1]) : 0;
+
+  if (hours === 0 && minutes === 0) {
+    return undefined;
+  }
+
+  let duration = "PT";
+
+  if (hours > 0) {
+    duration += `${hours}H`;
+  }
+
+  if (minutes > 0) {
+    duration += `${minutes}M`;
+  }
+
+  return duration;
+}
 
 export default function RecipeDetail() {
   const { id } = useParams();
@@ -75,6 +138,49 @@ export default function RecipeDetail() {
     );
   }
 
+  /**
+   * Recipe 구조화 데이터(JSON-LD)
+   *
+   * 검색엔진이 현재 페이지를 일반 웹페이지가 아닌
+   * "레시피" 콘텐츠로 이해할 수 있도록 Schema.org 형식으로 제공한다.
+   */
+  const recipeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+
+    name: recipe.title,
+    description: recipe.summary,
+
+    image: [recipe.thumbnail_url || DEFAULT_OG_IMAGE],
+
+    author: {
+      "@type": "Person",
+      name: recipe.nickname || "깃깔나는 레시피 사용자",
+    },
+
+    recipeYield: recipe.servings || undefined,
+
+    recipeCuisine: recipe.cuisine || undefined,
+
+    totalTime: convertCookingTimeToIsoDuration(recipe.cooking_time),
+
+    keywords:
+      Array.isArray(recipe.tags) && recipe.tags.length > 0 ? recipe.tags.join(", ") : undefined,
+
+    recipeIngredient: Array.isArray(recipe.ingredients)
+      ? recipe.ingredients.map(formatIngredientForJsonLd).filter(Boolean)
+      : [],
+
+    recipeInstructions: Array.isArray(recipe.steps)
+      ? recipe.steps.map((step, index) => ({
+          "@type": "HowToStep",
+          position: index + 1,
+          name: step.title || `${step.step || index + 1}단계`,
+          text: step.description || step.title || "",
+        }))
+      : [],
+  };
+
   return (
     <Layout activeMenu="레시피 둘러보기">
       <SEO
@@ -84,6 +190,10 @@ export default function RecipeDetail() {
         url={`/recipes/${recipe.id}`}
         type="article"
       />
+
+      {/* Recipe 구조화 데이터 */}
+      <script type="application/ld+json">{JSON.stringify(recipeJsonLd)}</script>
+
       <RecipeOverview
         recipe={recipe}
         comments={reviews.comments}
