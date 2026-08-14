@@ -5,6 +5,7 @@ import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, St
 import { Skeleton } from '@mui/material';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
+import SEO from "../../components/SEO";
 import styles from './RecipeList.module.css';
 
 function FilterChip({ filterName, onRemove }) {
@@ -217,6 +218,7 @@ export default function RecipeList() {
             query = query.order('created_at', { ascending: false });
             break;
           case '평점순':
+            // rating 컬럼 기준 내림차순 정렬 (값 없는 것은 맨 뒤로)
             query = query.order('rating', { ascending: false, nullsFirst: false });
             break;
           case '조회순':
@@ -226,7 +228,10 @@ export default function RecipeList() {
             query = query.order('like_count', { ascending: false, nullsFirst: false });
             break;
           case '댓글순':
-            query = query.order('comments_count', { ascending: false, nullsFirst: false });
+            // comments_count가 1 이상인 레시피만 담아서 내림차순 정렬
+            query = query
+              .gt('comments_count', 0)
+              .order('comments_count', { ascending: false });
             break;
           default:
             query = query.order('created_at', { ascending: false });
@@ -365,6 +370,11 @@ export default function RecipeList() {
 
   return (
     <Layout activeMenu="레시피 둘러보기">
+      <SEO
+        title="레시피 둘러보기 | 깃깔나는 레시피"
+        description="다양한 레시피를 검색하고 음식 종류, 난이도, 식단별로 원하는 레시피를 찾아보세요."
+        url="/recipes"
+      />
       <div className={styles['recipe-list-page']}>
         {/* 페이지 타이틀 헤더 */}
         <section className={styles['page-header']}>
