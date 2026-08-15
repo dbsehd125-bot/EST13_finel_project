@@ -41,7 +41,6 @@ export default function CreateAIRecipe() {
     handleConditionChange,
     handleOptionToggle,
     handleGenerateRecipe,
-    handleRefineSubmit,
     handlePublish,
     handleConfirmAuthModal,
   } = useAiRecipe();
@@ -107,7 +106,6 @@ export default function CreateAIRecipe() {
                 handlePublish={handlePublish}
                 refinePrompt={refinePrompt}
                 setRefinePrompt={setRefinePrompt}
-                handleRefineSubmit={handleRefineSubmit}
                 handleGenerateRecipe={handleGenerateRecipe}
               />
             )}

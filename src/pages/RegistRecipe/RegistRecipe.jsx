@@ -514,12 +514,26 @@ function Step4Image({ formData, updateFormData }) {
   }, [formData]);
 
   // 사용자가 파일 선택 시 썸네일 프리뷰 교체
+  // const handleThumbnailChange = (e) => {
+  //   const file = e.target.files[0];
+  //   if (file) {
+  //     const imageUrl = URL.createObjectURL(file);
+  //     setThumbnail(imageUrl);
+  //     updateFormData('thumbnail_url', imageUrl);
+  //   }
+  // };
   const handleThumbnailChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setThumbnail(imageUrl);
-      updateFormData('thumbnail_url', imageUrl);
+      const reader = new FileReader();
+
+      reader.onloadend = () => {
+        const base64DataUrl = reader.result;
+        setThumbnail(base64DataUrl);
+        updateFormData('thumbnail_url', base64DataUrl);
+      };
+
+      reader.readAsDataURL(file);
     }
   };
 
@@ -812,16 +826,19 @@ export default function RegistRecipe() {
 
   // CreateAIRecipe에서 라우팅으로 넘어온 JSON 데이터
   const aiRecipePreset = location.state?.recipe || null;
+  const isFromAICreater = location.state?.isFromAICreater || false;
 
   useEffect(() => {
-    const navEntries = performance.getEntriesByType('navigation');
-    const isReloaded = navEntries.length > 0 && navEntries[0].type === 'reload';
+    const isValidAccess = Boolean(isFromAICreater && aiRecipePreset);
 
-    // 🔒 새로고침을 했거나, location.state에 AI 레시피 데이터가 없는 경우 (URL 직접 타핑 진입)
-    if (isReloaded || !aiRecipePreset) {
+    // 모달이 팝업되는 조건 (3가지 중 하나라도 해당 시)
+    // 1) 사용자가 직접 브라우저를 새로고침(Reload)한 경우
+    // 2) AI 생성 페이지에서 넘어온 플래그(isFromAICreater)가 없는 경우
+    // 3) 전달된 레시피 데이터(aiRecipePreset)가 null/undefined인 경우
+    if (!isValidAccess) {
       setIsAccessModalOpen(true);
     }
-  }, [location.state, aiRecipePreset]);
+  }, []);
 
   // 통합 폼 상태 데이터
   const [formData, setFormData] = useState(() => {
@@ -919,61 +936,76 @@ export default function RegistRecipe() {
   };
 
   // URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
-  useEffect(() => {
-    if (!recipeId) return;
+  // useEffect(() => {
+  //   if (!recipeId) return;
 
-    const fetchRecipePreset = async () => {
-      try {
-        setIsLoadingPreset(true);
+  //   const fetchRecipePreset = async () => {
+  //     try {
+  //       setIsLoadingPreset(true);
 
-        const { data, error } = await supabase.from('recipes').select('*').eq('id', recipeId).single();
+  //       const { data, error } = await supabase.from('recipes').select('*').eq('id', recipeId).single();
 
-        if (error) {
-          console.error('레시피 프리셋 조회 실패:', error.message);
-          return;
-        }
+  //       if (error) {
+  //         console.error('레시피 프리셋 조회 실패:', error.message);
+  //         return;
+  //       }
 
-        if (data) {
-          setFormData({
-            // step 1
-            title: data.title || '',
-            description: data.summary || '',
-            category: data.cuisine || '한식',
-            cookingTime: data.cooking_time || '10분 이내',
-            difficulty: data.difficulty || '초간단',
-            servings: data.servings || '1인분',
-            tags: data.tags || [],
-            diet_goal: data.diets || '해당없음',
-            // step 2
-            ingredients: data.ingredients || [],
-            // step 3
-            cookingSteps: data.steps || [],
-            // step 4
-            images: data.steps?.map((s) => s.image).filter(Boolean) || [],
-            thumbnail_url: data.thumbnail_url || '',
-            // step 5
-            isPublic: true, // ***컬럼 추가***
-          });
-        }
-      } catch (err) {
-        console.error('프리셋 로딩 중 오류:', err);
-      } finally {
-        setIsLoadingPreset(false);
-      }
-    };
+  //       if (data) {
+  //         setFormData({
+  //           // step 1
+  //           title: data.title || '',
+  //           description: data.summary || '',
+  //           category: data.cuisine || '한식',
+  //           cookingTime: data.cooking_time || '10분 이내',
+  //           difficulty: data.difficulty || '초간단',
+  //           servings: data.servings || '1인분',
+  //           tags: data.tags || [],
+  //           diet_goal: data.diets || '해당없음',
+  //           // step 2
+  //           ingredients: data.ingredients || [],
+  //           // step 3
+  //           cookingSteps: data.steps || [],
+  //           // step 4
+  //           images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+  //           thumbnail_url: data.thumbnail_url || '',
+  //           // step 5
+  //           isPublic: true, // ***컬럼 추가***
+  //         });
+  //       }
+  //     } catch (err) {
+  //       console.error('프리셋 로딩 중 오류:', err);
+  //     } finally {
+  //       setIsLoadingPreset(false);
+  //     }
+  //   };
 
-    fetchRecipePreset();
-  }, [recipeId]);
+  //   fetchRecipePreset();
+  // }, [recipeId]);
 
   // [가장 최근 임시저장 프리셋 불러오기]
   const handleLoadRecentDraft = async () => {
     try {
       setIsLoadingPreset(true);
 
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        setIsAccessModalOpen(false);
+        showNotification('로그인이 필요한 기능입니다.', 'warning');
+        navigate('/login', {
+          state: { from: location.pathname }, // 로그인 후 돌아올 수 있도록 현재 경로 전달
+        });
+        return;
+      }
+
       // isTempSaved가 true인 데이터 중 가장 최신의 것 1건 조회
       const { data, error } = await supabase
         .from('recipes')
         .select('*')
+        .eq('user_id', user.id)
         .eq('istempsaved', true)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -998,8 +1030,12 @@ export default function RegistRecipe() {
           cookingSteps: data.steps || [],
           images: data.steps?.map((s) => s.image).filter(Boolean) || [],
           thumbnail_url: data.thumbnail_url || '',
-          isPublic: true,
+          isPublic: data.ispublic ?? true,
         });
+
+        if (setSavedDraftId) {
+          setSavedDraftId(data.id);
+        }
 
         setIsAccessModalOpen(false);
         alert('최근에 임시 저장된 레시피 데이터를 성공적으로 불러왔습니다!');
@@ -1023,40 +1059,38 @@ export default function RegistRecipe() {
     navigate('/ai', { replace: true });
   };
 
-  // [임시저장]
-  const handleSaveDraft = async () => {
+  /**
+   * 💡 공통 레시피 저장/업데이트 함수 (임시저장 및 최종 제출 공용)
+   * @param {boolean} isTemp - true: 임시 저장, false: 최종 제출
+   */
+  const submitRecipe = async (isTempSaved = false) => {
     try {
-      setIsSaving(true);
+      if (isTempSaved) setIsSaving(true);
 
-      // 1. 현재 로그인한 유저 세션 가져오기
+      // 1. 로그인 유저 검증
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        alert('로그인이 필요합니다. 로그인 후 임시 저장을 이용해 주세요.');
-        return;
+        showNotification('로그인이 필요한 서비스입니다.', 'warning');
+        return { success: false };
       }
 
-      // 2. 입력 받은 대체재를 기본 재료 값에 concat
+      // 2. 대체 재료를 기존 재료에 Concat
       const formattedIngredients = (formData.ingredients || []).map((item) => {
         if (item.isSubstitutable && item.substituteName?.trim()) {
           const baseName = item.name?.trim() || '';
           const subName = item.substituteName.trim();
-
-          // 이미 괄호가 붙어있지 않은 경우에만 Concat 결합
           const finalName = baseName.includes(`(${subName})`) ? baseName : `${baseName}(${subName})`;
 
-          return {
-            ...item,
-            name: finalName,
-          };
+          return { ...item, name: finalName };
         }
         return item;
       });
 
-      // 3. formData를 UploadRecipeToSupabase 규격에 맞게 매핑
+      // 3. 공통 페이로드 생성
       const recipeRawData = {
         title: formData.title,
         summary: formData.description,
@@ -1069,35 +1103,45 @@ export default function RegistRecipe() {
         ingredients: formattedIngredients,
         steps: formData.cookingSteps,
         thumbnail_url: formData.thumbnail_url,
-        isPublic: formData.publishOptions?.isPublic ?? true,
+        ispublic: formData.publishOptions?.isPublic ?? true,
       };
 
-      // 4. 이미 생성된 임시저장 ID가 있는 경우: UPDATE 실행
-      if (savedDraftId) {
-        const result = await UploadRecipeToSupabase(recipeRawData, user, true, savedDraftId);
+      // 4. Supabase DB 저장/수정 요청
+      const result = await UploadRecipeToSupabase(recipeRawData, user, isTempSaved, savedDraftId);
 
-        if (result.success) {
-          alert('임시 저장된 레시피가 수정 반영되었습니다.');
-        } else {
-          alert(`임시 저장 수정 실패: ${result.detail || result.error}`);
-        }
-      }
-      // 5. 처음 임시저장을 누른 경우: INSERT 실행 후 반환된 ID 보관
-      else {
-        const result = await UploadRecipeToSupabase(recipeRawData, user, true);
-
-        if (result.success && result.savedRecipe) {
+      if (result.success && result.savedRecipe) {
+        // 신규 저장인 경우 발행된 id 기록 (이후 임시저장/완성 시 UPDATE 처리)
+        if (!savedDraftId) {
           setSavedDraftId(result.savedRecipe.id);
-          alert('현재 작성 중인 레시피가 임시 저장되었습니다.');
-        } else {
-          alert(`임시 저장 실패: ${result.detail || result.error}`);
         }
+        return { success: true, recipeId: result.savedRecipe.id };
+      } else {
+        showNotification(`저장 실패: ${result.detail || result.error}`, 'error');
+        return { success: false };
       }
     } catch (err) {
-      console.error('임시 저장 실패:', err);
-      alert('임시 저장 도중 오류가 발생했습니다.');
+      console.error('레시피 저장 처리 실패:', err);
+      showNotification('저장 처리 중 오류가 발생했습니다.', 'error');
+      return { success: false };
     } finally {
-      setIsSaving(false);
+      if (isTempSaved) setIsSaving(false);
+    }
+  };
+
+  // [임시 저장] 버튼 클릭 이벤트
+  const handleSaveDraft = async () => {
+    const result = await submitRecipe(true); // isTemp = true
+    if (result.success) {
+      showNotification('작성 중인 내용이 임시 저장되었습니다.', 'success');
+    }
+  };
+
+  // [완성하기] 버튼 클릭 이벤트
+  const handleFinalSubmit = async () => {
+    const result = await submitRecipe(false); // isTemp = false
+    if (result.success) {
+      showNotification('레시피가 성공적으로 등록되었습니다!', 'success');
+      navigate(`/recipes/${result.recipeId}`, { replace: true });
     }
   };
 
@@ -1157,9 +1201,9 @@ export default function RegistRecipe() {
             <button
               type="button"
               className={styles.actionBtn}
-              onClick={() => goToStep(5)}
+              onClick={handleLoadRecentDraft}
               disabled={isSaving}
-              data-tooltip="임시 저장"
+              data-tooltip="불러오기"
             >
               <span className={styles.btnIcon}>📁</span>
               <span className={styles.btnText}>불러오기</span>
@@ -1183,8 +1227,7 @@ export default function RegistRecipe() {
               className={styles.nextBtn}
               onClick={() => {
                 if (currentStep === steps.length) {
-                  alert('레시피가 성공적으로 등록되었습니다!');
-                  /**handleFinalSubmit */
+                  handleFinalSubmit();
                 } else {
                   goToStep(currentStep + 1);
                 }

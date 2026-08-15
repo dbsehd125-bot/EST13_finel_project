@@ -212,7 +212,7 @@ export function useAiRecipe() {
           const updatedSteps = [];
           for (let i = 0; i < parsedRecipeJson.steps.length; i++) {
             const step = parsedRecipeJson.steps[i];
-            const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT show the final dish, only this specific preparation step.`;
+            const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT include any text. Do NOT show the final dish, only this specific preparation step.`;
 
             if (i > 0) {
               await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -254,22 +254,6 @@ export function useAiRecipe() {
     } finally {
       setLoadingStep(null);
     }
-  };
-
-  // 추가 수정 프롬프트 제출
-  const handleRefineSubmit = (e) => {
-    e.preventDefault();
-    if (!refinePrompt.trim()) return;
-
-    setLoadingStep('prompt');
-    setTimeout(() => {
-      setLoadingStep(null);
-      setResult((prev) => ({
-        ...prev,
-        markdown: prev.markdown + `\n\n> 💡 **전송한 메세지의 내용**이 적용된 레시피입니다.`,
-      }));
-      setRefinePrompt('');
-    }, 1200);
   };
 
   // 등록하기 화면으로 이동
@@ -337,7 +321,6 @@ export function useAiRecipe() {
     handleConditionChange,
     handleOptionToggle,
     handleGenerateRecipe,
-    handleRefineSubmit,
     handlePublish,
   };
 }

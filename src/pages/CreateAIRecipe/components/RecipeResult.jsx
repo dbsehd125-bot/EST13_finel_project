@@ -8,7 +8,6 @@ export default function RecipeResult({
   handlePublish,
   refinePrompt,
   setRefinePrompt,
-  handleRefineSubmit,
   handleGenerateRecipe,
 }) {
   if (!result) {
@@ -103,32 +102,6 @@ export default function RecipeResult({
           {isPublishing ? '게시 중...' : '🚀 게시하기'}
         </button>
       </div>
-
-      {/* 추가 수정 프롬프트 입력창 */}
-      <form className={styles.refineInputWrapper} onSubmit={handleRefineSubmit}>
-        <input
-          type="text"
-          className={styles.refineInput}
-          placeholder="수정할 내용이나 추가 요청사항을 입력하세요..."
-          value={refinePrompt}
-          onChange={(e) => setRefinePrompt(e.target.value)}
-        />
-        <button type="submit" className={styles.refineSendBtn} aria-label="수정 요청">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-        </button>
-      </form>
     </RecipeResultCard>
   );
 }

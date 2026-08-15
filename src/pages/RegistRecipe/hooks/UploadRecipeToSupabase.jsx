@@ -20,8 +20,8 @@ function decodeBase64(base64) {
 async function uploadImageToStorage(base64Data, folderName) {
   if (!base64Data) return null;
 
-  // 이미 HTTP URL 형태인 경우 업로드 생략
-  if (base64Data.startsWith('http')) {
+  // 이미 정식 Public HTTP URL인 경우 업로드 생략
+  if (base64Data.startsWith('http://') || base64Data.startsWith('https://')) {
     return base64Data;
   }
 
@@ -109,7 +109,7 @@ export async function UploadRecipeToSupabase(recipeRawData, user, isTempSaved = 
       ingredients: recipeRawData.ingredients || [],
       steps: updatedSteps,
       thumbnail_url: thumbnailUrl,
-      ispublic: recipeRawData.isPublic || true,
+      ispublic: recipeRawData.ispublic || true,
       istempsaved: isTempSaved,
     };
 
