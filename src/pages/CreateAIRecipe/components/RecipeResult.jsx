@@ -6,8 +6,6 @@ export default function RecipeResult({
   result,
   isPublishing,
   handlePublish,
-  refinePrompt,
-  setRefinePrompt,
   handleGenerateRecipe,
 }) {
   if (!result) {

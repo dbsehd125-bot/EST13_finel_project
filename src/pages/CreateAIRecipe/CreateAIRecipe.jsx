@@ -2,10 +2,10 @@ import React from 'react';
 import Layout from '../../components/Layout';
 import SEO from '../../components/SEO';
 import AuthGuardModal from '../../components/AuthGuardModal';
-import { useAiRecipe } from './hooks/useAiRecipe';
 import RecipeInputForm from './components/RecipeInputForm';
 import RecipeLoading from './components/RecipeLoading';
 import RecipeResult from './components/RecipeResult';
+import { useAiRecipe } from './hooks/useAiRecipe';
 import styles from './CreateAIRecipe.module.css';
 
 export default function CreateAIRecipe() {
@@ -28,6 +28,8 @@ export default function CreateAIRecipe() {
     isPublishing,
     isAuthModalOpen,
     setIsAuthModalOpen,
+    isSummaryModalOpen,
+    setIsSummaryModalOpen,
     refinePrompt,
     setRefinePrompt,
     loadingStep,
@@ -41,6 +43,8 @@ export default function CreateAIRecipe() {
     handleConditionChange,
     handleOptionToggle,
     handleGenerateRecipe,
+    handleCloseSummaryModal,
+    handleBypassAndGenerate,
     handlePublish,
     handleConfirmAuthModal,
   } = useAiRecipe();
@@ -92,6 +96,10 @@ export default function CreateAIRecipe() {
             toggleSelect={toggleSelect}
             closeSelect={closeSelect}
             loadingStep={loadingStep}
+            isSummaryModalOpen={isSummaryModalOpen}
+            setIsSummaryModalOpen={setIsSummaryModalOpen}
+            handleCloseSummaryModal={handleCloseSummaryModal}
+            handleBypassAndGenerate={handleBypassAndGenerate}
             onSubmit={handleGenerateRecipe}
           />
 
