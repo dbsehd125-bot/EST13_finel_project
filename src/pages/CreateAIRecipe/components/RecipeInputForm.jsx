@@ -417,7 +417,7 @@ export default function RecipeInputForm({
               margin: 0,
             }}
           >
-            확인 (설명 작성하기)
+            한 줄 설명 작성하기
           </Button>
 
           {/* 버튼 2: 무시하고 생성하기 */}

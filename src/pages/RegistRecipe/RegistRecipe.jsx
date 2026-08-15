@@ -1038,11 +1038,11 @@ export default function RegistRecipe() {
         }
 
         setIsAccessModalOpen(false);
-        alert('최근에 임시 저장된 레시피 데이터를 성공적으로 불러왔습니다!');
+        showNotification('최근에 임시 저장된 레시피 데이터를 성공적으로 불러왔습니다!', 'success');
       } else {
         // 임시저장 레시피가 DB에 없는 경우
-        alert('임시 저장된 레시피가 없습니다. 레시피 생성 페이지로 이동합니다.');
         setIsAccessModalOpen(false);
+        showNotification('임시 저장된 레시피가 없습니다. 레시피 생성 페이지로 이동합니다.', 'info');
         navigate('/ai', { replace: true });
       }
     } catch (err) {
