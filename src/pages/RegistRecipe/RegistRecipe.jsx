@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router';
-import { supabase } from '../../lib/supabaseClient';
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, isEmpty } from '@mui/material';
+import { supabase } from '../../lib/supabaseClient';
+import { useNotification } from '../../context/NotificationContext';
 import { UploadRecipeToSupabase } from './hooks/UploadRecipeToSupabase';
 import Layout from '../../components/Layout';
 import SEO from '../../components/SEO';
@@ -608,7 +609,7 @@ function Step4Image({ formData, updateFormData }) {
                 단계별 이미지를 생성하지 않았습니다.
               </p>
               <p style={{ color: 'var(--brand-gray)', fontSize: '13px' }}>
-                AI 생성 시 단계별 이미지 옵션을 체크하지 않은 레시피입니다.
+                레시피 생성 시 단계별 이미지 생성 옵션을 선택하지 않은 레시피입니다.
               </p>
             </div>
           )}
@@ -619,12 +620,12 @@ function Step4Image({ formData, updateFormData }) {
 }
 
 /* ==========================================================================
-   Step 5 (구 Step 5+6 통합) 컴포넌트: 최종 미리보기 및 공개 옵션 설정
+   Step 5 컴포넌트: 최종 미리보기 및 공개 옵션 설정
    ========================================================================== */
 function Step5PreviewAndOptions({ formData, updateFormData }) {
   // 공개 옵션 상태 관리
   const options = formData.publishOptions || {
-    visibility: 'public', // 'public' | 'private'
+    isPublic: true,
     allowAiRecommendation: true,
     allowCommentsAndReviews: true,
   };
@@ -697,13 +698,16 @@ function Step5PreviewAndOptions({ formData, updateFormData }) {
 
           {/* 조리 단계 요약 */}
           <div className={styles.previewSectionBox}>
-            <h4 className={styles.previewSectionTitle}>🍳 조리 순서</h4>
+            <h4 className={styles.previewSectionTitle} style={{ marginBottom: '20px' }}>
+              🍳 조리 순서
+            </h4>
+            <div className={styles.panelDivider}></div>
             <div className={styles.previewStepsList}>
               {formData.cookingSteps?.map((step) => (
-                <div key={step.stepNumber} className={styles.previewStepItem}>
-                  <span className={styles.previewStepNum}>{step.stepNumber}</span>
+                <div key={step.step} className={styles.previewStepItem}>
+                  <span className={styles.previewStepNum}>{step.step}</span>
                   <div className={styles.previewStepBody}>
-                    <p>{step.instruction}</p>
+                    <p>{step.description}</p>
                     {step.tip && <p className={styles.previewStepTip}>💡 {step.tip}</p>}
                   </div>
                 </div>
@@ -723,9 +727,9 @@ function Step5PreviewAndOptions({ formData, updateFormData }) {
               <label className={styles.radioCard}>
                 <input
                   type="radio"
-                  name="visibility"
-                  checked={options.visibility === 'public'}
-                  onChange={() => handleOptionChange('visibility', 'public')}
+                  name="isPublic"
+                  checked={options.isPublic === true}
+                  onChange={() => handleOptionChange('isPublic', true)}
                 />
                 <div>
                   <strong>🌐 전체 공개</strong>
@@ -736,9 +740,9 @@ function Step5PreviewAndOptions({ formData, updateFormData }) {
               <label className={styles.radioCard}>
                 <input
                   type="radio"
-                  name="visibility"
-                  checked={options.visibility === 'private'}
-                  onChange={() => handleOptionChange('visibility', 'private')}
+                  name="isPublic"
+                  checked={options.isPublic === false}
+                  onChange={() => handleOptionChange('isPublic', false)}
                 />
                 <div>
                   <strong>🔒 비공개</strong>
@@ -791,6 +795,7 @@ function Step5PreviewAndOptions({ formData, updateFormData }) {
 export default function RegistRecipe() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   // 잘못된 접근 안내 모달 상태
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
@@ -817,18 +822,6 @@ export default function RegistRecipe() {
       setIsAccessModalOpen(true);
     }
   }, [location.state, aiRecipePreset]);
-
-  // 모달 확인 버튼 클릭 시 레시피 생성 페이지로 리다이렉트
-  const handleConfirmAccessError = () => {
-    setIsAccessModalOpen(false);
-    navigate('/ai', { replace: true });
-  };
-
-  // 권한 없음 모달 확인 클릭 시 메인 화면으로 이동
-  const handleConfirmPermissionError = () => {
-    setIsPermissionModalOpen(false);
-    navigate('/', { replace: true });
-  };
 
   // 통합 폼 상태 데이터
   const [formData, setFormData] = useState(() => {
@@ -904,7 +897,7 @@ export default function RegistRecipe() {
     if (isLoadingPreset) {
       return (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--brand-gray)' }}>
-          🔄 레시피 데이터를 불러오는 중입니다...
+          레시피 데이터를 불러오는 중입니다...
         </div>
       );
     }
@@ -1076,6 +1069,7 @@ export default function RegistRecipe() {
         ingredients: formattedIngredients,
         steps: formData.cookingSteps,
         thumbnail_url: formData.thumbnail_url,
+        isPublic: formData.publishOptions?.isPublic ?? true,
       };
 
       // 4. 이미 생성된 임시저장 ID가 있는 경우: UPDATE 실행

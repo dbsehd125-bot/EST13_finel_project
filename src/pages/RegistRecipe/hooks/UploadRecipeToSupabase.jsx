@@ -109,6 +109,7 @@ export async function UploadRecipeToSupabase(recipeRawData, user, isTempSaved = 
       ingredients: recipeRawData.ingredients || [],
       steps: updatedSteps,
       thumbnail_url: thumbnailUrl,
+      ispublic: recipeRawData.isPublic || true,
       istempsaved: isTempSaved,
     };
 

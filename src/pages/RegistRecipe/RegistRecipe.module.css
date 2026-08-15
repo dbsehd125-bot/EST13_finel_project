@@ -811,9 +811,16 @@ h3 {
 }
 
 .previewStepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   font-size: 0.88rem;
   color: var(--brand-brown);
   line-height: 1.5;
+}
+
+.previewStepBody > p{
+  margin: 0;
 }
 
 .previewStepTip {
