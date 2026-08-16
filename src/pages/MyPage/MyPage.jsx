@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
-import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart } from 'lucide-react';
+import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart, X, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SEO from "../../components/SEO";
 import styles from './MyPage.module.css';
@@ -74,9 +74,143 @@ export default function MyPage() {
   const [sortOrder, setSortOrder] = useState('최신순');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
+  // 프로필 수정 모달 상태
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [profileNickname, setProfileNickname] = useState('');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const fileInputRef = useRef(null);
+
   // 디바운스
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // 프로필 수정 모달 열기: 현재 프로필 데이터 가져오기
+  const openEditModal = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('nickname, avatar_url')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!error && data) {
+      setProfileNickname(data.nickname || '');
+      setProfileAvatarUrl(data.avatar_url || '');
+      setAvatarPreview(data.avatar_url || '');
+    } else {
+      setProfileNickname(user?.user_metadata?.nickname || '');
+      setProfileAvatarUrl('');
+      setAvatarPreview('');
+    }
+    setAvatarFile(null);
+    setIsEditModalOpen(true);
+  };
+
+  // 프로필 수정 저장
+  const saveProfile = async () => {
+    if (!user) return;
+    try {
+      setProfileSaving(true);
+      let finalAvatarUrl = profileAvatarUrl;
+
+      // 새 이미지를 선택한 경우 Storage 업로드
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop();
+        const filePath = `avatars/${user.id}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(filePath, avatarFile, { upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(filePath);
+        finalAvatarUrl = urlData.publicUrl;
+      }
+
+      // 1) profiles 테이블 upsert
+      console.log('[프로필저장] 1단계: profiles 업데이트 시작');
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          nickname: profileNickname,
+          avatar_url: finalAvatarUrl,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      if (upsertError) {
+        console.error('[프로필저장] profiles 오류:', upsertError.message, upsertError.code);
+        throw upsertError;
+      }
+      console.log('[프로필저장] 1단계 완료');
+
+      // 2) recipes 테이블 nickname 업데이트
+      console.log('[프로필저장] 2단계: recipes 닉네임 업데이트 시작, user.id:', user.id);
+      const { data: recipesData, error: recipesNicknameError } = await supabase
+        .from('recipes')
+        .update({ nickname: profileNickname })
+        .eq('user_id', user.id)
+        .select();
+      if (recipesNicknameError) {
+        console.error('[프로필저장] recipes 오류:', recipesNicknameError.message, recipesNicknameError.code);
+      } else {
+        console.log('[프로필저장] 2단계 완료, 업데이트된 레시피 수:', recipesData?.length);
+      }
+
+      // 3) recipe_comments 테이블 nickname 업데이트
+      console.log('[프로필저장] 3단계: recipe_comments 닉네임 업데이트 시작');
+      const { data: commentsData, error: commentsNicknameError } = await supabase
+        .from('recipe_comments')
+        .update({ nickname: profileNickname })
+        .eq('user_id', user.id)
+        .select();
+      if (commentsNicknameError) {
+        console.error('[프로필저장] recipe_comments 오류:', commentsNicknameError.message, commentsNicknameError.code);
+      } else {
+        console.log('[프로필저장] 3단계 완료, 업데이트된 댓글 수:', commentsData?.length);
+      }
+
+      setProfileAvatarUrl(finalAvatarUrl);
+      setIsEditModalOpen(false);
+      alert(`프로필이 저장되었습니다!\n닉네임: ${profileNickname}\n레시피 업데이트: ${recipesData?.length ?? 0}건\n댓글 업데이트: ${commentsData?.length ?? 0}건`);
+    } catch (err) {
+      console.error('[프로필저장] 전체 오류:', err);
+      alert(`프로필 저장 중 오류가 발생했습니다.\n오류: ${err.message}`);
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  // 아바타 파일 선택 핸들러
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  // 페이지 진입 시 profiles 테이블에서 최신 프로필 데이터 로드
+  useEffect(() => {
+    if (!user) return;
+    async function loadProfile() {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('nickname, avatar_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!error && data) {
+        setProfileNickname(data.nickname || user?.user_metadata?.nickname || '');
+        setProfileAvatarUrl(data.avatar_url || '');
+        setAvatarPreview(data.avatar_url || '');
+      } else {
+        // profiles 테이블에 데이터 없으면 auth 메타데이터 fallback
+        setProfileNickname(user?.user_metadata?.nickname || '');
+      }
+    }
+    loadProfile();
+  }, [user]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -276,11 +410,14 @@ export default function MyPage() {
         <div className={styles['profile-section']}>
           <div className={styles['profile-info']}>
             <div className={styles['profile-avatar']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
+              {profileAvatarUrl && (
+                <img src={profileAvatarUrl} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+              )}
             </div>
             <div className={styles['profile-details']}>
-              <h2 className={`font-display dtext-2xl ${styles['profile-name']}`}>{user?.user_metadata?.nickname || '사용자'}</h2>              <p className={`text-m ${styles['profile-handle']}`}>{user?.email ? `@${user.email.split('@')[0]}` : '@user'}</p>
+              <h2 className={`font-display dtext-2xl ${styles['profile-name']}`}>{profileNickname || user?.user_metadata?.nickname || '사용자'}</h2>              <p className={`text-m ${styles['profile-handle']}`}>{user?.email ? `@${user.email.split('@')[0]}` : '@user'}</p>
               <div className={styles['profile-actions']}>
-                <button className={`text-button ${styles['btn-edit-profile']}`}>
+                <button className={`text-button ${styles['btn-edit-profile']}`} onClick={openEditModal}>
                   <Pencil size={14} /> 프로필 수정
                 </button>
                 <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
@@ -463,6 +600,126 @@ export default function MyPage() {
           </div>
         )}
       </div>
+
+      {/* 프로필 수정 모달 */}
+      {isEditModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            borderRadius: '24px',
+            padding: '40px',
+            width: '100%',
+            maxWidth: '480px',
+            position: 'relative',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)'
+          }}>
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => setIsEditModalOpen(false)}
+              style={{
+                position: 'absolute', top: '20px', right: '20px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--brand-gray)'
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            <h2 style={{ color: 'var(--brand-brown)', marginBottom: '32px', fontSize: '20px', fontWeight: 700 }}>
+              프로필 수정
+            </h2>
+
+            {/* 아바타 업로드 */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
+              <div
+                style={{
+                  width: '100px', height: '100px', borderRadius: '50%',
+                  backgroundColor: 'var(--brand-light-gray)',
+                  backgroundImage: avatarPreview ? `url(${avatarPreview})` : 'none',
+                  backgroundSize: 'cover', backgroundPosition: 'center',
+                  position: 'relative', cursor: 'pointer',
+                  border: '3px solid var(--brand-cream)'
+                }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div style={{
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: '28px', height: '28px',
+                  backgroundColor: 'var(--brand-primary)',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '2px solid #fff'
+                }}>
+                  <Camera size={14} color="#fff" />
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleAvatarChange}
+              />
+              <p style={{ marginTop: '10px', fontSize: '13px', color: 'var(--brand-gray)' }}>
+                이미지를 클릭하여 변경하세요
+              </p>
+            </div>
+
+            {/* 닉네임 */}
+            <div style={{ marginBottom: '28px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--brand-brown)', marginBottom: '8px' }}>
+                닉네임
+              </label>
+              <input
+                type="text"
+                value={profileNickname}
+                onChange={(e) => setProfileNickname(e.target.value)}
+                placeholder="닉네임을 입력하세요"
+                style={{
+                  width: '100%', padding: '12px 16px',
+                  border: '1px solid var(--brand-divider, #e0e0e0)',
+                  borderRadius: '12px', fontSize: '15px',
+                  outline: 'none', color: 'var(--brand-brown)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* 저장 버튼 */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                style={{
+                  flex: 1, padding: '14px',
+                  border: '1px solid var(--brand-divider, #e0e0e0)',
+                  borderRadius: '12px', background: 'none',
+                  color: 'var(--brand-gray)', cursor: 'pointer', fontSize: '15px'
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={saveProfile}
+                disabled={profileSaving}
+                style={{
+                  flex: 1, padding: '14px',
+                  backgroundColor: profileSaving ? '#ccc' : 'var(--brand-primary)',
+                  color: '#fff', border: 'none',
+                  borderRadius: '12px', cursor: profileSaving ? 'not-allowed' : 'pointer',
+                  fontSize: '15px', fontWeight: 600
+                }}
+              >
+                {profileSaving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

@@ -106,6 +106,171 @@ export default function RegistRecipe() {
     }
   };
 
+  // URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
+  useEffect(() => {
+    if (!recipeId) return;
+
+    const fetchRecipePreset = async () => {
+      try {
+        setIsLoadingPreset(true);
+
+        const { data, error } = await supabase.from('recipes').select('*').eq('id', recipeId).single();
+
+        if (error) {
+          console.error('레시피 프리셋 조회 실패:', error.message);
+          return;
+        }
+
+        if (data) {
+          setFormData({
+            // step 1
+            title: data.title || '',
+            description: data.summary || '',
+            category: data.cuisine || '한식',
+            cookingTime: data.cooking_time || '10분 이내',
+            difficulty: data.difficulty || '초간단',
+            servings: data.servings || '1인분',
+            tags: data.tags || [],
+            diet_goal: data.diets || '해당없음',
+            // step 2
+            ingredients: data.ingredients || [],
+            // step 3
+            cookingSteps: data.steps || [],
+            // step 4
+            images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+            thumbnail_url: data.thumbnail_url || '',
+            // step 5
+            isPublic: true, // ***컬럼 추가***
+          });
+        }
+      } catch (err) {
+        console.error('프리셋 로딩 중 오류:', err);
+      } finally {
+        setIsLoadingPreset(false);
+      }
+    };
+
+    fetchRecipePreset();
+  }, [recipeId]);
+
+  // [가장 최근 임시저장 프리셋 불러오기]
+  const handleLoadRecentDraft = async () => {
+    try {
+      setIsLoadingPreset(true);
+
+      // isTempSaved가 true인 데이터 중 가장 최신의 것 1건 조회
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('istempsaved', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Supabase DB 데이터를 formData 형태로 바인딩
+        setFormData({
+          title: data.title || '',
+          description: data.summary || '',
+          category: data.cuisine || '한식',
+          cookingTime: data.cooking_time || '10분 이내',
+          difficulty: data.difficulty || '초간단',
+          servings: data.servings || '1인분',
+          tags: data.tags || [],
+          diet_goal: data.diets || '해당없음',
+          ingredients: data.ingredients || [],
+          cookingSteps: data.steps || [],
+          images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+          thumbnail_url: data.thumbnail_url || '',
+          isPublic: true,
+        });
+
+        setIsAccessModalOpen(false);
+        alert('최근에 임시 저장된 레시피 데이터를 성공적으로 불러왔습니다!');
+      } else {
+        // 임시저장 레시피가 DB에 없는 경우
+        alert('임시 저장된 레시피가 없습니다. 레시피 생성 페이지로 이동합니다.');
+        setIsAccessModalOpen(false);
+        navigate('/ai', { replace: true });
+      }
+    } catch (err) {
+      console.error('임시 저장 데이터 불러오기 실패:', err);
+      alert('임시 저장 데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoadingPreset(false);
+    }
+  };
+
+  // [레시피 생성하기]
+  const handleGoToCreatePage = () => {
+    setIsAccessModalOpen(false);
+    navigate('/ai', { replace: true });
+  };
+
+  // [임시저장]
+  const handleSaveDraft = async () => {
+    try {
+      setIsSaving(true);
+
+      // 1. 현재 로그인한 유저 세션 가져오기
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        alert('로그인이 필요합니다. 로그인 후 임시 저장을 이용해 주세요.');
+        return;
+      }
+
+      // 2. formData를 UploadRecipeToSupabase 규격에 맞게 매핑
+      const recipeRawData = {
+        title: formData.title,
+        summary: formData.description,
+        cuisine: formData.category,
+        cooking_time: formData.cookingTime,
+        difficulty: formData.difficulty,
+        servings: formData.servings,
+        tags: formData.tags,
+        diets: formData.diet_goal,
+        ingredients: formData.ingredients,
+        steps: formData.cookingSteps,
+        thumbnail_url: formData.thumbnail_url,
+      };
+
+      // 3. 이미 생성된 임시저장 ID가 있는 경우: UPDATE 실행
+      if (savedDraftId) {
+        const result = await UploadRecipeToSupabase(recipeRawData, user, true, savedDraftId);
+
+        if (result.success) {
+          alert('임시 저장된 레시피가 수정 반영되었습니다.');
+        } else {
+          alert(`임시 저장 수정 실패: ${result.detail || result.error}`);
+        }
+      }
+      // 4. 처음 임시저장을 누른 경우: INSERT 실행 후 반환된 ID 보관
+      else {
+        const result = await UploadRecipeToSupabase(recipeRawData, user, true);
+
+        if (result.success && result.savedRecipe) {
+          setSavedDraftId(result.savedRecipe.id);
+          alert('현재 작성 중인 레시피가 임시 저장되었습니다.');
+        } else {
+          alert(`임시 저장 실패: ${result.detail || result.error}`);
+        }
+      }
+    } catch (err) {
+      console.error('임시 저장 실패:', err);
+      alert('임시 저장 도중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <Layout activeMenu="AI 레시피">
       <SEO
