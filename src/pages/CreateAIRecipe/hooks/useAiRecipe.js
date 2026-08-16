@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../../context/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
@@ -14,15 +14,16 @@ export function useAiRecipe() {
   const { user } = useAuth();
 
   // Step 1: 프롬프트 입력
-  const [prompt, setPrompt] = useState(
-    '집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.',
-  );
+  const [prompt, setPrompt] = useState('');
+
+  // [추가] Summary/Prompt 미입력 안내 MUI 모달 상태
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   // Step 2: 태그 선택
-  const [ingredients, setIngredients] = useState(['계란', '양파', '참치', '밥']);
+  const [ingredients, setIngredients] = useState([]);
   const [newIngredient, setNewIngredient] = useState('');
   const [isAddingIngredientTag, setIsAddingIngredientTag] = useState(false);
-  const [excluded, setExcluded] = useState(['우유', '복숭아', '새우', '땅콩']);
+  const [excluded, setExcluded] = useState([]);
   const [newExcluded, setNewExcluded] = useState('');
   const [isAddingExcludedTag, setIsAddingExcludedTag] = useState(false);
 
@@ -47,11 +48,8 @@ export function useAiRecipe() {
   // 게시 상태
   const [isPublishing, setIsPublishing] = useState(false);
 
-  // 🔒 로그인 유도 모달 상태
+  // 로그인 유도 모달 상태
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  // 하단 추가 수정 프롬프트 상태
-  const [refinePrompt, setRefinePrompt] = useState('');
 
   // 로딩 & 결과 상태
   const [loadingStep, setLoadingStep] = useState(null);
@@ -131,9 +129,24 @@ export function useAiRecipe() {
     }
   }
 
-  // 레시피 생성하기
-  const handleGenerateRecipe = async (e) => {
+  /**
+   * 레시피 생성하기
+   * @param {*} e
+   * @param {*} isBypass: summary 입력 감지
+   * @returns
+   */
+  const handleGenerateRecipe = async (e, isBypass = false) => {
     if (e) e.preventDefault();
+    const element = document.getElementById('target-section');
+    if (element) {
+      element.scrollIntoView({ block: 'start' });
+    }
+
+    // prompt(summary) 미입력 검사
+    if (!isBypass && !prompt.trim()) {
+      setIsSummaryModalOpen(true);
+      return;
+    }
 
     setLoadingStep('prompt');
     setResult(null);
@@ -212,7 +225,7 @@ export function useAiRecipe() {
           const updatedSteps = [];
           for (let i = 0; i < parsedRecipeJson.steps.length; i++) {
             const step = parsedRecipeJson.steps[i];
-            const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT show the final dish, only this specific preparation step.`;
+            const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT include any text. Do NOT show the final dish, only this specific preparation step.`;
 
             if (i > 0) {
               await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -256,20 +269,26 @@ export function useAiRecipe() {
     }
   };
 
-  // 추가 수정 프롬프트 제출
-  const handleRefineSubmit = (e) => {
-    e.preventDefault();
-    if (!refinePrompt.trim()) return;
+  // summary 모달에서 [확인] 및 모달 밖 클릭 시
+  const handleCloseSummaryModal = (inputRef) => {
+    setIsSummaryModalOpen(false);
+    // if (inputRef && inputRef.current) {
+    //   setTimeout(() => {
+    //     inputRef.current.focus();
+    //   }, 100);
+    // }
 
-    setLoadingStep('prompt');
-    setTimeout(() => {
-      setLoadingStep(null);
-      setResult((prev) => ({
-        ...prev,
-        markdown: prev.markdown + `\n\n> 💡 **전송한 메세지의 내용**이 적용된 레시피입니다.`,
-      }));
-      setRefinePrompt('');
-    }, 1200);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (inputRef.current) inputRef.current.focus();
+      }, 100);
+    });
+  };
+
+  // summary 모달에서 [무시하고 생성하기] 클릭 시
+  const handleBypassAndGenerate = () => {
+    setIsSummaryModalOpen(false);
+    handleGenerateRecipe(null, true);
   };
 
   // 등록하기 화면으로 이동
@@ -295,7 +314,7 @@ export function useAiRecipe() {
     });
   };
 
-  // 🔒 로그인 모달에서 [로그인하러 가기] 클릭 시 실행할 함수
+  // 로그인 모달에서 [로그인하러 가기] 클릭 시 실행할 함수
   const handleConfirmAuthModal = () => {
     setIsAuthModalOpen(false);
 
@@ -324,8 +343,8 @@ export function useAiRecipe() {
     isPublishing,
     isAuthModalOpen,
     setIsAuthModalOpen,
-    refinePrompt,
-    setRefinePrompt,
+    isSummaryModalOpen,
+    setIsSummaryModalOpen,
     loadingStep,
     result,
     toggleSelect,
@@ -337,7 +356,9 @@ export function useAiRecipe() {
     handleConditionChange,
     handleOptionToggle,
     handleGenerateRecipe,
-    handleRefineSubmit,
+    handleCloseSummaryModal,
+    handleBypassAndGenerate,
     handlePublish,
+    handleConfirmAuthModal,
   };
 }
