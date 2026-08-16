@@ -1,33 +1,33 @@
-import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router';
 
-import { useAuth } from "../context/AuthContext";
-import UserAvatar from "./UserAvatar";
-import AuthGuardModal from "./AuthGuardModal";
+import { useAuth } from '../context/AuthContext';
+import UserAvatar from './UserAvatar';
+import AuthGuardModal from './AuthGuardModal';
 
-import "./Header.css";
+import './Header.css';
 
 const menuItems = [
   {
-    id: "home",
-    label: "홈",
-    path: "/",
+    id: 'home',
+    label: '홈',
+    path: '/',
     end: true,
   },
   {
-    id: "recipes",
-    label: "레시피 둘러보기",
-    path: "/recipes",
+    id: 'recipes',
+    label: '레시피 둘러보기',
+    path: '/recipes',
   },
   {
-    id: "ai",
-    label: "AI 레시피",
-    path: "/ai",
+    id: 'ai',
+    label: 'AI 레시피',
+    path: '/ai',
   },
   {
-    id: "community",
-    label: "커뮤니티",
-    path: "/community",
+    id: 'community',
+    label: '커뮤니티',
+    path: '/community',
   },
 ];
 
@@ -38,7 +38,7 @@ export default function Header() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   const { user, profile, isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
 
@@ -46,11 +46,10 @@ export default function Header() {
     profile?.nickname ||
     user?.user_metadata?.nickname ||
     user?.user_metadata?.full_name ||
-    user?.email?.split("@")[0] ||
-    "사용자";
+    user?.email?.split('@')[0] ||
+    '사용자';
 
-  const avatarUrl =
-    profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
   function closeMenu() {
     setMenuOpen(false);
@@ -71,13 +70,13 @@ export default function Header() {
 
     closeMenu();
     closeSearch();
-    setSearchKeyword("");
+    setSearchKeyword('');
 
     navigate('/recipes', {
-  state: {
-    searchKeyword: keyword,
-  },
-});
+      state: {
+        searchKeyword: keyword,
+      },
+    });
   }
 
   async function handleLogout() {
@@ -86,13 +85,13 @@ export default function Header() {
     const success = await logout();
 
     if (!success) {
-      alert("로그아웃에 실패했습니다.");
+      alert('로그아웃에 실패했습니다.');
       return;
     }
 
     closeMenu();
     closeSearch();
-    navigate("/");
+    navigate('/');
   }
 
   const handleRegisterClick = () => {
@@ -140,12 +139,12 @@ export default function Header() {
           </Link>
 
           <nav className="nav" aria-label="주요 메뉴">
-            {menuItems.map(item => (
+            {menuItems.map((item) => (
               <NavLink
                 key={item.id}
                 to={item.path}
                 end={item.end}
-                className={({ isActive }) => `text-sm ${isActive ? "active" : ""}`}
+                className={({ isActive }) => `text-sm ${isActive ? 'active' : ''}`}
                 onClick={closeSearch}
               >
                 {item.label}
@@ -155,13 +154,13 @@ export default function Header() {
         </div>
 
         <div className="header-right">
-          <div className={`header-search ${searchOpen ? "open" : ""}`}>
+          <div className={`header-search ${searchOpen ? 'open' : ''}`}>
             {searchOpen && (
               <form className="header-search-form" onSubmit={handleSearchSubmit}>
                 <input
                   type="search"
                   value={searchKeyword}
-                  onChange={event => setSearchKeyword(event.target.value)}
+                  onChange={(event) => setSearchKeyword(event.target.value)}
                   placeholder="레시피 검색"
                   aria-label="레시피 검색어"
                   autoFocus
@@ -193,10 +192,10 @@ export default function Header() {
 
             <button
               type="button"
-              className={`icon-btn search-btn hide-on-mobile ${searchOpen ? "active" : ""}`}
-              aria-label={searchOpen ? "검색창 닫기" : "검색"}
+              className={`icon-btn search-btn hide-on-mobile ${searchOpen ? 'active' : ''}`}
+              aria-label={searchOpen ? '검색창 닫기' : '검색'}
               aria-expanded={searchOpen}
-              onClick={() => setSearchOpen(previous => !previous)}
+              onClick={() => setSearchOpen((previous) => !previous)}
             >
               {searchOpen ? (
                 <svg
@@ -232,25 +231,21 @@ export default function Header() {
             </button>
           </div>
 
-          <button
-            type="button"
-            className="btn-create text-button hide-on-mobile"
-            onClick={handleRegisterClick}
-          >
+          <button type="button" className="btn-create text-button hide-on-mobile" onClick={handleRegisterClick}>
             + 레시피 등록하기
           </button>
 
           {isLoggedIn && (
             <Link
               to="/mypage"
-              className="avatar"
+              className="header-avatar"
               aria-label={`${displayName} 마이페이지로 이동`}
               onClick={() => {
                 closeMenu();
                 closeSearch();
               }}
             >
-              <UserAvatar src={avatarUrl} name={displayName} size="md" />
+              <UserAvatar src={avatarUrl} name={displayName} size="header" />
             </Link>
           )}
 
@@ -263,7 +258,7 @@ export default function Header() {
                   onClick={handleLogout}
                   disabled={logoutLoading}
                 >
-                  {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+                  {logoutLoading ? '로그아웃 중...' : '로그아웃'}
                 </button>
               ) : (
                 <Link to="/login" className="login-link text-sm" onClick={closeSearch}>
@@ -274,13 +269,13 @@ export default function Header() {
 
           <button
             type="button"
-            className={`menu-btn ${menuOpen ? "open" : ""}`}
-            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            className={`menu-btn ${menuOpen ? 'open' : ''}`}
+            aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             onClick={() => {
               closeSearch();
-              setMenuOpen(previous => !previous);
+              setMenuOpen((previous) => !previous);
             }}
           >
             <span />
@@ -290,12 +285,12 @@ export default function Header() {
         </div>
       </div>
 
-      <div id="mobile-menu" className={`mobile-menu ${menuOpen ? "open" : ""}`}>
+      <div id="mobile-menu" className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         <form className="mobile-search-form" onSubmit={handleSearchSubmit}>
           <input
             type="search"
             value={searchKeyword}
-            onChange={event => setSearchKeyword(event.target.value)}
+            onChange={(event) => setSearchKeyword(event.target.value)}
             placeholder="레시피를 검색해보세요"
             aria-label="레시피 검색어"
           />
@@ -319,12 +314,12 @@ export default function Header() {
         </form>
 
         <nav className="mobile-nav" aria-label="모바일 메뉴">
-          {menuItems.map(item => (
+          {menuItems.map((item) => (
             <NavLink
               key={item.id}
               to={item.path}
               end={item.end}
-              className={({ isActive }) => `text-m ${isActive ? "active" : ""}`}
+              className={({ isActive }) => `text-m ${isActive ? 'active' : ''}`}
               onClick={closeMenu}
             >
               {item.label}
@@ -345,7 +340,7 @@ export default function Header() {
                 onClick={handleLogout}
                 disabled={logoutLoading}
               >
-                {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+                {logoutLoading ? '로그아웃 중...' : '로그아웃'}
               </button>
             ) : (
               <Link to="/login" className="mobile-login text-button" onClick={closeMenu}>

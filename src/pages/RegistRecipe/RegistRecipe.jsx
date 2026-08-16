@@ -1,421 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
-import { supabase } from '../../lib/supabaseClient';
+// RegistRecipe.jsx
+import React from 'react';
 import Layout from '../../components/Layout';
 import SEO from '../../components/SEO';
 import styles from './RegistRecipe.module.css';
+// Custom Hook
+import { useRegistRecipe } from './hooks/useRegistRecipe';
+// Separated step-by-step UI components
+import Step1BasicInfo from './components/Step1BasicInfo';
+import Step2Ingredients from './components/Step2Ingredients';
+import Step3Steps from './components/Step3CookingSteps';
+import Step4Image from './components/Step4Image';
+import Step5Options from './components/Step5Options';
+// Access Control Modal Component
+import AccessGuardModal from './components/AccessGuardModal';
 
 /* ==========================================================================
-   Step 1 컴포넌트: 기본 정보 입력
+   Main RegistRecipe 페이지 컴포넌트
    ========================================================================== */
-function Step1BasicInfo({ formData, updateFormData }) {
-  const [newTag, setNewTag] = useState('');
-  const [isAddingTag, setIsAddingTag] = useState(false);
+export default function RegistRecipe() {
+  const {
+    // [메인] RegistRecipe 전용
+    currentStep,
+    steps,
+    formData,
+    updateFormData,
+    isLoadingPreset,
+    isSaving,
+    goToStep,
+    isAccessModalOpen,
+    handleLoadRecentDraft,
+    handleGoToCreatePage,
+    handleSaveDraft,
+    handleFinalSubmit,
 
-  const handleAddTag = () => {
-    if (!newTag.trim()) {
-      setIsAddingTag(false);
-      return;
-    }
-    const formattedTag = newTag.trim().startsWith('#') ? newTag.trim() : `#${newTag.trim()}`;
-    if (!formData.tags.includes(formattedTag)) {
-      updateFormData('tags', [...formData.tags, formattedTag]);
-    }
-    setNewTag('');
-    setIsAddingTag(false);
-  };
+    // [Step 1] 기본 정보 입력 전용
+    newTag,
+    setNewTag,
+    isAddingTag,
+    setIsAddingTag,
+    handleAddTag,
+    handleRemoveTag,
 
-  const handleRemoveTag = (tagToRemove) => {
-    updateFormData(
-      'tags',
-      formData.tags.filter((tag) => tag !== tagToRemove),
-    );
-  };
+    // [Step 2] 재료 목록 입력 전용
+    ingredients,
+    handleItemChange,
 
-  return (
-    <div className={styles.stepContent}>
-      {/* 폼 제목 */}
-      <div className={styles.stepTitle}>
-        <h3 className="text-xl" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
-          📝 1단계: 기본 정보 입력
-        </h3>
-        <p className="text-m" style={{ color: 'var(--brand-gray)', marginTop: '8px' }}>
-          레시피에 대한 기본 정보를 입력하세요.
-        </p>
-      </div>
+    // [Step 3] 조리 과정 입력 전용
+    cookingSteps,
+    handleTipChange,
+    handleResetTip,
 
-      <div className={styles.titleDivider} />
+    // [Step 4] 이미지 확인 전용
+    thumbnail,
+    hasStepImages,
+    stepGridItems,
+    handleThumbnailChange,
 
-      {/* 레시피 제목 */}
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>레시피 제목</label>
-        <input
-          type="text"
-          className={styles.textInput}
-          value={formData.title}
-          onChange={(e) => updateFormData('title', e.target.value)}
-          placeholder="레시피 제목을 입력하세요."
-        />
-      </div>
+    // [Step 5] 최종 미리보기 & 공개 옵션 전용
+    options,
+    handleOptionChange,
+  } = useRegistRecipe();
 
-      {/* 한 줄 설명 */}
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>한 줄 설명</label>
-        <textarea
-          className={styles.textareaInput}
-          value={formData.description}
-          onChange={(e) => updateFormData('description', e.target.value)}
-          placeholder="레시피에 대한 한 줄 설명이나 소개글을 입력해주세요."
-          rows={3}
-        />
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* 4컬럼 셀렉트 그리드 */}
-        <div className={styles.fourColGrid}>
-          <div className={styles.selectField}>
-            <label className={styles.inputLabel}>카테고리</label>
-            <input
-              type="text"
-              className={styles.textInput}
-              value={formData.category || '한식'}
-              disabled
-              readOnly
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
-            />
-          </div>
-
-          <div className={styles.selectField}>
-            <label className={styles.inputLabel}>조리시간</label>
-            <input
-              type="text"
-              className={styles.textInput}
-              value={formData.cookingTime || '30분 이내'}
-              disabled
-              readOnly
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
-            />
-          </div>
-
-          <div className={styles.selectField}>
-            <label className={styles.inputLabel}>난이도</label>
-            <input
-              type="text"
-              className={styles.textInput}
-              value={formData.difficulty || '보통'}
-              disabled
-              readOnly
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
-            />
-          </div>
-
-          <div className={styles.selectField}>
-            <label className={styles.inputLabel}>인분</label>
-            <input
-              type="text"
-              className={styles.textInput}
-              value={formData.servings || '2인분'}
-              disabled
-              readOnly
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', color: '#666' }}
-            />
-          </div>
-        </div>
-
-        {/* 🔒 수정 불가 안내 문구 */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '0 12px',
-            color: 'var(--brand-gray, #666)',
-            fontSize: '12px',
-          }}
-        >
-          <span>🔒</span>
-          <span>카테고리, 조리시간, 난이도, 인분 항목은 수정할 수 없습니다.</span>
-        </div>
-      </div>
-
-      {/* 태그 입력 영역 */}
-      <div className={styles.inputGroup} style={{ marginTop: '12px' }}>
-        <label className={styles.inputLabel}>태그</label>
-        <div className={styles.tagList}>
-          {formData.tags.map((tag) => (
-            <span key={tag} className={styles.tagChip}>
-              {tag}
-              <button type="button" className={styles.tagDeleteBtn} onClick={() => handleRemoveTag(tag)}>
-                ✕
-              </button>
-            </span>
-          ))}
-
-          {isAddingTag ? (
-            <div className={styles.addTagInputWrapper}>
-              <input
-                type="text"
-                className={styles.addTagInput}
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                placeholder="태그 입력"
-                autoFocus
-              />
-              <button type="button" className={styles.addTagConfirmBtn} onClick={handleAddTag}>
-                추가
-              </button>
-            </div>
-          ) : (
-            <button type="button" className={styles.addTagBtn} onClick={() => setIsAddingTag(true)}>
-              태그 추가 +
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   Step 2 컴포넌트: 재료 목록 입력
-   ========================================================================== */
-function Step2Ingredients({ formData, updateFormData }) {
-  // 기본 필수 재료 ID 목록 (삭제 비활성화용)
-  const defaultItemIds = ['item-1', 'item-2', 'item-3'];
-
-  // 1. 기본 재료 목록 상태
-  const [defaultIngredients, setDefaultIngredients] = useState(
-    formData.ingredients && formData.ingredients.length > 0
-      ? formData.ingredients
-      : [
-          { id: 'item-1', name: '닭가슴살', isSubstitutable: true, substituteName: '두부' },
-          { id: 'item-2', name: '양파', isSubstitutable: false, substituteName: '' },
-          { id: 'item-3', name: '고추장', isSubstitutable: false, substituteName: '' },
-        ],
-  );
-
-  // 2. 사용자 추천 재료 목록 상태
-  const [customIngredients, setCustomIngredients] = useState(formData.customIngredients || []);
-
-  // 상위 formData와 동기화
-  const syncWithFormData = (newDefault, newCustom) => {
-    setDefaultIngredients(newDefault);
-    setCustomIngredients(newCustom);
-    updateFormData('defaultIngredients', newDefault);
-    updateFormData('customIngredients', newCustom);
-  };
-
-  // '사용자 추천 재료' 항목 추가
-  const handleAddCustomItem = () => {
-    const newItem = {
-      id: `custom-${Date.now()}`,
-      name: '',
-      isSubstitutable: false,
-      substituteName: '',
-    };
-    syncWithFormData(defaultIngredients, [...customIngredients, newItem]);
-  };
-
-  // '사용자 추천 재료' 항목 삭제
-  const handleRemoveCustomItem = (itemId) => {
-    syncWithFormData(
-      defaultIngredients,
-      customIngredients.filter((item) => item.id !== itemId),
-    );
-  };
-
-  // 재료 정보 수정 (기본 재료 / 추천 재료 공용)
-  const handleItemChange = (itemId, isCustom, field, value) => {
-    const targetList = isCustom ? customIngredients : defaultIngredients;
-
-    const updatedList = targetList.map((item) => {
-      if (item.id === itemId) {
-        if (field === 'isSubstitutable' && !value) {
-          return { ...item, [field]: value, substituteName: '' };
-        }
-        return { ...item, [field]: value };
-      }
-      return item;
-    });
-
-    if (isCustom) {
-      syncWithFormData(defaultIngredients, updatedList);
-    } else {
-      syncWithFormData(updatedList, customIngredients);
-    }
-  };
-
-  // 재료 행 및 대체 재료 입력창 공통 렌더링 함수
-  const renderIngredientRows = (items, isCustomGroup = false) => {
-    return items.map((item) => {
-      const isDefaultItem = defaultItemIds.includes(item.id);
-
+  // 현재 단계별 서브 컴포넌트 렌더링 맵
+  const renderStepComponent = () => {
+    if (isLoadingPreset) {
       return (
-        <React.Fragment key={item.id}>
-          {/* 재료 행 */}
-          <div className={styles.ingredientRow}>
-            {/* 1. 재료명 입력창 */}
-            <div style={{ flex: 1, position: 'relative' }}>
-              <input
-                type="text"
-                className={styles.textInputWithIcon}
-                value={item.name}
-                onChange={(e) => handleItemChange(item.id, isCustomGroup, 'name', e.target.value)}
-                placeholder="예: 닭가슴살"
-              />
-            </div>
-
-            {/* 2. 대체 가능 여부 체크박스 */}
-            <div style={{ width: '80px', display: 'flex', justifyContent: 'center' }}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={item.isSubstitutable}
-                  onChange={(e) => handleItemChange(item.id, isCustomGroup, 'isSubstitutable', e.target.checked)}
-                />
-              </label>
-            </div>
-
-            {/* 3. 삭제 버튼 (기본 재료 목록인 경우 비활성화) */}
-            <div style={{ width: '36px', display: 'flex', justifyContent: 'center' }}>
-              <button
-                type="button"
-                className={styles.squareDeleteBtn}
-                onClick={() => isCustomGroup && handleRemoveCustomItem(item.id)}
-                disabled={!isCustomGroup && isDefaultItem}
-                title={!isCustomGroup ? '기본 재료는 삭제할 수 없습니다.' : '재료 삭제'}
-                style={{
-                  opacity: !isCustomGroup && isDefaultItem ? 0.3 : 1,
-                  cursor: !isCustomGroup && isDefaultItem ? 'not-allowed' : 'pointer',
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          {/* 4. 대체 가능 체크 시 표시되는 인라인 대체 재료 입력 필드 */}
-          {item.isSubstitutable && (
-            <div
-              className={styles.substituteRow}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                paddingLeft: '16px',
-                marginLeft: '24px',
-                marginRight: '116px',
-                backgroundColor: 'rgba(240, 90, 36, 0.04)',
-                borderRadius: '12px',
-                padding: '8px 12px',
-                marginBottom: '8px',
-              }}
-            >
-              <span
-                style={{
-                  marginRight: '8px',
-                  color: 'var(--brand-primary, #f05a24)',
-                  fontWeight: 'bold',
-                }}
-              >
-                ↳
-              </span>
-              <input
-                type="text"
-                className={styles.textInputWithIcon}
-                style={{ flex: 1, backgroundColor: '#fff' }}
-                value={item.substituteName}
-                onChange={(e) => handleItemChange(item.id, isCustomGroup, 'substituteName', e.target.value)}
-                placeholder="대체 가능한 재료를 입력하세요 (예: 두부, 돼지고기 안심)"
-              />
-            </div>
-          )}
-        </React.Fragment>
-      );
-    });
-  };
-
-  return (
-    <div className={styles.stepContent}>
-      {/* 폼 제목 */}
-      <div className={styles.stepTitle}>
-        <h3 className="text-xl" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
-          🥕 2단계: 재료 목록 입력
-        </h3>
-        <p className="text-m" style={{ color: 'var(--brand-gray)', marginTop: '8px' }}>
-          필요한 재료명과 대체 가능 여부 및 대체 재료를 입력해 주세요.
-        </p>
-      </div>
-
-      <div className={styles.titleDivider} />
-
-      {/* 1. 기본 '재료 목록' 카드 (삭제 비활성화 / 추가 버튼 없음) */}
-      <div className={styles.groupCard}>
-        <div className={styles.groupHeaderRow}>
-          <div className={styles.groupTitleBadgeWrapper}>
-            <span className={styles.groupTitleBadge}>재료 목록</span>
-          </div>
-        </div>
-
-        {/* 테이블 헤더 */}
-        <div className={styles.ingredientTableHeader}>
-          <span style={{ flex: 1 }}>재료명</span>
-          <div className={styles.tableHeaderRight}>
-            <span style={{ width: '80px', textAlign: 'center' }}>대체 가능</span>
-            <span style={{ width: '36px' }}></span>
-          </div>
-        </div>
-
-        {/* 기본 재료 행 목록 */}
-        <div className={styles.ingredientRowsContainer}>{renderIngredientRows(defaultIngredients, false)}</div>
-      </div>
-
-      {/* 2. '사용자 추천 재료' 카드 (재료 추가 버튼 위치) */}
-      <div className={styles.groupCard} style={{ marginTop: '32px' }}>
-        <div className={styles.groupHeaderRow}>
-          <div className={styles.groupTitleBadgeWrapper}>
-            <span className={styles.groupTitleBadge}>사용자 추천 재료</span>
-          </div>
-        </div>
-
-        {/* 테이블 헤더 */}
-        <div className={styles.ingredientTableHeader}>
-          <span style={{ flex: 1 }}>재료명</span>
-          <div className={styles.tableHeaderRight}>
-            <span style={{ width: '80px', textAlign: 'center' }}>대체 가능</span>
-            <span style={{ width: '36px' }}></span>
-          </div>
-        </div>
-
-        {/* 추천 재료 행 목록 또는 기본 텍스트 */}
-        <div className={styles.ingredientRowsContainer}>
-          {customIngredients.length > 0 ? (
-            renderIngredientRows(customIngredients, true)
-          ) : (
-            <div
-              style={{
-                padding: '32px 16px',
-                textAlign: 'center',
-                color: 'var(--brand-gray, #888)',
-                fontSize: '14px',
-              }}
-            >
-              하단의 <strong>'재료 추가 +'</strong> 버튼을 눌러 추천하고 싶은 재료를 자유롭게 추가해 보세요!
-            </div>
-          )}
-        </div>
-
-        {/* 사용자 추천 재료 추가 버튼 */}
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <button
-            type="button"
-            className={styles.addRowBtnHeader}
-            style={{ width: '130px', padding: '10px 16px' }}
-            onClick={handleAddCustomItem}
-          >
-            재료 추가 +
-          </button>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--brand-gray)' }}>
+          레시피 데이터를 불러오는 중입니다...
         </div>
       </div>
     </div>
@@ -586,249 +237,43 @@ function Step4Image({ formData, updateFormData }) {
       setThumbnail(imageUrl);
       updateFormData('thumbnail', imageUrl);
     }
+
+    switch (currentStep) {
+      case 2:
+        return <Step2Ingredients ingredients={ingredients} handleItemChange={handleItemChange} />;
+      case 3:
+        return (
+          <Step3Steps cookingSteps={cookingSteps} handleTipChange={handleTipChange} handleResetTip={handleResetTip} />
+        );
+      case 4:
+        return (
+          <Step4Image
+            thumbnail={thumbnail}
+            hasStepImages={hasStepImages}
+            stepGridItems={stepGridItems}
+            handleThumbnailChange={handleThumbnailChange}
+          />
+        );
+      case 5:
+        return <Step5Options formData={formData} options={options} handleOptionChange={handleOptionChange} />;
+      case 1:
+      default:
+        return (
+          <Step1BasicInfo
+            formData={formData}
+            updateFormData={updateFormData}
+            newTag={newTag}
+            setNewTag={setNewTag}
+            isAddingTag={isAddingTag}
+            setIsAddingTag={setIsAddingTag}
+            handleAddTag={handleAddTag}
+            handleRemoveTag={handleRemoveTag}
+          />
+        );
+    }
   };
 
-  return (
-    <div className={styles.stepContent}>
-      {/* 폼 제목 */}
-      <div className={styles.stepTitle}>
-        <h3 className="text-xl" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
-          🖼️ 4단계: 요리 이미지 확인 및 대표 이미지 설정
-        </h3>
-        <p className="text-m" style={{ color: 'var(--brand-gray)', marginTop: '8px' }}>
-          AI가 생성한 대표 썸네일을 확인하고, 필요 시 직접 촬영한 완성 사진으로 변경할 수 있습니다.
-        </p>
-      </div>
-
-      <div className={styles.titleDivider} />
-
-      {/* 좌/우 split 가로 flexbox 레이아웃 */}
-      <div className={styles.imageSplitLayout}>
-        {/* 왼쪽: 메인 썸네일 컨테이너 (절반 너비, 직접 업로드 가능) */}
-        <div className={styles.thumbnailSection}>
-          <div className={styles.sectionHeaderRow}>
-            <span className={styles.sectionTitleLabel}>📷 대표 썸네일 이미지</span>
-            <span className={styles.changeNoticeBadge}>직접 파일 교체 가능</span>
-          </div>
-
-          <label className={styles.thumbnailUploadBox}>
-            <img src={thumbnail} alt="대표 요리 썸네일" className={styles.thumbnailImgPreview} />
-            <div className={styles.thumbnailOverlay}>
-              <span className={styles.cameraIcon}>📸</span>
-              <span className={styles.overlayText}>대표 이미지 변경하기</span>
-            </div>
-            <input type="file" accept="image/*" className={styles.hiddenFileInput} onChange={handleThumbnailChange} />
-          </label>
-        </div>
-
-        {/* 오른쪽: 조리 단계별 이미지 갤러리 (2열 정사각형, 여백 없음) */}
-        <div className={styles.stepGallerySection}>
-          <div className={styles.sectionHeaderRow}>
-            <span className={styles.sectionTitleLabel}>🍳 조리 단계별 이미지</span>
-            <span className={styles.readOnlyNoticeBadge}>🔒 AI 생성 완료</span>
-          </div>
-
-          <div className={styles.stepImageGrid}>
-            {stepImages.map((item) => (
-              <div key={item.stepNumber} className={styles.squareImageWrapper}>
-                <img src={item.url} alt={`STEP ${item.stepNumber} 조리 과정`} className={styles.squareImg} />
-                <span className={styles.imageStepTag}>STEP {item.stepNumber}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   Step 5 (구 Step 5+6 통합) 컴포넌트: 최종 미리보기 및 공개 옵션 설정
-   ========================================================================== */
-function Step5PreviewAndOptions({ formData, updateFormData }) {
-  // 공개 옵션 상태 관리
-  const options = formData.publishOptions || {
-    visibility: 'public', // 'public' | 'private'
-    allowAiRecommendation: true,
-    allowCommentsAndReviews: true,
-  };
-
-  const handleOptionChange = (field, value) => {
-    const updatedOptions = { ...options, [field]: value };
-    updateFormData('publishOptions', updatedOptions);
-  };
-
-  return (
-    <div className={styles.stepContent}>
-      {/* 폼 제목 */}
-      <div className={styles.stepTitle}>
-        <h3 className="text-xl" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
-          👁️ 5단계: 레시피 최종 확인 및 공개 설정
-        </h3>
-        <p className="text-m" style={{ color: 'var(--brand-gray)', marginTop: '8px' }}>
-          완성된 레시피를 최종 확인하고 공개 범위 및 참여 옵션을 설정한 뒤 등록해 주세요.
-        </p>
-      </div>
-
-      <div className={styles.titleDivider} />
-
-      {/* 2컬럼 레이아웃: (좌) 미리보기 완본 카드 | (우) 공개/옵션 설정 패널 */}
-      <div className={styles.previewSplitLayout}>
-        {/* 왼쪽: 레시피 완본 미리보기 카드 */}
-        <div className={styles.previewCardContainer}>
-          <div className={styles.previewCardHeader}>
-            <span className={styles.previewBadge}>✨ 미리보기</span>
-            <h2 className={styles.previewTitle}>{formData.title || '제목 없음'}</h2>
-            <p className={styles.previewDescription}>{formData.description}</p>
-          </div>
-
-          {/* 대표 썸네일 */}
-          {formData.thumbnail && (
-            <div className={styles.previewImageWrapper}>
-              <img src={formData.thumbnail} alt="대표 요리 이미지" className={styles.previewImage} />
-            </div>
-          )}
-
-          {/* 메타 정보 칩 (카테고리, 시간, 난이도, 인분) */}
-          <div className={styles.previewMetaRow}>
-            <span>🏷️ {formData.category}</span>
-            <span>⏱️ {formData.cookingTime}분</span>
-            <span>🔥 난이도 {formData.difficulty}</span>
-            <span>👥 {formData.servings}인분</span>
-          </div>
-
-          {/* 재료 리스트 요약 */}
-          <div className={styles.previewSectionBox}>
-            <h4 className={styles.previewSectionTitle}>🥕 필요 재료</h4>
-            {formData.ingredientGroups?.map((group) => (
-              <div key={group.id} className={styles.previewGroupBlock}>
-                <span className={styles.previewGroupTitle}>[{group.title}]</span>
-                <p className={styles.previewIngredientText}>
-                  {group.items.map((item) => `${item.name} ${item.amount}${item.unit}`).join(', ')}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* 조리 단계 요약 */}
-          <div className={styles.previewSectionBox}>
-            <h4 className={styles.previewSectionTitle}>🍳 조리 순서</h4>
-            <div className={styles.previewStepsList}>
-              {formData.cookingSteps?.map((step) => (
-                <div key={step.stepNumber} className={styles.previewStepItem}>
-                  <span className={styles.previewStepNum}>{step.stepNumber}</span>
-                  <div className={styles.previewStepBody}>
-                    <p>{step.instruction}</p>
-                    {step.tip && <p className={styles.previewStepTip}>💡 {step.tip}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 오른쪽: 공개 범위 및 설정 옵션 패널 */}
-        <div className={styles.optionsPanel}>
-          {/* <h4 className={styles.optionsPanelTitle}>🔒 공개 설정</h4> */}
-
-          {/* 1. 공개 범위 선택 (전체 공개 / 비공개) */}
-          <div className={styles.optionGroup}>
-            <label className={styles.optionLabel}>공개 범위</label>
-            <div className={styles.radioGroup}>
-              <label className={styles.radioCard}>
-                <input
-                  type="radio"
-                  name="visibility"
-                  checked={options.visibility === 'public'}
-                  onChange={() => handleOptionChange('visibility', 'public')}
-                />
-                <div>
-                  <strong>🌐 전체 공개</strong>
-                  <p>모든 사용자가 이 레시피를 조회하고 검색할 수 있습니다.</p>
-                </div>
-              </label>
-
-              <label className={styles.radioCard}>
-                <input
-                  type="radio"
-                  name="visibility"
-                  checked={options.visibility === 'private'}
-                  onChange={() => handleOptionChange('visibility', 'private')}
-                />
-                <div>
-                  <strong>🔒 비공개</strong>
-                  <p>나의 개인 레시피 보관함에만 저장됩니다.</p>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <div className={styles.panelDivider} />
-
-          {/* 2. 추가 옵션 체크박스 */}
-          <div className={styles.optionGroup}>
-            <label className={styles.optionLabel}>추가 옵션</label>
-            <div className={styles.checkboxList}>
-              <label className={styles.checkboxCard}>
-                <input
-                  type="checkbox"
-                  checked={options.allowAiRecommendation}
-                  onChange={(e) => handleOptionChange('allowAiRecommendation', e.target.checked)}
-                />
-                <div>
-                  <strong>🤖 AI 추천 항목 허용</strong>
-                  <p>다른 사용자의 AI 주간 식단 및 연관 추천 항목에 이 레시피가 포함될 수 있습니다.</p>
-                </div>
-              </label>
-
-              <label className={styles.checkboxCard}>
-                <input
-                  type="checkbox"
-                  checked={options.allowCommentsAndReviews}
-                  onChange={(e) => handleOptionChange('allowCommentsAndReviews', e.target.checked)}
-                />
-                <div>
-                  <strong>💬 댓글 허용</strong>
-                  <p>다른 사용자들이 레시피에 댓글을 작성할 수 있도록 합니다.</p>
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   Main RegistRecipe 페이지 컴포넌트
-   ========================================================================== */
-export default function RegistRecipe() {
-  // URL 쿼리 스트링으로 현재 step 상태 유지 (?step=1)
-  const [searchParams, setSearchParams] = useSearchParams();
-  const currentStep = parseInt(searchParams.get('step') || '1', 10);
-  const recipeId = searchParams.get('id');
-
-  // 로딩 상태 (프리셋 데이터 불러올 동안 표시)
-  const [isLoadingPreset, setIsLoadingPreset] = useState(false);
-
-  // 통합 폼 상태 데이터
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '한식',
-    cookingTime: '10분 이내',
-    difficulty: '초간간',
-    servings: '1인분',
-    tags: [],
-    ingredients: [],
-    cookingSteps: [],
-    images: [],
-    thumbnail_url: '',
-    isPublic: true,
-  });
-
-  // 💡 URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
+  // URL에 id가 있는 경우 Supabase에서 레시피 프리셋 불러오기
   useEffect(() => {
     if (!recipeId) return;
 
@@ -845,18 +290,24 @@ export default function RegistRecipe() {
 
         if (data) {
           setFormData({
+            // step 1
             title: data.title || '',
             description: data.summary || '',
             category: data.cuisine || '한식',
-            cookingTime: String(data.cooking_time || '30').replace(/[^0-9]/g, ''), // 숫자만 추출
-            difficulty: data.difficulty || '보통',
-            servings: String(data.servings || '2').replace(/[^0-9]/g, ''),
+            cookingTime: data.cooking_time || '10분 이내',
+            difficulty: data.difficulty || '초간단',
+            servings: data.servings || '1인분',
             tags: data.tags || [],
+            diet_goal: data.diets || '해당없음',
+            // step 2
             ingredients: data.ingredients || [],
+            // step 3
             cookingSteps: data.steps || [],
+            // step 4
             images: data.steps?.map((s) => s.image).filter(Boolean) || [],
             thumbnail_url: data.thumbnail_url || '',
-            isPublic: true,
+            // step 5
+            isPublic: true, // ***컬럼 추가***
           });
         }
       } catch (err) {
@@ -869,51 +320,121 @@ export default function RegistRecipe() {
     fetchRecipePreset();
   }, [recipeId]);
 
-  // 상태 업데이트 함수
-  const updateFormData = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
+  // [가장 최근 임시저장 프리셋 불러오기]
+  const handleLoadRecentDraft = async () => {
+    try {
+      setIsLoadingPreset(true);
 
-  const steps = [
-    { id: 1, label: '기본 정보' },
-    { id: 2, label: '재료' },
-    { id: 3, label: '조리 과정' },
-    { id: 4, label: '이미지' },
-    { id: 5, label: '미리 보기' },
-  ];
+      // isTempSaved가 true인 데이터 중 가장 최신의 것 1건 조회
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('istempsaved', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  // 단계 이동 (URL SearchParam 업데이트로 뒤로가기 내비게이션 대응)
-  const goToStep = (stepNumber) => {
-    if (stepNumber >= 1 && stepNumber <= steps.length) {
-      const newParams = { step: stepNumber };
-      if (recipeId) newParams.id = recipeId;
-      setSearchParams(newParams);
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Supabase DB 데이터를 formData 형태로 바인딩
+        setFormData({
+          title: data.title || '',
+          description: data.summary || '',
+          category: data.cuisine || '한식',
+          cookingTime: data.cooking_time || '10분 이내',
+          difficulty: data.difficulty || '초간단',
+          servings: data.servings || '1인분',
+          tags: data.tags || [],
+          diet_goal: data.diets || '해당없음',
+          ingredients: data.ingredients || [],
+          cookingSteps: data.steps || [],
+          images: data.steps?.map((s) => s.image).filter(Boolean) || [],
+          thumbnail_url: data.thumbnail_url || '',
+          isPublic: true,
+        });
+
+        setIsAccessModalOpen(false);
+        alert('최근에 임시 저장된 레시피 데이터를 성공적으로 불러왔습니다!');
+      } else {
+        // 임시저장 레시피가 DB에 없는 경우
+        alert('임시 저장된 레시피가 없습니다. 레시피 생성 페이지로 이동합니다.');
+        setIsAccessModalOpen(false);
+        navigate('/ai', { replace: true });
+      }
+    } catch (err) {
+      console.error('임시 저장 데이터 불러오기 실패:', err);
+      alert('임시 저장 데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoadingPreset(false);
     }
   };
 
-  // 현재 단계별 서브 컴포넌트 렌더링 맵
-  const renderStepComponent = () => {
-    if (isLoadingPreset) {
-      return (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--brand-gray)' }}>
-          🔄 레시피 데이터를 불러오는 중입니다...
-        </div>
-      );
-    }
+  // [레시피 생성하기]
+  const handleGoToCreatePage = () => {
+    setIsAccessModalOpen(false);
+    navigate('/ai', { replace: true });
+  };
 
-    switch (currentStep) {
-      case 1:
-        return <Step1BasicInfo formData={formData} updateFormData={updateFormData} />;
-      case 2:
-        return <Step2Ingredients formData={formData} updateFormData={updateFormData} />;
-      case 3:
-        return <Step3Steps formData={formData} updateFormData={updateFormData} />;
-      case 4:
-        return <Step4Image formData={formData} updateFormData={updateFormData} />;
-      case 5:
-        return <Step5PreviewAndOptions formData={formData} updateFormData={updateFormData} />;
-      default:
-        return <Step1BasicInfo formData={formData} updateFormData={updateFormData} />;
+  // [임시저장]
+  const handleSaveDraft = async () => {
+    try {
+      setIsSaving(true);
+
+      // 1. 현재 로그인한 유저 세션 가져오기
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        alert('로그인이 필요합니다. 로그인 후 임시 저장을 이용해 주세요.');
+        return;
+      }
+
+      // 2. formData를 UploadRecipeToSupabase 규격에 맞게 매핑
+      const recipeRawData = {
+        title: formData.title,
+        summary: formData.description,
+        cuisine: formData.category,
+        cooking_time: formData.cookingTime,
+        difficulty: formData.difficulty,
+        servings: formData.servings,
+        tags: formData.tags,
+        diets: formData.diet_goal,
+        ingredients: formData.ingredients,
+        steps: formData.cookingSteps,
+        thumbnail_url: formData.thumbnail_url,
+      };
+
+      // 3. 이미 생성된 임시저장 ID가 있는 경우: UPDATE 실행
+      if (savedDraftId) {
+        const result = await UploadRecipeToSupabase(recipeRawData, user, true, savedDraftId);
+
+        if (result.success) {
+          alert('임시 저장된 레시피가 수정 반영되었습니다.');
+        } else {
+          alert(`임시 저장 수정 실패: ${result.detail || result.error}`);
+        }
+      }
+      // 4. 처음 임시저장을 누른 경우: INSERT 실행 후 반환된 ID 보관
+      else {
+        const result = await UploadRecipeToSupabase(recipeRawData, user, true);
+
+        if (result.success && result.savedRecipe) {
+          setSavedDraftId(result.savedRecipe.id);
+          alert('현재 작성 중인 레시피가 임시 저장되었습니다.');
+        } else {
+          alert(`임시 저장 실패: ${result.detail || result.error}`);
+        }
+      }
+    } catch (err) {
+      console.error('임시 저장 실패:', err);
+      alert('임시 저장 도중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -935,7 +456,7 @@ export default function RegistRecipe() {
           </p>
         </div>
 
-        {/* 5단계 알약 인디케이터 바 */}
+        {/* 5단계 인디케이터 바 */}
         <div className={styles.stepNav}>
           {steps.map((step) => {
             const isActive = currentStep === step.id;
@@ -959,14 +480,26 @@ export default function RegistRecipe() {
         {/* 하단 액션 버튼 바 */}
         <div className={styles.bottomActionBar}>
           <div className={styles.leftActions}>
-            <button type="button" className={styles.actionBtn} data-tooltip="임시 저장">
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={handleSaveDraft}
+              disabled={isSaving}
+              data-tooltip="임시 저장"
+            >
               <span className={styles.btnIcon}>💾</span>
-              <span className={styles.btnText}>임시 저장</span>
+              <span className={styles.btnText}>{isSaving ? '저장 중...' : '임시 저장'}</span>
             </button>
 
-            <button type="button" className={styles.actionBtn} onClick={() => goToStep(5)} data-tooltip="미리 보기">
-              <span className={styles.btnIcon}>👁</span>
-              <span className={styles.btnText}>미리 보기</span>
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={handleLoadRecentDraft}
+              disabled={isSaving}
+              data-tooltip="불러오기"
+            >
+              <span className={styles.btnIcon}>📁</span>
+              <span className={styles.btnText}>불러오기</span>
             </button>
           </div>
 
@@ -987,7 +520,7 @@ export default function RegistRecipe() {
               className={styles.nextBtn}
               onClick={() => {
                 if (currentStep === steps.length) {
-                  alert('레시피가 성공적으로 등록되었습니다!');
+                  handleFinalSubmit();
                 } else {
                   goToStep(currentStep + 1);
                 }
@@ -1000,6 +533,13 @@ export default function RegistRecipe() {
           </div>
         </div>
       </div>
+
+      {/* 🚨 잘못된 접근 및 프리셋 없음 통합 MUI 모달 */}
+      <AccessGuardModal
+        isOpen={isAccessModalOpen}
+        handleLoadRecentDraft={handleLoadRecentDraft}
+        handleGoToCreatePage={handleGoToCreatePage}
+      />
     </Layout>
   );
 }
