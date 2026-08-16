@@ -29,17 +29,18 @@ function MyRecipeCard({ recipe, onTogglePublic, isLikedCard }) {
     >
       <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)', backgroundImage: recipe.image ? `url(${recipe.image})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         {!isLikedCard && (
-          <span 
+          <button 
+            type="button"
             className={`text-s ${styles['privacy-badge']} ${recipe.isPublic ? styles['public'] : styles['private']}`}
             onClick={(e) => {
               e.stopPropagation();
               onTogglePublic && onTogglePublic(recipe.id);
             }}
-            style={{ cursor: 'pointer' }}
             title="공개/비공개 전환"
+            aria-label={`레시피 ${recipe.isPublic ? "비공개로" : "공개로"} 전환`}
           >
             {recipe.isPublic ? '공개' : '비공개'}
-          </span>
+          </button>
         )}
       </div>
       <div className={styles['recipe-content']}>

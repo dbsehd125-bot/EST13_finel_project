@@ -17,6 +17,8 @@ export default function ConfirmModal({
       open={open}
       onClose={loading ? undefined : onCancel}
       maxWidth={false}
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-description"
       sx={{
         "& .MuiDialog-container": { padding: "16px" },
         "& .MuiDialog-paper": {
@@ -29,6 +31,7 @@ export default function ConfirmModal({
       }}
     >
       <DialogTitle
+        id="confirm-dialog-title"
         sx={{
           padding: "24px 24px 8px",
           color: "var(--brand-brown)",
@@ -42,6 +45,7 @@ export default function ConfirmModal({
 
       <DialogContent sx={{ padding: "8px 24px 20px !important" }}>
         <p
+          id="confirm-dialog-description"
           style={{
             margin: 0,
             color: "#6b625e",

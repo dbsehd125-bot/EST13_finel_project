@@ -464,7 +464,7 @@ function Step3Steps({ formData, updateFormData }) {
 
   // 특정 단계의 특정 필드 값 수정
   const handleStepChange = (index, field, value) => {
-    const updatedSteps = steps.map((step, i) => (i === index ? { ...step, [field]: value } : step));
+    const updatedSteps = cookingSteps.map((step, i) => (i === index ? { ...step, [field]: value } : step));
     syncSteps(updatedSteps);
   };
 
