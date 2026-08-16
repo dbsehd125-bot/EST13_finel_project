@@ -2,8 +2,8 @@ import React from "react";
 import { Link } from "react-router";
 import "./Footer.css";
 
-export default function Footer() {
-  const handlePreventDefault = (e) => {
+export default function Footer(): React.ReactElement {
+  const handlePreventDefault = (e: React.MouseEvent<HTMLAnchorElement>): void => {
     e.preventDefault();
   };
 

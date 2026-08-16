@@ -8,7 +8,13 @@ import { NotificationProvider } from "./context/NotificationContext.jsx";
 import "./index.css";
 import App from "./App.jsx";
 
-createRoot(document.getElementById("root")).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element not found in HTML");
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <BrowserRouter>
       <NotificationProvider>

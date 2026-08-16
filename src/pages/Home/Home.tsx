@@ -3,12 +3,29 @@ import { Link } from "react-router";
 import { Layout } from "../../components";
 import SEO from "../../components/SEO";
 import { supabase } from "../../lib/supabaseClient";
+import type {
+  HomeRecipe,
+  MatchRecipe,
+  MealPlanItem,
+  BackupMeal,
+  HomeReview,
+  ToastState,
+} from "../../types/home";
 import "./Home.css";
 
 // --- 상수 및 더미 데이터 (컴포넌트 외부로 분리하여 렌더링 성능 최적화) ---
-const categories = ["전체", "한식", "양식", "중식", "일식", "디저트", "다이어트", "야식"];
+const categories: readonly string[] = [
+  "전체",
+  "한식",
+  "양식",
+  "중식",
+  "일식",
+  "디저트",
+  "다이어트",
+  "야식",
+];
 
-const recipeData = [
+const recipeData: HomeRecipe[] = [
   {
     id: 1,
     category: "양식",
@@ -20,7 +37,7 @@ const recipeData = [
     difficulty: "보통",
     rating: 4.9,
     likes: "2,104",
-    comments: 341
+    comments: 341,
   },
   {
     id: 2,
@@ -33,7 +50,7 @@ const recipeData = [
     difficulty: "쉬움",
     rating: 4.9,
     likes: "1,567",
-    comments: 288
+    comments: 288,
   },
   {
     id: 3,
@@ -46,7 +63,7 @@ const recipeData = [
     difficulty: "보통",
     rating: 4.8,
     likes: "1,330",
-    comments: 202
+    comments: 202,
   },
   {
     id: 4,
@@ -59,7 +76,7 @@ const recipeData = [
     difficulty: "매우 쉬움",
     rating: 4.7,
     likes: "1,120",
-    comments: 156
+    comments: 156,
   },
   {
     id: 5,
@@ -72,7 +89,7 @@ const recipeData = [
     difficulty: "보통",
     rating: 4.8,
     likes: "942",
-    comments: 118
+    comments: 118,
   },
   {
     id: 6,
@@ -85,7 +102,7 @@ const recipeData = [
     difficulty: "보통",
     rating: 4.9,
     likes: "1,205",
-    comments: 184
+    comments: 184,
   },
   {
     id: 7,
@@ -98,7 +115,7 @@ const recipeData = [
     difficulty: "쉬움",
     rating: 4.7,
     likes: "863",
-    comments: 92
+    comments: 92,
   },
   {
     id: 8,
@@ -111,11 +128,11 @@ const recipeData = [
     difficulty: "쉬움",
     rating: 4.9,
     likes: "2,408",
-    comments: 310
-  }
+    comments: 310,
+  },
 ];
 
-function formatRelativeTime(dateString) {
+function formatRelativeTime(dateString: string): string {
   const createdAt = new Date(dateString);
   const diff = Date.now() - createdAt.getTime();
   const minute = 60 * 1000;
@@ -134,14 +151,14 @@ function formatRelativeTime(dateString) {
   });
 }
 
-const matchRecipes = [
+const matchRecipes: MatchRecipe[] = [
   {
     title: "두부 닭가슴살 김치 볶음밥",
     desc: "보유하신 재료로 만들 수 있는 매콤 담백하고 단백질 가득한 한 그릇 메뉴에요.",
     image: "https://images.unsplash.com/photo-1553163147-622ab57be1c7?q=80&w=800&auto=format&fit=crop",
     time: "20분",
     difficulty: "쉬움",
-    servings: "2인분"
+    servings: "2인분",
   },
   {
     title: "백종원풍 파송송 계란국",
@@ -149,7 +166,7 @@ const matchRecipes = [
     image: "https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=800&auto=format&fit=crop",
     time: "10분",
     difficulty: "매우 쉬움",
-    servings: "1인분"
+    servings: "1인분",
   },
   {
     title: "두부 김치 조림",
@@ -157,7 +174,7 @@ const matchRecipes = [
     image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?q=80&w=800&auto=format&fit=crop",
     time: "25분",
     difficulty: "보통",
-    servings: "2인분"
+    servings: "2인분",
   },
   {
     title: "양파 가득 닭가슴살 볶음",
@@ -165,11 +182,11 @@ const matchRecipes = [
     image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?q=80&w=800&auto=format&fit=crop",
     time: "15분",
     difficulty: "쉬움",
-    servings: "1인분"
-  }
+    servings: "1인분",
+  },
 ];
 
-const backupMeals = [
+const backupMeals: BackupMeal[] = [
   { title: "포치드 에그 브런치", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" },
   { title: "봉골레 오일 파스타", image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=400&auto=format&fit=crop" },
   { title: "버터 연어 스테이크", image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=400&auto=format&fit=crop" },
@@ -178,10 +195,10 @@ const backupMeals = [
   { title: "든든 채소 샐러드 볼", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400&auto=format&fit=crop" },
   { title: "밤 티라미수", image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=400&auto=format&fit=crop" },
   { title: "돼지고기 김치찌개", image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?q=80&w=400&auto=format&fit=crop" },
-  { title: "스팸 무스비", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" }
+  { title: "스팸 무스비", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" },
 ];
 
-const reviewsData = [
+const reviewsData: HomeReview[] = [
   {
     id: 1,
     image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=600&auto=format&fit=crop",
@@ -192,7 +209,7 @@ const reviewsData = [
     text: "레몬 버터 연어 처음으로 만들어봤는데 대성공? 레몬양만 조절하면 완벽해요",
     likes: 128,
     comments: 24,
-    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
+    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
   },
   {
     id: 2,
@@ -204,7 +221,7 @@ const reviewsData = [
     text: "두부 덮밥 다이어트 중인데 진짜 든든하고 맛있어요. 매일 해먹는 중!",
     likes: 98,
     comments: 18,
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop"
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop",
   },
   {
     id: 3,
@@ -216,7 +233,7 @@ const reviewsData = [
     text: "김치전 바삭하게 부치는 팁 덕분에 인생 김치전 완성했습니다",
     likes: 210,
     comments: 41,
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop"
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop",
   },
   {
     id: 4,
@@ -228,19 +245,19 @@ const reviewsData = [
     text: "주말 브런치로 포치드 에그 플레이트를 만들었어요. 사진도 예쁘게 나옴!",
     likes: 174,
     comments: 33,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop"
-  }
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
+  },
 ];
 
-export default function Home() {
+export default function Home(): React.ReactElement {
   // 오늘 뭐 먹지? 레시피 섹션 상태
-  const [selectedCategory, setSelectedCategory] = useState("전체");
-  const [wishedIds, setWishedIds] = useState([]);
-  const [dbRecipes, setDbRecipes] = useState([]);
-  const [recipesLoading, setRecipesLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>("전체");
+  const [wishedIds, setWishedIds] = useState<(number | string)[]>([]);
+  const [dbRecipes, setDbRecipes] = useState<HomeRecipe[]>([]);
+  const [recipesLoading, setRecipesLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchDbRecipes = async () => {
+    const fetchDbRecipes = async (): Promise<void> => {
       try {
         setRecipesLoading(true);
         // Supabase에서 레시피 데이터 조회
@@ -254,7 +271,7 @@ export default function Home() {
 
         if (data && data.length > 0) {
           // DB 데이터를 Home 레시피 카드가 읽을 수 있는 규격으로 정규화
-          const normalized = data.map(r => ({
+          const normalized: HomeRecipe[] = data.map((r: any) => ({
             id: r.id,
             category: r.cuisine || "기타",
             title: r.title,
@@ -265,7 +282,7 @@ export default function Home() {
             difficulty: r.difficulty || "보통",
             rating: r.rating || 4.8,
             likes: r.like_count !== undefined ? String(r.like_count) : "0",
-            comments: r.comments_count || 0
+            comments: r.comments_count || 0,
           }));
           setDbRecipes(normalized);
         }
@@ -279,11 +296,11 @@ export default function Home() {
     fetchDbRecipes();
   }, []);
 
-  const [communityReviews, setCommunityReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [communityReviews, setCommunityReviews] = useState<HomeReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchCommunityReviews = async () => {
+    const fetchCommunityReviews = async (): Promise<void> => {
       try {
         setReviewsLoading(true);
         // Supabase에서 커뮤니티 게시글 조회 (최신 10개)
@@ -296,7 +313,7 @@ export default function Home() {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const formatted = data.map(r => ({
+          const formatted: HomeReview[] = data.map((r: any) => ({
             id: r.id,
             image: r.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop",
             dishName: r.recipe_name || "맛있는 요리",
@@ -306,7 +323,7 @@ export default function Home() {
             text: r.content || "정말 맛있게 만들어졌어요!",
             likes: r.like_count || 0,
             comments: r.comment_count || 0,
-            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
+            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
           }));
           setCommunityReviews(formatted);
         }
@@ -321,44 +338,44 @@ export default function Home() {
   }, []);
 
   // AI 냉장고 털기 섹션 상태
-  const [tags, setTags] = useState(["계란", "양파", "대파", "김치", "두부", "닭가슴살"]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [recommendation, setRecommendation] = useState({
+  const [tags, setTags] = useState<string[]>(["계란", "양파", "대파", "김치", "두부", "닭가슴살"]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [recommendation, setRecommendation] = useState<MatchRecipe>({
     title: "두부 닭가슴살 김치 볶음밥",
     desc: "보유하신 재료로 만들 수 있는 매콤 담백하고 단백질 가득한 한 그릇 메뉴에요.",
     image: "https://images.unsplash.com/photo-1553163147-622ab57be1c7?q=80&w=800&auto=format&fit=crop",
     time: "20분",
     difficulty: "쉬움",
-    servings: "2인분"
+    servings: "2인분",
   });
 
   // 이번 주 식단 미리보기 섹션 상태
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-  const [mealPlan, setMealPlan] = useState([
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState<boolean>(false);
+  const [mealPlan, setMealPlan] = useState<MealPlanItem[]>([
     { id: "mon", day: "월", type: "아침", title: "밤 티라미수", image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=400&auto=format&fit=crop" },
     { id: "tue", day: "화", type: "점심", title: "든든 채소 샐러드 볼", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400&auto=format&fit=crop" },
     { id: "wed", day: "수", type: "저녁", title: "매콤 크림 파스타", image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?q=80&w=400&auto=format&fit=crop" },
     { id: "thu", day: "목", type: "저녁", title: "얼큰 순두부 계란탕", image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=400&auto=format&fit=crop" },
     { id: "fri", day: "금", type: "저녁", title: "버터 연어 스테이크", image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=400&auto=format&fit=crop" },
     { id: "sat", day: "토", type: "점심", title: "봉골레 오일 파스타", image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=400&auto=format&fit=crop" },
-    { id: "sun", day: "일", type: "아침", title: "포치드 에그 브런치", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" }
+    { id: "sun", day: "일", type: "아침", title: "포치드 에그 브런치", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" },
   ]);
 
   // 사용자 리뷰 섹션 상태
-  const [likedReviews, setLikedReviews] = useState([]);
+  const [likedReviews, setLikedReviews] = useState<(number | string)[]>([]);
 
   // 인라인 재료 추가 상태
-  const [isAddingTag, setIsAddingTag] = useState(false);
-  const [newTagInput, setNewTagInput] = useState("");
+  const [isAddingTag, setIsAddingTag] = useState<boolean>(false);
+  const [newTagInput, setNewTagInput] = useState<string>("");
 
   // 토스트 메시지 상태
-  const [toast, setToast] = useState({ message: "", visible: false, type: "success" });
-  const toastTimeoutRef = useRef(null);
+  const [toast, setToast] = useState<ToastState>({ message: "", visible: false, type: "success" });
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 토스트 보이기 함수
-  const showToast = (message, type = "success") => {
+  const showToast = (message: string, type: ToastState["type"] = "success"): void => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
@@ -376,26 +393,26 @@ export default function Home() {
     };
   }, []);
 
-  const activeRecipes = dbRecipes.length > 0 ? dbRecipes : recipeData;
+  const activeRecipes: HomeRecipe[] = dbRecipes.length > 0 ? dbRecipes : recipeData;
 
-  let filteredRecipes = activeRecipes.filter(
-    recipe => selectedCategory === "전체" || recipe.category === selectedCategory
+  let filteredRecipes: HomeRecipe[] = activeRecipes.filter(
+    recipe => selectedCategory === "전체" || recipe.category === selectedCategory,
   );
 
   // 💡 스마트 하이브리드 Fallback: DB를 통해 받아온 결과 중 선택된 카테고리의 실제 레시피가 전혀 없는 경우,
-  // 썰렁하게 비워두는 대신 로컬 mock 데이터에서 해당 카테고리 요리를 가져와 예쁘게 채워줍니다.
+  // 썰렁하게 비워두는 대신 로컬 mock 데이터에서 해당 카테고리 요리를 가져와 채워줍니다.
   if (dbRecipes.length > 0 && filteredRecipes.length === 0 && selectedCategory !== "전체") {
     filteredRecipes = recipeData.filter(
-      recipe => recipe.category === selectedCategory
+      recipe => recipe.category === selectedCategory,
     );
   }
 
-  const activeReviews = communityReviews.length > 0 ? communityReviews : reviewsData;
+  const activeReviews: HomeReview[] = communityReviews.length > 0 ? communityReviews : reviewsData;
 
-  const toggleWish = (id) => {
+  const toggleWish = (id: number | string): void => {
     const isWished = wishedIds.includes(id);
     setWishedIds(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id],
     );
     if (!isWished) {
       showToast("관심 레시피에 추가되었습니다.", "success");
@@ -405,12 +422,12 @@ export default function Home() {
   };
 
   // 재료 태그 제어 함수들
-  const handleRemoveTag = (tagToRemove) => {
+  const handleRemoveTag = (tagToRemove: string): void => {
     setTags(tags.filter(t => t !== tagToRemove));
     showToast(`"${tagToRemove}" 재료를 삭제했습니다.`, "info");
   };
 
-  const handleAddTagSubmit = (e) => {
+  const handleAddTagSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     const trimmed = newTagInput.trim();
     if (!trimmed) return;
@@ -426,12 +443,12 @@ export default function Home() {
   };
 
   // 사진 업로드 제어
-  const handleUploadClick = () => {
-    fileInputRef.current.click();
+  const handleUploadClick = (): void => {
+    fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
     if (file) {
       showToast(`[AI 인식 완료] '${file.name}' 분석을 통해 '파프리카', '양배추'가 추가되었습니다!`, "success");
       const extraTags = ["파프리카", "양배추"];
@@ -446,7 +463,7 @@ export default function Home() {
   };
 
   // AI 레시피 추천 시뮬레이션
-  const handleRecommend = () => {
+  const handleRecommend = (): void => {
     if (tags.length === 0) {
       showToast("최소 한 개 이상의 재료를 입력해 주세요!", "warning");
       return;
@@ -462,17 +479,19 @@ export default function Home() {
   };
 
   // 식단 개별 교체 상태
-  const [replacingId, setReplacingId] = useState(null);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
 
   // 식단 개별 교체 제어
-  const handleReplaceMeal = (id) => {
+  const handleReplaceMeal = (id: string): void => {
     setReplacingId(id);
     const currentMeal = mealPlan.find(m => m.id === id);
+    if (!currentMeal) return;
+
     const filteredBackup = backupMeals.filter(b => b.title !== currentMeal.title);
     const randomMeal = filteredBackup[Math.floor(Math.random() * filteredBackup.length)] || backupMeals[0];
     
     setMealPlan(prev => 
-      prev.map(m => m.id === id ? { ...m, title: randomMeal.title, image: randomMeal.image } : m)
+      prev.map(m => m.id === id ? { ...m, title: randomMeal.title, image: randomMeal.image } : m),
     );
     showToast(`${currentMeal.day}요일 식단이 교체되었습니다.`, "success");
 
@@ -482,7 +501,7 @@ export default function Home() {
   };
 
   // AI 일주일 식단 생성 제어
-  const handleGeneratePlan = () => {
+  const handleGeneratePlan = (): void => {
     setIsGeneratingPlan(true);
     setTimeout(() => {
       setIsGeneratingPlan(false);
@@ -495,10 +514,10 @@ export default function Home() {
   };
 
   // 사용자 리뷰 좋아요 제어
-  const toggleLikeReview = (id) => {
+  const toggleLikeReview = (id: number | string): void => {
     const isLiked = likedReviews.includes(id);
     setLikedReviews(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id],
     );
     if (!isLiked) {
       showToast("리뷰를 추천했습니다.", "success");
@@ -800,7 +819,7 @@ export default function Home() {
                 {isAddingTag ? (
                   <form onSubmit={handleAddTagSubmit} className="add-tag-form" onBlur={(e) => {
                     // input 밖을 클릭 시 자동 닫힘 (약간의 딜레이로 버튼 클릭 허용)
-                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                       setTimeout(() => setIsAddingTag(false), 200);
                     }
                   }}>
