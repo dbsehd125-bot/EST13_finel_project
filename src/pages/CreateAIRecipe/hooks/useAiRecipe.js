@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../../context/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
 import { RecipeJsonToMarkdown } from '../RecipeJsonToMarkdown';
 import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from '../../../utils/AlanApi';
-import { UploadRecipeToSupabase } from '../UploadRecipeToSupabase';
 
 const API_BASE = '/api/v1';
 const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -15,15 +14,16 @@ export function useAiRecipe() {
   const { user } = useAuth();
 
   // Step 1: 프롬프트 입력
-  const [prompt, setPrompt] = useState(
-    '집에 계란, 양파, 참치가 있어요. 밥과 함께 먹을 수 있는 매콤한 요리를 만들어 주세요.',
-  );
+  const [prompt, setPrompt] = useState('');
+
+  // [추가] Summary/Prompt 미입력 안내 MUI 모달 상태
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   // Step 2: 태그 선택
-  const [ingredients, setIngredients] = useState(['계란', '양파', '참치', '밥']);
+  const [ingredients, setIngredients] = useState([]);
   const [newIngredient, setNewIngredient] = useState('');
   const [isAddingIngredientTag, setIsAddingIngredientTag] = useState(false);
-  const [excluded, setExcluded] = useState(['우유', '복숭아', '새우', '땅콩']);
+  const [excluded, setExcluded] = useState([]);
   const [newExcluded, setNewExcluded] = useState('');
   const [isAddingExcludedTag, setIsAddingExcludedTag] = useState(false);
 
@@ -48,11 +48,8 @@ export function useAiRecipe() {
   // 게시 상태
   const [isPublishing, setIsPublishing] = useState(false);
 
-  // 🔒 로그인 유도 모달 상태
+  // 로그인 유도 모달 상태
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  // 하단 추가 수정 프롬프트 상태
-  const [refinePrompt, setRefinePrompt] = useState('');
 
   // 로딩 & 결과 상태
   const [loadingStep, setLoadingStep] = useState(null);
@@ -132,9 +129,24 @@ export function useAiRecipe() {
     }
   }
 
-  // 레시피 생성하기
-  const handleGenerateRecipe = async (e) => {
+  /**
+   * 레시피 생성하기
+   * @param {*} e
+   * @param {*} isBypass: summary 입력 감지
+   * @returns
+   */
+  const handleGenerateRecipe = async (e, isBypass = false) => {
     if (e) e.preventDefault();
+    const element = document.getElementById('target-section');
+    if (element) {
+      element.scrollIntoView({ block: 'start' });
+    }
+
+    // prompt(summary) 미입력 검사
+    if (!isBypass && !prompt.trim()) {
+      setIsSummaryModalOpen(true);
+      return;
+    }
 
     setLoadingStep('prompt');
     setResult(null);
@@ -203,7 +215,7 @@ export function useAiRecipe() {
 
       try {
         const mainTitle = parsedRecipeJson.title || '요리';
-        const thumbnailPrompt = `Professional studio food photography of ${mainTitle}, ${conditions.cuisine} cuisine, beautifully plated, warm lighting, 4k.`;
+        const thumbnailPrompt = `Professional studio food photography of ${mainTitle}, ${conditions.cuisine} cuisine, beautifully plated, warm lighting, no text, 4k.`;
         const thumbnailUrl = (await fetchOpenAIImage(thumbnailPrompt)) || FALLBACK_URL;
         parsedRecipeJson.thumbnail_url = thumbnailUrl;
 
@@ -213,7 +225,7 @@ export function useAiRecipe() {
           const updatedSteps = [];
           for (let i = 0; i < parsedRecipeJson.steps.length; i++) {
             const step = parsedRecipeJson.steps[i];
-            const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT show the final dish, only this specific preparation step.`;
+            const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT include any text. Do NOT show the final dish, only this specific preparation step.`;
 
             if (i > 0) {
               await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -257,50 +269,59 @@ export function useAiRecipe() {
     }
   };
 
-  // 추가 수정 프롬프트 제출
-  const handleRefineSubmit = (e) => {
-    e.preventDefault();
-    if (!refinePrompt.trim()) return;
+  // summary 모달에서 [확인] 및 모달 밖 클릭 시
+  const handleCloseSummaryModal = (inputRef) => {
+    setIsSummaryModalOpen(false);
+    // if (inputRef && inputRef.current) {
+    //   setTimeout(() => {
+    //     inputRef.current.focus();
+    //   }, 100);
+    // }
 
-    setLoadingStep('prompt');
-    setTimeout(() => {
-      setLoadingStep(null);
-      setResult((prev) => ({
-        ...prev,
-        markdown: prev.markdown + `\n\n> 💡 **전송한 메세지의 내용**이 적용된 레시피입니다.`,
-      }));
-      setRefinePrompt('');
-    }, 1200);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (inputRef.current) inputRef.current.focus();
+      }, 100);
+    });
   };
 
-  // 레시피 Supabase에 게시/등록하기
+  // summary 모달에서 [무시하고 생성하기] 클릭 시
+  const handleBypassAndGenerate = () => {
+    setIsSummaryModalOpen(false);
+    handleGenerateRecipe(null, true);
+  };
+
+  // 등록하기 화면으로 이동
   const handlePublish = async () => {
+    // 1. 레시피 결과 데이터가 없는 경우
     if (!result || !result.raw) {
       alert('저장할 레시피 데이터가 없습니다. 먼저 레시피를 생성해 주세요.');
       return;
     }
 
+    // 2. 비회원인 경우: AuthGuardModal 팝업
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
 
-    try {
-      setIsPublishing(true);
-      const response = await UploadRecipeToSupabase(result.raw, user);
+    // 3. 로그인된 상태인 경우: AI JSON 데이터 갖고 등록 페이지로 라우팅
+    navigate('/register', {
+      state: {
+        recipe: result.raw,
+        isFromAICreater: true,
+      },
+    });
+  };
 
-      if (response.success && response.savedRecipe) {
-        alert('레시피가 DB 및 스토리지에 성공적으로 등록되었습니다!');
-        navigate(`/register?id=${response.savedRecipe.id}`);
-      } else {
-        alert(`레시피 등록에 실패했습니다: ${response.detail || response.error}`);
-      }
-    } catch (error) {
-      console.error('게시하기 처리 중 에러:', error);
-      alert('레시피를 게시하는 도중 오류가 발생했습니다.');
-    } finally {
-      setIsPublishing(false);
-    }
+  // 로그인 모달에서 [로그인하러 가기] 클릭 시 실행할 함수
+  const handleConfirmAuthModal = () => {
+    setIsAuthModalOpen(false);
+
+    // 로그인 완료 후 다시 현재 화면으로 돌아올 수 있도록 current path 저장 전달
+    navigate('/auth/login', {
+      state: { from: location.pathname },
+    });
   };
 
   return {
@@ -322,8 +343,8 @@ export function useAiRecipe() {
     isPublishing,
     isAuthModalOpen,
     setIsAuthModalOpen,
-    refinePrompt,
-    setRefinePrompt,
+    isSummaryModalOpen,
+    setIsSummaryModalOpen,
     loadingStep,
     result,
     toggleSelect,
@@ -335,7 +356,9 @@ export function useAiRecipe() {
     handleConditionChange,
     handleOptionToggle,
     handleGenerateRecipe,
-    handleRefineSubmit,
+    handleCloseSummaryModal,
+    handleBypassAndGenerate,
     handlePublish,
+    handleConfirmAuthModal,
   };
 }
