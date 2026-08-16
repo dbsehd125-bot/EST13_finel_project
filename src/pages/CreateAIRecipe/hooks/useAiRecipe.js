@@ -137,6 +137,10 @@ export function useAiRecipe() {
    */
   const handleGenerateRecipe = async (e, isBypass = false) => {
     if (e) e.preventDefault();
+    const element = document.getElementById('target-section');
+    if (element) {
+      element.scrollIntoView({ block: 'start' });
+    }
 
     // prompt(summary) 미입력 검사
     if (!isBypass && !prompt.trim()) {

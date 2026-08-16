@@ -1,13 +1,11 @@
 import React from 'react';
 import RecipeResultCard from '../RecipeResultCard';
+import { useNotification } from '../../../context/NotificationContext';
 import styles from '../CreateAIRecipe.module.css';
 
-export default function RecipeResult({
-  result,
-  isPublishing,
-  handlePublish,
-  handleGenerateRecipe,
-}) {
+export default function RecipeResult({ result, isPublishing, handlePublish, handleGenerateRecipe }) {
+  const { showNotification } = useNotification();
+
   if (!result) {
     return (
       <div className={styles.emptyView}>
@@ -40,12 +38,7 @@ export default function RecipeResult({
       {/* 하단 액션 버튼 바 */}
       <div className={styles.resultActionBar}>
         <div className={styles.leftIcons}>
-          <button
-            type="button"
-            className={styles.iconCircleBtn}
-            title="다시 생성"
-            onClick={handleGenerateRecipe}
-          >
+          <button type="button" className={styles.iconCircleBtn} title="다시 생성" onClick={handleGenerateRecipe}>
             <svg
               width="18"
               height="18"
@@ -67,7 +60,7 @@ export default function RecipeResult({
             onClick={() => {
               if (result?.markdown) {
                 navigator.clipboard.writeText(result.markdown);
-                alert('레시피가 클립보드에 복사되었습니다.');
+                showNotification('레시피가 클립보드에 복사되었습니다!', 'success');
               }
             }}
           >
@@ -97,7 +90,7 @@ export default function RecipeResult({
             opacity: isPublishing ? 0.7 : 1,
           }}
         >
-          {isPublishing ? '게시 중...' : '🚀 게시하기'}
+          {isPublishing ? '게시 중...' : '🚀 등록하기'}
         </button>
       </div>
     </RecipeResultCard>

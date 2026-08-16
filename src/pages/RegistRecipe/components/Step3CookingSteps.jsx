@@ -19,7 +19,7 @@ export default function Step3Steps({ cookingSteps, handleTipChange, handleResetT
       {/* 조리 단계 카드 목록 */}
       <div className={styles.cookingStepsContainer}>
         {cookingSteps.map((step, idx) => (
-          <div key={step.stepNumber} className={styles.stepCardItem}>
+          <div key={step.step} className={styles.stepCardItem}>
             {/* 단계 번호 배지 & 라벨 헤더 */}
             <div className={styles.stepHeaderRow}>
               <span className={styles.stepNumberBadge}>STEP {step.step}</span>

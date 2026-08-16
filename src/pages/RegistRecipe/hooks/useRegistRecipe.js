@@ -1,10 +1,86 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router';
 import { supabase } from '../../../lib/supabaseClient';
-import { useNotification } from '../../../context/NotificationContext'; 
+import { useNotification } from '../../../context/NotificationContext';
 import { UploadRecipeToSupabase } from './UploadRecipeToSupabase';
 
 export function useRegistRecipe() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // CreateAIRecipe에서 라우팅으로 넘어온 JSON 데이터
+  const aiRecipePreset = location.state?.recipe || null;
+  const isFromAICreater = location.state?.isFromAICreater || false;
+
+  const steps = [
+    { id: 1, label: '기본 정보' },
+    { id: 2, label: '재료' },
+    { id: 3, label: '조리 과정' },
+    { id: 4, label: '이미지' },
+    { id: 5, label: '미리 보기' },
+  ];
+
+  const currentStep = parseInt(searchParams.get('step') || '1', 10);
+
+  // 통합 폼 상태 데이터
+  const [formData, setFormData] = useState(() => {
+    if (aiRecipePreset) {
+      const parsedData = {
+        // step 1
+        title: aiRecipePreset.title || '',
+        description: aiRecipePreset.summary || '',
+        category: aiRecipePreset.cuisine || '한식',
+        cookingTime: aiRecipePreset.cooking_time || '10분 이내',
+        difficulty: aiRecipePreset.difficulty || '초간단',
+        servings: aiRecipePreset.servings || '1인분',
+        tags: aiRecipePreset.tags || [],
+        diet_goal: aiRecipePreset.diets || '해당없음',
+        // step 2
+        ingredients: aiRecipePreset.ingredients || [],
+        // step 3
+        cookingSteps: aiRecipePreset.steps || [],
+        // step 4
+        images: aiRecipePreset.steps?.map((s) => s.image).filter(Boolean) || [],
+        thumbnail_url: aiRecipePreset.thumbnail_url || '',
+        // step 5
+        isPublic: true,
+      };
+
+      return parsedData;
+    }
+
+    return {
+      // step 1
+      title: '',
+      description: '',
+      category: '한식',
+      cookingTime: '10분 이내',
+      difficulty: '초간단',
+      servings: '1인분',
+      tags: [],
+      diet_goal: '해당없음',
+      // step 2
+      ingredients: [],
+      // step 3
+      cookingSteps: [],
+      // step 4
+      images: [],
+      thumbnail_url: '',
+      // step 5
+      isPublic: true,
+    };
+  });
+
+  // 상태 업데이트 함수
+  const updateFormData = (key, value) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // 잘못된 접근 안내 모달 상태
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+
   /* ==========================================================================
    Step 1 컴포넌트: 기본 정보 입력
    ========================================================================== */
@@ -135,12 +211,12 @@ export function useRegistRecipe() {
 
   const [thumbnail, setThumbnail] = useState(formData.thumbnail_url || FALLBACK_THUMBNAIL);
 
-  const steps = formData.cookingSteps || [];
-  const hasStepImages = steps.some((step) => step.image);
+  const cookingStepsInst = formData.cookingSteps || [];
+  const hasStepImages = cookingSteps.some((step) => step.image);
 
-  const getStepImagesGrid = () => {
+  const getStepImagesGrid = (stepList = []) => {
     // 조리 단계별로 생성된 이미지 URL 배열 추출
-    const validImages = steps
+    const validImages = stepList
       .map((step, idx) => ({
         stepNumber: step.step || idx + 1,
         url: step.image || null,
@@ -166,14 +242,14 @@ export function useRegistRecipe() {
     return gridItems;
   };
 
-  const [stepGridItems, setStepGridItems] = useState(getStepImagesGrid);
+  const [stepGridItems, setStepGridItems] = useState(() => getStepImagesGrid(cookingStepsInst));
 
   // formData 변경 시 썸네일 및 단계별 이미지 자동 업데이트
   useEffect(() => {
     if (formData.thumbnail_url) {
       setThumbnail(formData.thumbnail_url);
     }
-    setStepGridItems(getStepImagesGrid());
+    setStepGridItems(getStepImagesGrid(formData.cookingSteps || []));
   }, [formData]);
 
   // 사용자가 파일 선택 시 썸네일 프리뷰 교체
@@ -218,26 +294,13 @@ export function useRegistRecipe() {
   /* ==========================================================================
    Main RegistRecipe 페이지 컴포넌트
    ========================================================================== */
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { showNotification } = useNotification();
-
-  // 잘못된 접근 안내 모달 상태
-  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
-
   // URL 쿼리 스트링으로 현재 step 상태 유지
-  const [searchParams, setSearchParams] = useSearchParams();
   const recipeId = searchParams.get('id');
   const [savedDraftId, setSavedDraftId] = useState(recipeId || null);
-  const currentStep = parseInt(searchParams.get('step') || '1', 10);
 
   // 로딩 상태
   const [isLoadingPreset, setIsLoadingPreset] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  // CreateAIRecipe에서 라우팅으로 넘어온 JSON 데이터
-  const aiRecipePreset = location.state?.recipe || null;
-  const isFromAICreater = location.state?.isFromAICreater || false;
 
   useEffect(() => {
     const isValidAccess = Boolean(isFromAICreater && aiRecipePreset);
@@ -247,102 +310,19 @@ export function useRegistRecipe() {
     // 2) AI 생성 페이지에서 넘어온 플래그(isFromAICreater)가 없는 경우
     // 3) 전달된 레시피 데이터(aiRecipePreset)가 null/undefined인 경우
     if (!isValidAccess) {
-      setIsAccessModalOpen(true);
+      setIsAccessModalOpen(true); // 🚨 AI 생성 진입이 아니라면 무조건 모달 팝업
+    } else {
+      setIsAccessModalOpen(false);
     }
-  }, []);
-
-  // 통합 폼 상태 데이터
-  const [formData, setFormData] = useState(() => {
-    if (aiRecipePreset) {
-      const parsedData = {
-        // step 1
-        title: aiRecipePreset.title || '',
-        description: aiRecipePreset.summary || '',
-        category: aiRecipePreset.cuisine || '한식',
-        cookingTime: aiRecipePreset.cooking_time || '10분 이내',
-        difficulty: aiRecipePreset.difficulty || '초간단',
-        servings: aiRecipePreset.servings || '1인분',
-        tags: aiRecipePreset.tags || [],
-        diet_goal: aiRecipePreset.diets || '해당없음',
-        // step 2
-        ingredients: aiRecipePreset.ingredients || [],
-        // step 3
-        cookingSteps: aiRecipePreset.steps || [],
-        // step 4
-        images: aiRecipePreset.steps?.map((s) => s.image).filter(Boolean) || [],
-        thumbnail_url: aiRecipePreset.thumbnail_url || '',
-        // step 5
-        isPublic: true,
-      };
-
-      return parsedData;
-    }
-
-    return {
-      // step 1
-      title: '',
-      description: '',
-      category: '한식',
-      cookingTime: '10분 이내',
-      difficulty: '초간단',
-      servings: '1인분',
-      tags: [],
-      diet_goal: '해당없음',
-      // step 2
-      ingredients: [],
-      // step 3
-      cookingSteps: [],
-      // step 4
-      images: [],
-      thumbnail_url: '',
-      // step 5
-      isPublic: true,
-    };
-  });
-
-  // 상태 업데이트 함수
-  const updateFormData = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const steps = [
-    { id: 1, label: '기본 정보' },
-    { id: 2, label: '재료' },
-    { id: 3, label: '조리 과정' },
-    { id: 4, label: '이미지' },
-    { id: 5, label: '미리 보기' },
-  ];
+  }, [location.state]);
 
   // 단계 이동
   const goToStep = (stepNumber) => {
     if (stepNumber >= 1 && stepNumber <= steps.length) {
       setSearchParams({ step: stepNumber }, { state: location.state });
-    }
-  };
-
-  // 현재 단계별 서브 컴포넌트 렌더링 맵
-  const renderStepComponent = () => {
-    if (isLoadingPreset) {
-      return (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--brand-gray)' }}>
-          레시피 데이터를 불러오는 중입니다...
-        </div>
-      );
-    }
-
-    switch (currentStep) {
-      case 1:
-        return <Step1BasicInfo formData={formData} updateFormData={updateFormData} />;
-      case 2:
-        return <Step2Ingredients formData={formData} updateFormData={updateFormData} />;
-      case 3:
-        return <Step3Steps formData={formData} updateFormData={updateFormData} />;
-      case 4:
-        return <Step4Image formData={formData} updateFormData={updateFormData} />;
-      case 5:
-        return <Step5PreviewAndOptions formData={formData} updateFormData={updateFormData} />;
-      default:
-        return <Step1BasicInfo formData={formData} updateFormData={updateFormData} />;
+      window.scrollTo({
+        top: 0,
+      });
     }
   };
 
@@ -360,7 +340,7 @@ export function useRegistRecipe() {
         setIsAccessModalOpen(false);
         showNotification('로그인이 필요한 기능입니다.', 'warning');
         navigate('/login', {
-          state: { from: location.pathname }, // 로그인 후 돌아올 수 있도록 현재 경로 전달
+          state: { from: location.pathname },
         });
         return;
       }
@@ -396,6 +376,28 @@ export function useRegistRecipe() {
           thumbnail_url: data.thumbnail_url || '',
           isPublic: data.ispublic ?? true,
         });
+
+        // 💡 2. Step 2 (재료) 독립 상태 동기화
+        if (data.ingredients && data.ingredients.length > 0) {
+          setIngredients(
+            data.ingredients.map((item, idx) => ({
+              id: item.id || `item-${idx + 1}`,
+              name: item.name || (typeof item === 'string' ? item : ''),
+              isSubstitutable: Boolean(item.isSubstitutable),
+              substituteName: item.substituteName || '',
+            })),
+          );
+        }
+
+        // 💡 3. Step 3 (조리 과정) 독립 상태 동기화
+        if (data.steps && data.steps.length > 0) {
+          setCookingSteps(data.steps);
+        }
+
+        // 💡 4. Step 4 (대표 썸네일) 독립 상태 동기화
+        if (data.thumbnail_url) {
+          setThumbnail(data.thumbnail_url);
+        }
 
         if (setSavedDraftId) {
           setSavedDraftId(data.id);

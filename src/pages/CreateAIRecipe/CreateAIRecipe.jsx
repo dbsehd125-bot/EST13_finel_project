@@ -104,7 +104,7 @@ export default function CreateAIRecipe() {
           />
 
           {/* 오른쪽: 미리보기 / 결과 카드 */}
-          <div className={styles.resultCard}>
+          <div className={styles.resultCard} id="target-section">
             {loadingStep ? (
               <RecipeLoading loadingStep={loadingStep} />
             ) : (

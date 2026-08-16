@@ -1,12 +1,12 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 
-export default function AccessGuardModal({ isOpen, handleLoadRecentDraft, handleGoToCreatePage }) {
+export default function AccessGuardModal({ isOpen = false, handleLoadRecentDraft, handleGoToCreatePage }) {
   return (
     <>
       {/* 🚨 잘못된 접근 및 프리셋 없음 통합 MUI 모달 */}
       <Dialog
-        open={isAccessModalOpen}
+        open={isOpen}
         onClose={handleGoToCreatePage}
         aria-labelledby="access-dialog-title"
         aria-describedby="access-dialog-description"
