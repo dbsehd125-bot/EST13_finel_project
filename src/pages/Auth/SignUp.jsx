@@ -12,13 +12,14 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { supabase } from "../../lib/supabaseClient";
 import { useNotification } from "../../context/NotificationContext";
 import Layout from "../../components/Layout";
+import SEO from "../../components/SEO";
+
 import AuthVisual from "./components/AuthVisual";
 import SocialLoginButtons from "./components/SocialLoginButtons";
 import useSocialLogin from "./hooks/useSocialLogin";
 import { FOOD_CATEGORIES } from "./authConstants";
-import styles from "./Auth.module.css";
 
-import SEO from "../../components/SEO";
+import styles from "./Auth.module.css";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -26,13 +27,6 @@ export default function SignUp() {
 
   const { showNotification } = useNotification();
 
-  /**
-   * 로그인 필요 페이지에서
-   * 로그인 → 회원가입으로 넘어온 경우
-   * 원래 페이지 정보를 유지한다.
-   *
-   * 직접 /signup에 접속했다면 "/"
-   */
   const redirectPath =
     typeof location.state?.from === "string" &&
     location.state.from.startsWith("/") &&
@@ -41,23 +35,15 @@ export default function SignUp() {
       : "/";
 
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
-
   const [passwordConfirm, setPasswordConfirm] = useState("");
-
   const [nickname, setNickname] = useState("");
 
   const [selectedCategories, setSelectedCategories] = useState([]);
 
   const [loading, setLoading] = useState(false);
-
   const [errorMessage, setErrorMessage] = useState("");
 
-  /**
-   * 소셜 회원가입도 결국 OAuth 로그인과 동일하게 처리되므로
-   * 원래 페이지로 바로 복귀할 수 있도록 redirectPath 전달
-   */
   const { socialLoading, handleSocialLogin } = useSocialLogin({
     redirectPath,
     onErrorClear: () => setErrorMessage(""),
@@ -123,7 +109,6 @@ export default function SignUp() {
 
     if (validationMessage) {
       setErrorMessage(validationMessage);
-
       return;
     }
 
@@ -141,14 +126,6 @@ export default function SignUp() {
             food_categories: selectedCategories,
           },
 
-          /**
-           * Confirm Email이 켜져 있을 경우
-           * 인증 메일의 링크를 누른 뒤
-           * 우리 사이트로 돌아올 주소.
-           *
-           * 회원가입 자체는 session 유무와 관계없이
-           * 정상 처리한다.
-           */
           emailRedirectTo: window.location.origin,
         },
       });
@@ -159,9 +136,6 @@ export default function SignUp() {
 
       /**
        * Confirm Email OFF
-       *
-       * 가입과 동시에 session 생성
-       * → 즉시 로그인 상태
        */
       if (data.session) {
         showNotification("회원가입이 완료되었습니다.", "success");
@@ -175,11 +149,6 @@ export default function SignUp() {
 
       /**
        * Confirm Email ON
-       *
-       * 회원가입은 성공했지만 session은 아직 없음.
-       * 이메일 인증을 완료해야 로그인 가능.
-       *
-       * 여기서는 실패가 아니라 정상적인 가입 상태다.
        */
       showNotification("인증 이메일을 확인해주세요.", "info");
 
@@ -220,20 +189,26 @@ export default function SignUp() {
         url="/signup"
         robots="noindex, nofollow"
       />
+
       <main className={styles.authPage}>
-        <section className={`${styles.authCard} ${styles.signupCard}`}>
+        <section
+          className={`${styles.authCard} ${styles.signupCard}`}
+          aria-labelledby="signup-title"
+        >
           <AuthVisual />
 
           <div className={styles.formArea}>
             <div className={styles.formHeader}>
-              <h1 className="font-display dtext-2xl">회원가입</h1>
+              <h1 id="signup-title" className="font-display dtext-2xl">
+                회원가입
+              </h1>
 
               <p className={`text-sm ${styles.description}`}>
                 몇 가지만 입력하면 시작할 수 있어요.
               </p>
             </div>
 
-            <form className={styles.form} onSubmit={handleEmailSignUp}>
+            <form className={styles.form} onSubmit={handleEmailSignUp} noValidate>
               <label className={styles.field}>
                 <span className="text-sm">이메일</span>
 
@@ -244,7 +219,9 @@ export default function SignUp() {
                   onChange={event => setEmail(event.target.value)}
                   placeholder="you@example.com"
                   autoComplete="email"
+                  inputMode="email"
                   disabled={isProcessing}
+                  aria-invalid={Boolean(errorMessage)}
                 />
               </label>
 
@@ -259,6 +236,7 @@ export default function SignUp() {
                   placeholder="6자 이상 입력해주세요"
                   autoComplete="new-password"
                   disabled={isProcessing}
+                  aria-invalid={Boolean(errorMessage)}
                 />
               </label>
 
@@ -273,6 +251,7 @@ export default function SignUp() {
                   placeholder="비밀번호를 다시 입력해주세요"
                   autoComplete="new-password"
                   disabled={isProcessing}
+                  aria-invalid={Boolean(errorMessage)}
                 />
               </label>
 
@@ -288,6 +267,7 @@ export default function SignUp() {
                   autoComplete="nickname"
                   maxLength={20}
                   disabled={isProcessing}
+                  aria-invalid={Boolean(errorMessage)}
                 />
               </label>
 
@@ -319,6 +299,7 @@ export default function SignUp() {
                 className={`${styles.errorSlot} ${errorMessage ? styles.errorVisible : ""}`}
                 role="alert"
                 aria-live="polite"
+                aria-atomic="true"
               >
                 {errorMessage || "\u00A0"}
               </div>
@@ -327,12 +308,13 @@ export default function SignUp() {
                 type="submit"
                 className={`text-button ${styles.primaryButton}`}
                 disabled={isProcessing}
+                aria-busy={loading}
               >
                 {loading ? "가입 중..." : "회원가입"}
               </button>
             </form>
 
-            <div className={styles.divider}>
+            <div className={styles.divider} aria-hidden="true">
               <span />
 
               <p className="text-s">또는</p>

@@ -50,6 +50,7 @@ export default function RecipeOverview({
         <img
           src={recipe.thumbnail_url}
           alt={`${recipe.title} 완성 이미지`}
+          loading="eager"
           fetchPriority="high"
           decoding="async"
         />

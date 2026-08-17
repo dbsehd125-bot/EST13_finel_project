@@ -20,7 +20,9 @@ export default function RelatedRecipes({
   onRecipeClick,
   onLikeToggle,
 }) {
-  if (!recipes.length) return null;
+  if (!recipes.length) {
+    return null;
+  }
 
   return (
     <section className={styles.relatedSection}>
@@ -42,6 +44,7 @@ export default function RelatedRecipes({
                 loading="lazy"
                 decoding="async"
               />
+
               <span className={`text-s ${styles.relatedTag}`}>{recipe.cuisine}</span>
 
               <button
@@ -70,6 +73,7 @@ export default function RelatedRecipes({
                   <AccessTimeOutlined fontSize="inherit" />
                   {recipe.cooking_time}
                 </span>
+
                 <span>
                   <LocalDiningOutlined fontSize="inherit" />
                   {recipe.difficulty}
