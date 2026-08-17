@@ -12,8 +12,13 @@ function FilterChip({ filterName, onRemove }) {
   return (
     <span className={`${styles['filter-chip']} text-button`}>
       {filterName}
-      <button className={styles['remove-filter']} onClick={() => onRemove(filterName)}>
-        <X size={14} />
+      <button 
+        type="button"
+        className={styles['remove-filter']} 
+        onClick={() => onRemove(filterName)}
+        aria-label={`${filterName} 필터 삭제`}
+      >
+        <X size={14} aria-hidden="true" />
       </button>
     </span>
   );
@@ -33,16 +38,20 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
       >
         <span className={`${styles['category-badge']} text-s`}>{recipe.category}</span>
         <button 
+          type="button"
           className={styles['like-btn']} 
           onClick={(e) => {
             e.preventDefault();
             onToggleWish();
           }}
+          aria-label={isWished ? "관심 레시피 취소" : "관심 레시피 등록"}
+          aria-pressed={isWished}
         >
           <Heart 
             size={18} 
             fill={isWished ? "#FF5E36" : "none"} 
             color={isWished ? "#FF5E36" : "currentColor"} 
+            aria-hidden="true"
           />
         </button>
       </div>
@@ -51,6 +60,8 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
         <div className={`${styles['recipe-author']} text-sm`}>
           <div 
             className={styles['author-avatar']} 
+            role="img"
+            aria-label={`${recipe.author} 아바타`}
             style={{ 
               backgroundColor: 'var(--brand-light-gray)',
               backgroundImage: `url(${recipe.avatar})`,
@@ -415,13 +426,15 @@ export default function RecipeList() {
               <div className={`${styles['filter-header']} font-display dtext-xl`}>필터</div>
 
               <div className={styles['filter-category']}>
-                <div 
+                <button 
+                  type="button"
                   className={`${styles['filter-title']} text-button`} 
                   onClick={() => toggleSection('category')}
+                  aria-expanded={openSections.category}
                 >
                   음식 종류 
-                  <ChevronDown size={16} style={{ transform: openSections.category ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                </div>
+                  <ChevronDown size={16} style={{ transform: openSections.category ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} aria-hidden="true" />
+                </button>
                 {openSections.category && filterCategories.map(cat => (
                   <label key={cat} className={`${styles['checkbox-label']} text-sm`}>
                     <input 
@@ -435,13 +448,15 @@ export default function RecipeList() {
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div 
+                <button 
+                  type="button"
                   className={`${styles['filter-title']} text-button`}
                   onClick={() => toggleSection('diet')}
+                  aria-expanded={openSections.diet}
                 >
                   건강/식단 
-                  <ChevronDown size={16} style={{ transform: openSections.diet ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                </div>
+                  <ChevronDown size={16} style={{ transform: openSections.diet ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} aria-hidden="true" />
+                </button>
                 {openSections.diet && filterDiets.map(diet => (
                   <label key={diet} className={`${styles['checkbox-label']} text-sm`}>
                     <input 
@@ -455,13 +470,15 @@ export default function RecipeList() {
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div 
+                <button 
+                  type="button"
                   className={`${styles['filter-title']} text-button`}
                   onClick={() => toggleSection('difficulty')}
+                  aria-expanded={openSections.difficulty}
                 >
                   난이도 
-                  <ChevronDown size={16} style={{ transform: openSections.difficulty ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                </div>
+                  <ChevronDown size={16} style={{ transform: openSections.difficulty ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} aria-hidden="true" />
+                </button>
                 {openSections.difficulty && filterDifficulties.map(diff => (
                   <label key={diff} className={`${styles['checkbox-label']} text-sm`}>
                     <input 
@@ -475,13 +492,15 @@ export default function RecipeList() {
               </div>
 
               <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <div 
+                <button 
+                  type="button"
                   className={`${styles['filter-title']} text-button`}
                   onClick={() => toggleSection('sort')}
+                  aria-expanded={openSections.sort}
                 >
                   정렬 
-                  <ChevronDown size={16} style={{ transform: openSections.sort ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                </div>
+                  <ChevronDown size={16} style={{ transform: openSections.sort ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} aria-hidden="true" />
+                </button>
                 {openSections.sort && filterSortOptions.map(option => (
                   <label key={option} className={`${styles['radio-label']} text-sm`}>
                     <input 

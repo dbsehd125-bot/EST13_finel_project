@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
 
-export default function ScrollToTop() {
+export default function ScrollToTop(): null {
   const { pathname } = useLocation();
 
   useEffect(() => {
     window.scrollTo({
       top: 0,
-      behavior: "instant"
+      behavior: "instant" as ScrollBehavior,
     });
   }, [pathname]);
 

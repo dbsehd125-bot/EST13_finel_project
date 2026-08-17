@@ -1,13 +1,14 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 
 import { useAuth } from "../context/AuthContext";
 import UserAvatar from "./UserAvatar";
 import AuthGuardModal from "./AuthGuardModal";
+import type { MenuItem } from "../types/navigation";
 
 import "./Header.css";
 
-const menuItems = [
+const menuItems: MenuItem[] = [
   {
     id: "home",
     label: "홈",
@@ -31,36 +32,36 @@ const menuItems = [
   },
 ];
 
-export default function Header() {
+export default function Header(): React.ReactElement {
   const navigate = useNavigate();
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchOpen, setSearchOpen] = useState<boolean>(false);
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
 
   const { user, profile, isLoggedIn, authLoading, logoutLoading, logout } = useAuth();
 
-  const displayName =
+  const displayName: string =
     profile?.nickname ||
     user?.user_metadata?.nickname ||
     user?.user_metadata?.full_name ||
     user?.email?.split("@")[0] ||
     "사용자";
 
-  const avatarUrl =
+  const avatarUrl: string | null =
     profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
-  function closeMenu() {
+  function closeMenu(): void {
     setMenuOpen(false);
   }
 
-  function closeSearch() {
+  function closeSearch(): void {
     setSearchOpen(false);
   }
 
-  function handleSearchSubmit(event) {
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
 
     const keyword = searchKeyword.trim();
@@ -80,7 +81,7 @@ export default function Header() {
     });
   }
 
-  async function handleLogout() {
+  async function handleLogout(): Promise<void> {
     if (logoutLoading) return;
 
     const success = await logout();
@@ -95,7 +96,7 @@ export default function Header() {
     navigate("/");
   }
 
-  const handleRegisterClick = () => {
+  const handleRegisterClick = (): void => {
     closeMenu();
     closeSearch();
 
@@ -140,7 +141,7 @@ export default function Header() {
           </Link>
 
           <nav className="nav" aria-label="주요 메뉴">
-            {menuItems.map(item => (
+            {menuItems.map((item) => (
               <NavLink
                 key={item.id}
                 to={item.path}
@@ -161,7 +162,7 @@ export default function Header() {
                 <input
                   type="search"
                   value={searchKeyword}
-                  onChange={event => setSearchKeyword(event.target.value)}
+                  onChange={(event) => setSearchKeyword(event.target.value)}
                   placeholder="레시피 검색"
                   aria-label="레시피 검색어"
                   autoFocus
@@ -196,7 +197,7 @@ export default function Header() {
               className={`icon-btn search-btn hide-on-mobile ${searchOpen ? "active" : ""}`}
               aria-label={searchOpen ? "검색창 닫기" : "검색"}
               aria-expanded={searchOpen}
-              onClick={() => setSearchOpen(previous => !previous)}
+              onClick={() => setSearchOpen((previous) => !previous)}
             >
               {searchOpen ? (
                 <svg
@@ -280,7 +281,7 @@ export default function Header() {
             aria-controls="mobile-menu"
             onClick={() => {
               closeSearch();
-              setMenuOpen(previous => !previous);
+              setMenuOpen((previous) => !previous);
             }}
           >
             <span />
@@ -295,7 +296,7 @@ export default function Header() {
           <input
             type="search"
             value={searchKeyword}
-            onChange={event => setSearchKeyword(event.target.value)}
+            onChange={(event) => setSearchKeyword(event.target.value)}
             placeholder="레시피를 검색해보세요"
             aria-label="레시피 검색어"
           />
@@ -319,7 +320,7 @@ export default function Header() {
         </form>
 
         <nav className="mobile-nav" aria-label="모바일 메뉴">
-          {menuItems.map(item => (
+          {menuItems.map((item) => (
             <NavLink
               key={item.id}
               to={item.path}
