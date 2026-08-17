@@ -141,7 +141,7 @@ export default function Header(): React.ReactElement {
           </Link>
 
           <nav className="nav" aria-label="주요 메뉴">
-            {menuItems.map((item) => (
+            {menuItems.map(item => (
               <NavLink
                 key={item.id}
                 to={item.path}
@@ -159,10 +159,13 @@ export default function Header(): React.ReactElement {
           <div className={`header-search ${searchOpen ? "open" : ""}`}>
             {searchOpen && (
               <form className="header-search-form" onSubmit={handleSearchSubmit}>
+                <label htmlFor="header-desktop-search" className="sr-only">
+                  레시피 검색어
+                </label>
                 <input
                   type="search"
                   value={searchKeyword}
-                  onChange={(event) => setSearchKeyword(event.target.value)}
+                  onChange={event => setSearchKeyword(event.target.value)}
                   placeholder="레시피 검색"
                   aria-label="레시피 검색어"
                   autoFocus
@@ -197,7 +200,7 @@ export default function Header(): React.ReactElement {
               className={`icon-btn search-btn hide-on-mobile ${searchOpen ? "active" : ""}`}
               aria-label={searchOpen ? "검색창 닫기" : "검색"}
               aria-expanded={searchOpen}
-              onClick={() => setSearchOpen((previous) => !previous)}
+              onClick={() => setSearchOpen(previous => !previous)}
             >
               {searchOpen ? (
                 <svg
@@ -281,7 +284,7 @@ export default function Header(): React.ReactElement {
             aria-controls="mobile-menu"
             onClick={() => {
               closeSearch();
-              setMenuOpen((previous) => !previous);
+              setMenuOpen(previous => !previous);
             }}
           >
             <span />
@@ -293,10 +296,13 @@ export default function Header(): React.ReactElement {
 
       <div id="mobile-menu" className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <form className="mobile-search-form" onSubmit={handleSearchSubmit}>
+          <label htmlFor="header-mobile-search" className="sr-only">
+            레시피 검색어
+          </label>
           <input
             type="search"
             value={searchKeyword}
-            onChange={(event) => setSearchKeyword(event.target.value)}
+            onChange={event => setSearchKeyword(event.target.value)}
             placeholder="레시피를 검색해보세요"
             aria-label="레시피 검색어"
           />
@@ -320,7 +326,7 @@ export default function Header(): React.ReactElement {
         </form>
 
         <nav className="mobile-nav" aria-label="모바일 메뉴">
-          {menuItems.map((item) => (
+          {menuItems.map(item => (
             <NavLink
               key={item.id}
               to={item.path}
