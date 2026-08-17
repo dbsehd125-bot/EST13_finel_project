@@ -30,6 +30,10 @@
 }
 
 /* 왼쪽 폼 섹션 */
+h2 {
+  margin: 0;
+}
+
 .formSection {
   display: flex;
   flex-direction: column;
@@ -162,7 +166,7 @@
   flex-direction: column;
 }
 
-.selectField > label{
+.selectField > label {
   padding-left: 16px;
 }
 

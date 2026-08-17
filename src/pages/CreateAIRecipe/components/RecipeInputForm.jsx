@@ -42,9 +42,9 @@ export default function RecipeInputForm({
         <div className={styles.stepCard}>
           <div className={styles.stepTitleRow}>
             <span className={styles.stepBadge}>1</span>
-            <h3 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
+            <h2 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
               무작정 요리 생각하기
-            </h3>
+            </h2>
           </div>
           <textarea
             className={styles.promptInput}
@@ -60,9 +60,9 @@ export default function RecipeInputForm({
         <div className={styles.stepCard}>
           <div className={styles.stepTitleRow}>
             <span className={styles.stepBadge}>2</span>
-            <h3 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
+            <h2 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
               보유 재료
-            </h3>
+            </h2>
           </div>
           <div className={styles.tagList}>
             {ingredients.map((tag) => (
@@ -101,17 +101,22 @@ export default function RecipeInputForm({
         <div className={styles.stepCard}>
           <div className={styles.stepTitleRow}>
             <span className={styles.stepBadge}>3</span>
-            <h3 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
+            <h2 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
               조건 선택
-            </h3>
+            </h2>
           </div>
           <div className={styles.selectGrid}>
             <div className={styles.selectField}>
-              <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
+              <label
+                htmlFor="servings-select"
+                className="text-sm"
+                style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}
+              >
                 분량
               </label>
               <div>
                 <select
+                  id="servings-select"
                   className={styles.selectBox}
                   value={conditions.servings}
                   onClick={() => toggleSelect('servings')}
@@ -144,11 +149,16 @@ export default function RecipeInputForm({
             </div>
 
             <div className={styles.selectField}>
-              <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
+              <label
+                htmlFor="cooking-time-select"
+                className="text-sm"
+                style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}
+              >
                 조리 시간
               </label>
               <div>
                 <select
+                  id="cooking-time-select"
                   className={styles.selectBox}
                   value={conditions.cookingTime}
                   onClick={() => toggleSelect('cookingTime')}
@@ -181,11 +191,16 @@ export default function RecipeInputForm({
             </div>
 
             <div className={styles.selectField}>
-              <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
+              <label
+                htmlFor="difficulty-select"
+                className="text-sm"
+                style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}
+              >
                 난이도
               </label>
               <div>
                 <select
+                  id="difficulty-select"
                   className={styles.selectBox}
                   value={conditions.difficulty}
                   onClick={() => toggleSelect('difficulty')}
@@ -218,11 +233,16 @@ export default function RecipeInputForm({
             </div>
 
             <div className={styles.selectField}>
-              <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
+              <label
+                htmlFor="cuisine-select"
+                className="text-sm"
+                style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}
+              >
                 음식 종류
               </label>
               <div>
                 <select
+                  id="cuisine-select"
                   className={styles.selectBox}
                   value={conditions.cuisine}
                   onClick={() => toggleSelect('cuisine')}
@@ -258,11 +278,16 @@ export default function RecipeInputForm({
             </div>
 
             <div className={styles.selectField}>
-              <label className="text-sm" style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}>
+              <label
+                htmlFor="diet-goal-select"
+                className="text-sm"
+                style={{ color: 'var(--brand-gray)', marginBottom: '4px' }}
+              >
                 건강/식단
               </label>
               <div>
                 <select
+                  id="diet-goal-select"
                   className={styles.selectBox}
                   value={conditions.dietGoal}
                   onClick={() => toggleSelect('dietGoal')}
@@ -343,9 +368,9 @@ export default function RecipeInputForm({
         <div className={styles.stepCard}>
           <div className={styles.stepTitleRow}>
             <span className={styles.stepBadge}>4</span>
-            <h3 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
+            <h2 className="text-lg" style={{ fontWeight: 600, color: 'var(--brand-brown)' }}>
               결과 생성 옵션
-            </h3>
+            </h2>
           </div>
           <div className={styles.optionsGrid}>
             <label className={styles.checkboxItem}>
