@@ -11,13 +11,14 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { supabase } from "../../lib/supabaseClient";
 import { useNotification } from "../../context/NotificationContext";
 import Layout from "../../components/Layout";
+import SEO from "../../components/SEO";
+
 import AuthVisual from "./components/AuthVisual";
 import SocialLoginButtons from "./components/SocialLoginButtons";
 import PasswordResetModal from "./components/PasswordResetModal";
 import useSocialLogin from "./hooks/useSocialLogin";
-import styles from "./Auth.module.css";
 
-import SEO from "../../components/SEO";
+import styles from "./Auth.module.css";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -27,13 +28,6 @@ export default function Login() {
 
   /**
    * 로그인 필요 페이지에서 넘겨준 원래 경로
-   *
-   * 예)
-   * navigate("/login", {
-   *   state: {
-   *     from: "/recipes/10",
-   *   },
-   * });
    *
    * 직접 로그인 페이지에 들어온 경우에는 "/"로 이동한다.
    */
@@ -94,22 +88,12 @@ export default function Login() {
         throw error;
       }
 
-      /**
-       * signInWithPassword 성공 결과에 이미 session이 있으므로
-       * 별도로 getSession()을 다시 호출할 필요가 없다.
-       */
       if (!data.session) {
         throw new Error("로그인 세션을 생성하지 못했습니다.");
       }
 
       showNotification("로그인되었습니다.", "success");
 
-      /**
-       * 로그인 페이지를 history에 남기지 않도록 replace 사용
-       *
-       * 로그인 후 뒤로가기를 눌렀을 때
-       * 다시 /login으로 돌아가는 현상을 방지한다.
-       */
       navigate(redirectPath, {
         replace: true,
       });
@@ -138,7 +122,6 @@ export default function Login() {
 
     if (!trimmedEmail) {
       setResetMessage("이메일을 입력해주세요.");
-
       return;
     }
 
@@ -178,18 +161,21 @@ export default function Login() {
         url="/login"
         robots="noindex, nofollow"
       />
+
       <main className={styles.authPage}>
-        <section className={styles.authCard}>
+        <section className={styles.authCard} aria-labelledby="login-title">
           <AuthVisual />
 
           <div className={styles.formArea}>
             <div className={styles.formHeader}>
-              <h1 className="font-display dtext-2xl">로그인</h1>
+              <h1 id="login-title" className="font-display dtext-2xl">
+                로그인
+              </h1>
 
               <p className={`text-sm ${styles.description}`}>다시 만나서 반가워요!</p>
             </div>
 
-            <form className={styles.form} onSubmit={handleEmailLogin}>
+            <form className={styles.form} onSubmit={handleEmailLogin} noValidate>
               <label className={styles.field}>
                 <span className="text-sm">이메일</span>
 
@@ -200,7 +186,9 @@ export default function Login() {
                   onChange={event => setEmail(event.target.value)}
                   placeholder="you@example.com"
                   autoComplete="email"
+                  inputMode="email"
                   disabled={isProcessing}
+                  aria-invalid={Boolean(errorMessage)}
                 />
               </label>
 
@@ -226,6 +214,7 @@ export default function Login() {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   disabled={isProcessing}
+                  aria-invalid={Boolean(errorMessage)}
                 />
               </label>
 
@@ -233,6 +222,7 @@ export default function Login() {
                 className={`${styles.errorSlot} ${errorMessage ? styles.errorVisible : ""}`}
                 role="alert"
                 aria-live="polite"
+                aria-atomic="true"
               >
                 {errorMessage || "\u00A0"}
               </div>
@@ -241,12 +231,13 @@ export default function Login() {
                 type="submit"
                 className={`text-button ${styles.primaryButton}`}
                 disabled={isProcessing}
+                aria-busy={loading}
               >
                 {loading ? "로그인 중..." : "로그인"}
               </button>
             </form>
 
-            <div className={styles.divider}>
+            <div className={styles.divider} aria-hidden="true">
               <span />
 
               <p className="text-s">또는</p>

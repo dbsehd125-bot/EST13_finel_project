@@ -2,14 +2,24 @@
  * Auth 공통 비주얼 영역 컴포넌트
  * - 로그인/회원가입/비밀번호 재설정 화면의 왼쪽 이미지 영역 공통 처리
  * - 서비스 로고와 슬로건 UI를 한 곳에서 관리
+ * - 첫 화면 주요 이미지의 로딩 우선순위를 높여 LCP 개선
  */
 import authBack from "../../../images/authback.png";
+
 import styles from "../Auth.module.css";
 
 export default function AuthVisual() {
   return (
-    <div className={styles.visual}>
-      <img src={authBack} alt="" />
+    <div className={styles.visual} aria-hidden="true">
+      <img
+        src={authBack}
+        alt=""
+        width="1600"
+        height="1067"
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
+      />
 
       <div className={styles.visualOverlay}>
         <div className={styles.brand}>
@@ -23,10 +33,11 @@ export default function AuthVisual() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              aria-hidden="true"
             >
               <path d="M12 2v3M8 3v2M16 3v2" />
+
               <path d="M4 11h16v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6z" />
+
               <path d="M3 11h18" />
             </svg>
           </div>

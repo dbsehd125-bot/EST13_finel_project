@@ -5,22 +5,28 @@
  */
 import googleIcon from "../../../images/google.png";
 import kakaoIcon from "../../../images/kakao.png";
+
 import styles from "../Auth.module.css";
 
-export default function SocialLoginButtons({
-  socialLoading,
-  disabled,
-  onSocialLogin,
-}) {
+export default function SocialLoginButtons({ socialLoading, disabled, onSocialLogin }) {
   return (
-    <div className={styles.socialButtons}>
+    <div className={styles.socialButtons} aria-label="소셜 로그인">
       <button
         type="button"
         className={`text-sm ${styles.socialButton}`}
         onClick={() => onSocialLogin("google")}
         disabled={disabled}
+        aria-busy={socialLoading === "google"}
       >
-        <img className={styles.icon} src={googleIcon} alt="" aria-hidden="true" />
+        <img
+          className={styles.icon}
+          src={googleIcon}
+          alt=""
+          width="24"
+          height="24"
+          aria-hidden="true"
+          decoding="async"
+        />
 
         <span className={styles.desktopSocialText}>
           {socialLoading === "google" ? "Google 연결 중..." : "Google로 계속하기"}
@@ -36,8 +42,17 @@ export default function SocialLoginButtons({
         className={`text-sm ${styles.socialButton} ${styles.kakaoButton}`}
         onClick={() => onSocialLogin("kakao")}
         disabled={disabled}
+        aria-busy={socialLoading === "kakao"}
       >
-        <img className={styles.icon} src={kakaoIcon} alt="" aria-hidden="true" />
+        <img
+          className={styles.icon}
+          src={kakaoIcon}
+          alt=""
+          width="24"
+          height="24"
+          aria-hidden="true"
+          decoding="async"
+        />
 
         <span className={styles.desktopSocialText}>
           {socialLoading === "kakao" ? "Kakao 연결 중..." : "Kakao로 계속하기"}
