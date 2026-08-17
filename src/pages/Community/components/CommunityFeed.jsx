@@ -5,6 +5,7 @@
  * - 게시글 카드의 좋아요, 북마크, 상세보기 이벤트 처리
  */
 import Masonry from "@mui/lab/Masonry";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 import {
   Bookmark,
@@ -36,10 +37,22 @@ export default function CommunityFeed({
   onBookmarkToggle,
   onRecipeNavigate,
 }) {
+  /**
+   * 커뮤니티 Masonry 반응형 컬럼
+   *
+   * 1200px 이상: 3열
+   * 768px ~ 1199px: 2열
+   * 767px 이하: 1열
+   */
+  const isDesktop = useMediaQuery("(min-width: 1200px)");
+  const isTablet = useMediaQuery("(min-width: 768px)");
+
+  const masonryColumns = isDesktop ? 3 : isTablet ? 2 : 1;
+
   if (postsLoading) {
     return (
       <section className={styles.cards}>
-        <Masonry columns={{ xs: 1, sm: 2, md: 3 }} spacing={2}>
+        <Masonry columns={masonryColumns} spacing={2}>
           {Array.from({ length: 9 }, (_, index) => (
             <CommunityCardSkeleton key={index} index={index} />
           ))}
@@ -87,7 +100,7 @@ export default function CommunityFeed({
 
   return (
     <section className={styles.cards}>
-      <Masonry columns={{ xs: 1, sm: 2, md: 3 }} spacing={2}>
+      <Masonry columns={masonryColumns} spacing={2}>
         {posts.map((post, index) => {
           const nickname = post.profile?.nickname || post.nickname || "사용자";
 
@@ -113,7 +126,7 @@ export default function CommunityFeed({
                 <img
                   className={styles.cardImage}
                   src={post.image}
-                  alt={post.imageAlt}
+                  alt={post.imageAlt || `${nickname}님의 커뮤니티 게시글 이미지`}
                   loading={index < 3 ? "eager" : "lazy"}
                   fetchPriority={index === 0 ? "high" : "auto"}
                   decoding="async"
@@ -191,7 +204,7 @@ export default function CommunityFeed({
       </Masonry>
 
       {loadingMore && (
-        <Masonry columns={{ xs: 1, sm: 2, md: 3 }} spacing={2} className={styles.moreSkeletons}>
+        <Masonry columns={masonryColumns} spacing={2} className={styles.moreSkeletons}>
           {Array.from({ length: 3 }, (_, index) => (
             <CommunityCardSkeleton key={`more-${index}`} index={index + 3} />
           ))}
