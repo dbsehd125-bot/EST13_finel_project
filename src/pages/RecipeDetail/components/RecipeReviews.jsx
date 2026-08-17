@@ -125,7 +125,7 @@ export default function RecipeReviews({
 
           {reviewImagePreview && (
             <div className={styles.reviewImagePreview}>
-              <img src={reviewImagePreview} alt="후기 이미지 미리보기" />
+              <img src={reviewImagePreview} alt="후기 이미지 미리보기" decoding="async" />
 
               <button
                 type="button"

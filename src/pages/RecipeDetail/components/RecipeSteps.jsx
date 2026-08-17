@@ -9,7 +9,9 @@ import { LightbulbOutlined } from "@mui/icons-material";
 import styles from "../RecipeDetail.module.css";
 
 export default function RecipeSteps({ steps }) {
-  if (!steps?.length) return null;
+  if (!steps?.length) {
+    return null;
+  }
 
   return (
     <section className={styles.processSection}>
@@ -41,6 +43,7 @@ export default function RecipeSteps({ steps }) {
               <div className={styles.stepHeader}>
                 <div className={styles.stepTitle}>
                   <span className="text-sm">{step.step}</span>
+
                   <h3 className="text-lg">{step.title}</h3>
                 </div>
 
@@ -52,6 +55,7 @@ export default function RecipeSteps({ steps }) {
               {step.tip && (
                 <div className={styles.stepTip}>
                   <LightbulbOutlined fontSize="small" />
+
                   <span className="text-sm">{step.tip}</span>
                 </div>
               )}
