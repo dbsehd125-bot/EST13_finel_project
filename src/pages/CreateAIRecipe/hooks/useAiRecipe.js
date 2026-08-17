@@ -215,6 +215,8 @@ export function useAiRecipe() {
 
       try {
         const mainTitle = parsedRecipeJson.title || '요리';
+
+        setLoadingStep({ step: 'image', current: 0, total: 0 });
         const thumbnailPrompt = `Professional studio food photography of ${mainTitle}, ${conditions.cuisine} cuisine, beautifully plated, warm lighting, no text, 4k.`;
         const thumbnailUrl = (await fetchOpenAIImage(thumbnailPrompt)) || FALLBACK_URL;
         parsedRecipeJson.thumbnail_url = thumbnailUrl;
@@ -222,9 +224,18 @@ export function useAiRecipe() {
         const currentSteps = Array.isArray(parsedRecipeJson.steps) ? parsedRecipeJson.steps : [];
 
         if (options.image && parsedRecipeJson.steps?.length > 0) {
+          const totalSteps = currentSteps.length;
           const updatedSteps = [];
+
           for (let i = 0; i < parsedRecipeJson.steps.length; i++) {
             const step = parsedRecipeJson.steps[i];
+
+            setLoadingStep({
+              step: 'image',
+              current: i + 1,
+              total: totalSteps,
+            });
+
             const stepPrompt = `A close-up instruction photo of a cooking step: "${step.title}". Focus on the action: ${step.description.slice(0, 100)}. Food preparation process shot, culinary style. Do NOT include any text. Do NOT show the final dish, only this specific preparation step.`;
 
             if (i > 0) {
