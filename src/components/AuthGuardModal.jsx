@@ -41,7 +41,7 @@ export default function AuthGuardModal({
         {title}
       </DialogTitle>
       <DialogContent>
-        <DialogContentText id="auth-guard-dialog-description" style={{ whitespace: 'pre-line' }}>
+        <DialogContentText id="auth-guard-dialog-description" style={{ whiteSpace: 'pre-line' }}>
           {message}
         </DialogContentText>
       </DialogContent>
