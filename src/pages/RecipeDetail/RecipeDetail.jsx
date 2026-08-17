@@ -12,11 +12,13 @@ import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 
 import styles from "./RecipeDetail.module.css";
+
 import RecipeAiSummary from "./components/RecipeAiSummary";
 import RecipeOverview from "./components/RecipeOverview";
 import RecipeReviews from "./components/RecipeReviews";
 import RecipeSteps from "./components/RecipeSteps";
 import RelatedRecipes from "./components/RelatedRecipes";
+
 import useRecipeData from "./hooks/useRecipeData";
 import useRecipeReactions from "./hooks/useRecipeReactions";
 import useRecipeReviews from "./hooks/useRecipeReviews";
@@ -63,9 +65,11 @@ function convertCookingTimeToIsoDuration(cookingTime) {
   const text = String(cookingTime).trim();
 
   const hourMatch = text.match(/(\d+)\s*시간/);
+
   const minuteMatch = text.match(/(\d+)\s*분/);
 
   const hours = hourMatch ? Number(hourMatch[1]) : 0;
+
   const minutes = minuteMatch ? Number(minuteMatch[1]) : 0;
 
   if (hours === 0 && minutes === 0) {
@@ -85,19 +89,101 @@ function convertCookingTimeToIsoDuration(cookingTime) {
   return duration;
 }
 
+/**
+ * 상세페이지 로딩 스켈레톤
+ *
+ * 실제 상세페이지 상단 구조와 비슷한 높이를
+ * 로딩 단계에서 미리 확보해
+ * 데이터 로드 후 발생하는 CLS를 줄인다.
+ */
+function RecipeDetailSkeleton() {
+  return (
+    <div className={styles.detailSkeleton} aria-hidden="true">
+      {/* 대표 이미지 */}
+      <div className={`${styles.skeletonBlock} ${styles.skeletonHero}`} />
+
+      {/* 기본 정보 */}
+      <div className={styles.skeletonIntro}>
+        <div className={`${styles.skeletonBlock} ${styles.skeletonCategory}`} />
+
+        <div className={`${styles.skeletonBlock} ${styles.skeletonTitle}`} />
+
+        <div className={`${styles.skeletonBlock} ${styles.skeletonDescription}`} />
+
+        <div className={styles.skeletonAuthorRow}>
+          <div className={styles.skeletonAuthor}>
+            <div className={`${styles.skeletonBlock} ${styles.skeletonAvatar}`} />
+
+            <div className={styles.skeletonAuthorText}>
+              <div className={`${styles.skeletonBlock} ${styles.skeletonAuthorName}`} />
+
+              <div className={`${styles.skeletonBlock} ${styles.skeletonDate}`} />
+            </div>
+          </div>
+
+          <div className={`${styles.skeletonBlock} ${styles.skeletonRating}`} />
+        </div>
+      </div>
+
+      {/* 조리시간 / 난이도 / 인분 / 조회수 */}
+      <div className={styles.skeletonRecipeInfo}>
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className={styles.skeletonInfoItem}>
+            <div className={`${styles.skeletonBlock} ${styles.skeletonInfoIcon}`} />
+
+            <div className={styles.skeletonInfoText}>
+              <div className={`${styles.skeletonBlock} ${styles.skeletonInfoLabel}`} />
+
+              <div className={`${styles.skeletonBlock} ${styles.skeletonInfoValue}`} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 액션 */}
+      <div className={styles.skeletonActions}>
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className={`${styles.skeletonBlock} ${styles.skeletonAction}`} />
+        ))}
+      </div>
+
+      {/* AI 요약 */}
+      <div className={styles.skeletonAiSummary}>
+        <div className={`${styles.skeletonBlock} ${styles.skeletonAiTitle}`} />
+
+        <div className={styles.skeletonAiList}>
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className={styles.skeletonAiRow}>
+              <div className={`${styles.skeletonBlock} ${styles.skeletonAiNumber}`} />
+
+              <div className={`${styles.skeletonBlock} ${styles.skeletonAiText}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RecipeDetail() {
   const { id } = useParams();
+
   const navigate = useNavigate();
+
   const { user, authLoading } = useAuth();
+
   const { showNotification } = useNotification();
 
   const {
     recipe,
     setRecipe,
+
     relatedRecipes,
     setRelatedRecipes,
+
     loading,
     errorMessage,
+
     aiStepSummaries,
     aiSummaryLoading,
     aiSummaryError,
@@ -106,26 +192,40 @@ export default function RecipeDetail() {
   const reactions = useRecipeReactions({
     recipe,
     setRecipe,
+
     relatedRecipes,
     setRelatedRecipes,
+
     user,
     authLoading,
+
     navigate,
+
     showNotification,
   });
 
   const reviews = useRecipeReviews({
     recipe,
+
     user,
     authLoading,
+
     navigate,
+
     showNotification,
   });
 
+  /**
+   * 기존에는 높이 400px짜리 텍스트 로딩 화면만 사용해서
+   * 실제 상세페이지가 렌더링될 때 큰 레이아웃 이동이 발생할 수 있었다.
+   *
+   * 실제 상단 구조와 비슷한 스켈레톤을 먼저 렌더링해서
+   * 최초 레이아웃 높이를 안정적으로 확보한다.
+   */
   if (loading) {
     return (
       <Layout activeMenu="레시피 둘러보기">
-        <div className={styles.stateMessage}>레시피를 불러오는 중입니다.</div>
+        <RecipeDetailSkeleton />
       </Layout>
     );
   }
@@ -146,15 +246,18 @@ export default function RecipeDetail() {
    */
   const recipeJsonLd = {
     "@context": "https://schema.org",
+
     "@type": "Recipe",
 
     name: recipe.title,
+
     description: recipe.summary,
 
     image: [recipe.thumbnail_url || DEFAULT_OG_IMAGE],
 
     author: {
       "@type": "Person",
+
       name: recipe.nickname || "깃깔나는 레시피 사용자",
     },
 
@@ -174,8 +277,11 @@ export default function RecipeDetail() {
     recipeInstructions: Array.isArray(recipe.steps)
       ? recipe.steps.map((step, index) => ({
           "@type": "HowToStep",
+
           position: index + 1,
+
           name: step.title || `${step.step || index + 1}단계`,
+
           text: step.description || step.title || "",
         }))
       : [],
@@ -191,7 +297,6 @@ export default function RecipeDetail() {
         type="article"
       />
 
-      {/* Recipe 구조화 데이터 */}
       <script type="application/ld+json">{JSON.stringify(recipeJsonLd)}</script>
 
       <RecipeOverview
