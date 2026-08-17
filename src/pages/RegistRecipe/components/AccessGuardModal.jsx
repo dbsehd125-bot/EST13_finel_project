@@ -10,12 +10,14 @@ export default function AccessGuardModal({ isOpen = false, handleLoadRecentDraft
         onClose={handleGoToCreatePage}
         aria-labelledby="access-dialog-title"
         aria-describedby="access-dialog-description"
-        PaperProps={{
-          style: {
-            borderRadius: '16px',
-            padding: '12px 8px',
-            minWidth: '340px',
-            maxWidth: '440px',
+        slotProps={{
+          paper: {
+            style: {
+              borderRadius: '16px',
+              padding: '12px 8px',
+              minWidth: '340px',
+              maxWidth: '440px',
+            },
           },
         }}
       >

@@ -55,8 +55,11 @@ export default function Step1BasicInfo({
         {/* 4컬럼 셀렉트 그리드 */}
         <div className={styles.fourColGrid}>
           <div className={styles.selectField}>
-            <label className={styles.inputLabel}>카테고리</label>
+            <label htmlFor="category-input" className={styles.inputLabel}>
+              카테고리
+            </label>
             <input
+              id="category-input"
               type="text"
               className={styles.textInput}
               value={formData.category || '한식'}
@@ -67,8 +70,11 @@ export default function Step1BasicInfo({
           </div>
 
           <div className={styles.selectField}>
-            <label className={styles.inputLabel}>조리시간</label>
+            <label htmlFor="cooking-time-input" className={styles.inputLabel}>
+              조리시간
+            </label>
             <input
+              id="cooking-time-input"
               type="text"
               className={styles.textInput}
               value={formData.cookingTime || '30분 이내'}
@@ -79,8 +85,11 @@ export default function Step1BasicInfo({
           </div>
 
           <div className={styles.selectField}>
-            <label className={styles.inputLabel}>난이도</label>
+            <label htmlFor="difficulty-input" className={styles.inputLabel}>
+              난이도
+            </label>
             <input
+              id="difficulty-input"
               type="text"
               className={styles.textInput}
               value={formData.difficulty || '보통'}
@@ -91,8 +100,11 @@ export default function Step1BasicInfo({
           </div>
 
           <div className={styles.selectField}>
-            <label className={styles.inputLabel}>분량</label>
+            <label htmlFor="servings-input" className={styles.inputLabel}>
+              분량
+            </label>
             <input
+              id="servings-input"
               type="text"
               className={styles.textInput}
               value={formData.servings || '2인분'}
