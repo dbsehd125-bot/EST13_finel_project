@@ -38,7 +38,7 @@ export default function CommunityFeed({
   onRecipeNavigate,
 }) {
   /**
-   * 커뮤니티 Masonry 반응형 컬럼
+   * Masonry 반응형 컬럼
    *
    * 1200px 이상: 3열
    * 768px ~ 1199px: 2열
@@ -106,6 +106,8 @@ export default function CommunityFeed({
 
           const avatarUrl = post.profile?.avatar_url || null;
 
+          const imageAlt = post.imageAlt || `${nickname}님의 커뮤니티 게시글 이미지`;
+
           return (
             <article key={post.id} className={styles.card} onClick={() => onOpenDetail(post.id)}>
               <div className={styles.profile}>
@@ -123,14 +125,16 @@ export default function CommunityFeed({
               </div>
 
               {post.image && (
-                <img
-                  className={styles.cardImage}
-                  src={post.image}
-                  alt={post.imageAlt || `${nickname}님의 커뮤니티 게시글 이미지`}
-                  loading={index < 3 ? "eager" : "lazy"}
-                  fetchPriority={index === 0 ? "high" : "auto"}
-                  decoding="async"
-                />
+                <div className={styles.cardImageWrapper}>
+                  <img
+                    className={styles.cardImage}
+                    src={post.image}
+                    alt={imageAlt}
+                    loading={index < masonryColumns ? "eager" : "lazy"}
+                    fetchPriority={index < masonryColumns ? "high" : "auto"}
+                    decoding="async"
+                  />
+                </div>
               )}
 
               {post.recipeName && (
@@ -139,11 +143,6 @@ export default function CommunityFeed({
                     <button
                       type="button"
                       className={styles.cardRecipeButton}
-                      style={{
-                        border: 0,
-                        font: "inherit",
-                        cursor: "pointer",
-                      }}
                       onClick={event => {
                         event.stopPropagation();
 

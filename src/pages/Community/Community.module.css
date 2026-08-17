@@ -147,10 +147,25 @@
   word-break: keep-all;
 }
 
+/*
+ * 이미지가 다운로드되기 전에 일정한 공간을 확보해
+ * 이미지 로딩으로 인한 카드 위치 이동 및 CLS를 줄인다.
+ */
+.cardImageWrapper {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+
+  background: var(--brand-light-gray);
+}
+
 .cardImage {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+
+  object-fit: cover;
+  object-position: center;
 }
 
 .cardRecipeArea {
@@ -168,14 +183,17 @@
 
   color: var(--brand-primary);
   background: var(--brand-cream);
+  border: 0;
   border-radius: 999px;
 
+  font: inherit;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
 
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 /* =========================
