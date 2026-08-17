@@ -1,7 +1,9 @@
 /**
  * 커뮤니티 게시글 작성/수정 관리 Custom Hook
  * - 게시글 입력값과 작성·수정 상태 관리
- * - 첨부 이미지 검증 및 Supabase Storage 업로드
+ * - 첨부 이미지 검증
+ * - 업로드 전 브라우저에서 이미지 리사이즈 및 WebP 압축
+ * - Supabase Storage 업로드
  * - 게시글과 연결할 레시피 검색 및 선택
  * - Supabase community_posts 테이블의 등록·수정 처리
  * - 새 게시글 작성 시 profiles.nickname을 우선 사용
@@ -12,6 +14,93 @@ import { supabase } from "../../../lib/supabaseClient";
 import { getProfileNickname } from "../../../utils/userProfile";
 
 import { COMMUNITY_BUCKET, initialWriteForm, mapPost } from "../communityUtils";
+
+/**
+ * 커뮤니티 이미지 최적화 설정
+ *
+ * - 카드/상세 모달에서 사용하는 이미지이므로
+ *   지나치게 큰 원본 해상도를 그대로 저장하지 않는다.
+ * - 긴 변 기준 최대 1200px
+ * - WebP 품질 80%
+ */
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 1200;
+const IMAGE_QUALITY = 0.8;
+
+/**
+ * File 객체를 ImageBitmap으로 디코딩한 뒤
+ * 비율을 유지하면서 최대 1200px 이하로 축소한다.
+ *
+ * 최종 이미지는 WebP Blob으로 변환한다.
+ */
+async function optimizeImage(file) {
+  const imageBitmap = await createImageBitmap(file);
+
+  try {
+    const originalWidth = imageBitmap.width;
+    const originalHeight = imageBitmap.height;
+
+    const longestSide = Math.max(originalWidth, originalHeight);
+
+    /**
+     * 원본이 이미 1200px 이하인 경우에도
+     * WebP 압축은 적용한다.
+     */
+    const scale = longestSide > MAX_IMAGE_DIMENSION ? MAX_IMAGE_DIMENSION / longestSide : 1;
+
+    const targetWidth = Math.max(1, Math.round(originalWidth * scale));
+
+    const targetHeight = Math.max(1, Math.round(originalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("이미지 최적화를 위한 Canvas를 생성하지 못했습니다.");
+    }
+
+    /**
+     * 이미지 축소 시 품질 개선
+     */
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
+    context.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
+
+    const optimizedBlob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        blob => {
+          if (!blob) {
+            reject(new Error("이미지 압축에 실패했습니다."));
+
+            return;
+          }
+
+          resolve(blob);
+        },
+        "image/webp",
+        IMAGE_QUALITY,
+      );
+    });
+
+    /**
+     * Storage 업로드와 기존 selectedImageFile 로직을
+     * 그대로 사용할 수 있도록 File 객체로 다시 변환한다.
+     */
+    const optimizedFile = new File([optimizedBlob], `${crypto.randomUUID()}.webp`, {
+      type: "image/webp",
+      lastModified: Date.now(),
+    });
+
+    return optimizedFile;
+  } finally {
+    imageBitmap.close();
+  }
+}
 
 export default function useCommunityWrite({
   user,
@@ -99,7 +188,9 @@ export default function useCommunityWrite({
   function handleRecipeSelect(recipe) {
     setWriteForm(previousForm => ({
       ...previousForm,
+
       recipeId: String(recipe.id),
+
       recipeName: recipe.title,
     }));
 
@@ -111,7 +202,9 @@ export default function useCommunityWrite({
   function handleRecipeClear() {
     setWriteForm(previousForm => ({
       ...previousForm,
+
       recipeId: "",
+
       recipeName: "",
     }));
 
@@ -215,6 +308,7 @@ export default function useCommunityWrite({
 
     setWriteForm(previousForm => ({
       ...previousForm,
+
       [name]: value,
     }));
 
@@ -223,7 +317,16 @@ export default function useCommunityWrite({
     }
   }
 
-  function handleImageChange(event) {
+  /**
+   * 이미지 선택
+   *
+   * 1. 이미지 파일인지 확인
+   * 2. 원본 2MB 이하인지 확인
+   * 3. 브라우저에서 최대 1200px로 리사이즈
+   * 4. WebP 80% 품질로 압축
+   * 5. 압축된 File을 preview 및 Storage 업로드 대상으로 사용
+   */
+  async function handleImageChange(event) {
     const file = event.target.files?.[0];
 
     if (!file) {
@@ -238,7 +341,7 @@ export default function useCommunityWrite({
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_SIZE) {
       setWriteError("이미지는 2MB 이하만 등록할 수 있습니다.");
 
       event.target.value = "";
@@ -246,22 +349,42 @@ export default function useCommunityWrite({
       return;
     }
 
-    const imageUrl = URL.createObjectURL(file);
+    try {
+      setWriteError("");
 
-    setWriteForm(previousForm => {
-      if (previousForm.image.startsWith("blob:")) {
-        URL.revokeObjectURL(previousForm.image);
+      const optimizedFile = await optimizeImage(file);
+
+      if (optimizedFile.size > MAX_IMAGE_SIZE) {
+        throw new Error("최적화된 이미지가 2MB를 초과합니다.");
       }
 
-      return {
-        ...previousForm,
-        image: imageUrl,
-      };
-    });
+      const imageUrl = URL.createObjectURL(optimizedFile);
 
-    setSelectedImageFile(file);
+      setWriteForm(previousForm => {
+        if (previousForm.image.startsWith("blob:")) {
+          URL.revokeObjectURL(previousForm.image);
+        }
 
-    setWriteError("");
+        return {
+          ...previousForm,
+          image: imageUrl,
+        };
+      });
+
+      /**
+       * 여기부터는 원본 file이 아니라
+       * 최적화된 WebP File을 사용한다.
+       */
+      setSelectedImageFile(optimizedFile);
+    } catch (error) {
+      console.error("커뮤니티 이미지 최적화 오류:", error);
+
+      setSelectedImageFile(null);
+
+      setWriteError(error.message || "이미지를 처리하지 못했습니다.");
+
+      event.target.value = "";
+    }
   }
 
   function handleRemoveImage() {
@@ -272,6 +395,7 @@ export default function useCommunityWrite({
 
       return {
         ...previousForm,
+
         image: "",
       };
     });
@@ -283,6 +407,12 @@ export default function useCommunityWrite({
     }
   }
 
+  /**
+   * 최적화된 커뮤니티 이미지 업로드
+   *
+   * handleImageChange 단계에서 모든 신규 이미지는
+   * WebP로 변환되므로 .webp 확장자로 저장한다.
+   */
   async function uploadCommunityImage(file, currentUser) {
     if (!file) {
       return {
@@ -291,16 +421,20 @@ export default function useCommunityWrite({
       };
     }
 
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-
-    const imagePath = `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
+    const imagePath = `${currentUser.id}/` + `${crypto.randomUUID()}.webp`;
 
     const { error: uploadError } = await supabase.storage
       .from(COMMUNITY_BUCKET)
       .upload(imagePath, file, {
-        cacheControl: "3600",
+        /**
+         * 이미지 파일은 UUID 경로를 사용하므로
+         * 같은 URL의 내용이 변경되지 않는다.
+         *
+         * 브라우저/CDN 캐시를 길게 유지한다.
+         */
+        cacheControl: "31536000",
 
-        contentType: file.type,
+        contentType: "image/webp",
 
         upsert: false,
       });
@@ -323,7 +457,7 @@ export default function useCommunityWrite({
       return null;
     }
 
-    const marker = `/storage/v1/object/public/${COMMUNITY_BUCKET}/`;
+    const marker = `/storage/v1/object/public/` + `${COMMUNITY_BUCKET}/`;
 
     const markerIndex = imageUrl.indexOf(marker);
 
@@ -409,9 +543,6 @@ export default function useCommunityWrite({
 
       /**
        * 게시글 수정
-       *
-       * 수정 시 작성자 닉네임은 변경하지 않는다.
-       * 게시글 표시 자체는 profiles의 최신 닉네임을 사용한다.
        */
       if (editingPostId) {
         const { data, error } = await supabase
@@ -448,7 +579,9 @@ export default function useCommunityWrite({
               return {
                 ...post,
                 ...mapPost(data),
+
                 liked: post.liked,
+
                 bookmarked: post.bookmarked,
 
                 /**
@@ -478,9 +611,6 @@ export default function useCommunityWrite({
 
       /**
        * 새 게시글 등록
-       *
-       * nickname 컬럼은 기존 데이터 호환 및 fallback용으로 유지한다.
-       * 실제 화면 표시에서는 profiles.nickname이 우선된다.
        */
       const { error } = await supabase.from("community_posts").insert({
         user_id: user.id,
@@ -507,6 +637,7 @@ export default function useCommunityWrite({
       } else {
         await fetchPosts({
           reset: true,
+
           category: submittedCategory,
         });
       }
@@ -519,7 +650,8 @@ export default function useCommunityWrite({
 
       /**
        * 이미지 업로드 성공 후
-       * DB 저장이 실패했다면 orphan 이미지 삭제
+       * DB 저장이 실패했다면
+       * orphan 이미지 삭제
        */
       if (uploadedImagePath) {
         const { error: rollbackError } = await supabase.storage

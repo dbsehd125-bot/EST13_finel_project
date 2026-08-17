@@ -1,7 +1,7 @@
 /**
  * 커뮤니티 게시글 피드 관리 Custom Hook
  * - Supabase에서 게시글 목록 조회 및 카테고리별 정렬/필터링
- * - 게시글 작성자의 profiles 정보 조회
+ * - 게시글은 먼저 화면에 표시하고 profiles 정보는 후속 조회
  * - 무한 스크롤을 위한 페이지 단위 추가 조회
  * - 게시글 좋아요 및 북마크 상태 조회·변경
  * - 게시글 좋아요는 RPC를 통해 원자적으로 처리
@@ -157,6 +157,35 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
   }
 
   /**
+   * 게시글 작성자 profiles 후속 조회
+   *
+   * 게시글 자체는 먼저 화면에 렌더링하고
+   * profiles 요청은 첫 화면 표시를 막지 않는다.
+   */
+  async function loadPostProfiles(targetPosts) {
+    if (!targetPosts?.length) {
+      return;
+    }
+
+    const postsWithProfiles = await attachProfilesToPosts(targetPosts);
+
+    const profileMap = new Map(postsWithProfiles.map(post => [post.id, post.profile]));
+
+    setPosts(previousPosts =>
+      previousPosts.map(post => {
+        if (!profileMap.has(post.id)) {
+          return post;
+        }
+
+        return {
+          ...post,
+          profile: profileMap.get(post.id) || null,
+        };
+      }),
+    );
+  }
+
+  /**
    * 게시글 조회
    */
   async function fetchPosts({
@@ -212,25 +241,26 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
       const mappedPosts = (data ?? []).map(mapPost);
 
       /**
-       * 현재 profiles 정보를 게시글에 붙인다.
+       * profiles 요청을 기다리지 않고
+       * 게시글부터 바로 화면에 표시한다.
        */
-      const postsWithProfiles = await attachProfilesToPosts(mappedPosts);
-
       setPosts(previousPosts => {
         if (reset) {
-          return postsWithProfiles;
+          return mappedPosts;
         }
 
         const existingIds = new Set(previousPosts.map(post => post.id));
 
-        return [...previousPosts, ...postsWithProfiles.filter(post => !existingIds.has(post.id))];
+        return [...previousPosts, ...mappedPosts.filter(post => !existingIds.has(post.id))];
       });
 
-      if (user && postsWithProfiles.length > 0) {
-        void loadMyPostReactions(postsWithProfiles.map(post => post.id));
-      }
-
       setHasMorePosts(mappedPosts.length === POSTS_PER_PAGE);
+
+      /**
+       * profiles는 첫 렌더링 이후
+       * 비동기로 적용한다.
+       */
+      void loadPostProfiles(mappedPosts);
 
       return true;
     } catch (error) {
@@ -263,11 +293,10 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
 
   /**
    * 로그인 상태 또는 게시글 목록이 변경되면
-   * 현재 사용자의 좋아요 / 북마크 상태를 다시 조회한다.
+   * 현재 사용자의 좋아요 / 북마크 상태를 조회한다.
    *
-   * 새로고침 직후에는 Auth 복구와 게시글 조회가
-   * 서로 다른 시점에 끝날 수 있기 때문에
-   * posts의 ID 목록도 dependency로 사용한다.
+   * 좋아요 / 북마크 조회는 여기서만 실행해서
+   * fetchPosts 내부와 중복 요청되지 않도록 한다.
    */
   const postIdsKey = posts.map(post => post.id).join(",");
 
