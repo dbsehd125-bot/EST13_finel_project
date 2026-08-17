@@ -137,6 +137,9 @@ export default function RecipeReviews({
             </div>
           )}
 
+          <label htmlFor="recipe-review-content" className="sr-only">
+            완성 후기 내용
+          </label>
           <input
             className="text-sm"
             type="text"
