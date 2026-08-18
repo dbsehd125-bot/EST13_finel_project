@@ -375,7 +375,12 @@ export default function RecipeInputForm({
           <div className={styles.optionsGrid}>
             <label className={styles.checkboxItem}>
               <input type="checkbox" checked={options.image} onChange={() => handleOptionToggle('image')} />
-              <span>단계별 이미지 생성 ⚠️</span>
+              <span>
+                단계별 이미지 생성{' '}
+                <span className={styles.warningIcon} data-tooltip="해당 옵션은 시간이 오래 걸릴 수 있습니다.">
+                  ⚠️
+                </span>
+              </span>
             </label>
 
             <label className={styles.checkboxItem}>
