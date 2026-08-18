@@ -14,6 +14,8 @@ function decodeBase64(base64) {
   return bytes;
 }
 
+import imageCompression from 'browser-image-compression';
+
 /**
  * Base64 이미지 데이터를 Supabase Storage에 업로드하고 Public URL을 반환하는 함수
  */
@@ -28,15 +30,34 @@ async function uploadImageToStorage(base64Data, folderName) {
   try {
     // 1. Base64 문자열을 binary Uint8Array로 변환
     const imageBytes = decodeBase64(base64Data);
+    
+    // 2. Uint8Array를 Blob으로 변환
+    let imageBlob = new Blob([imageBytes], { type: 'image/png' });
 
-    // 2. Storage 저장 경로 생성 (날짜/폴더/UUID.png)
+    // 3. 브라우저 이미지 압축 (최적화)
+    try {
+      const options = {
+        maxSizeMB: 0.5, // 최대 500KB로 압축
+        maxWidthOrHeight: 1280, // 가로 또는 세로 최대 1280px
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(imageBlob, options);
+      // 압축 성공 시 덮어쓰기
+      imageBlob = compressedFile;
+      console.log('이미지 압축 성공! 용량:', compressedFile.size / 1024, 'KB');
+    } catch (compressError) {
+      console.warn('이미지 압축 실패, 원본으로 업로드 진행:', compressError);
+    }
+
+    // 4. Storage 저장 경로 생성 (날짜/폴더/UUID.webp 또는 png)
     const datePrefix = new Date().toISOString().slice(0, 10);
     const imagePath = `${datePrefix}/${folderName}/${crypto.randomUUID()}.png`;
 
-    // 3. Supabase Storage 'recipe-images' 버킷에 바이너리 업로드
-    const { error: uploadError } = await supabase.storage.from('recipe-images').upload(imagePath, imageBytes, {
+    // 5. Supabase Storage 'recipe-images' 버킷에 바이너리 업로드
+    const { error: uploadError } = await supabase.storage.from('recipe-images').upload(imagePath, imageBlob, {
       contentType: 'image/png',
       upsert: false,
+      cacheControl: '31536000',
     });
 
     if (uploadError) {
