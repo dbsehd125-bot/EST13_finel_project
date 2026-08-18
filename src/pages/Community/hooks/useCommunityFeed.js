@@ -73,6 +73,7 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
 
   const loadMoreRef = useRef(null);
   const loadingMoreRef = useRef(false);
+  const bookmarkOffsetRef = useRef(0);
 
   const selectedPost = posts.find(post => post.id === selectedPostId) ?? null;
 
@@ -197,10 +198,6 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
       return false;
     }
 
-    const from = reset ? 0 : posts.length;
-
-    const to = from + POSTS_PER_PAGE - 1;
-
     if (showLoading) {
       setPostsLoading(true);
     } else if (!reset) {
@@ -212,33 +209,115 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
     setPageError("");
 
     try {
-      let query = supabase.from("community_posts").select("*");
+      let mappedPosts = [];
+      let fetchedCount = 0;
 
-      if (["요리 후기", "질문", "자유 이야기"].includes(category)) {
-        query = query.eq("category", category);
-      }
+      /**
+       * 북마크 탭
+       *
+       * 먼저 현재 사용자의 북마크 목록을 조회한 다음
+       * 해당 post_id에 해당하는 게시글만 다시 조회한다.
+       */
+      if (category === "북마크") {
+        if (!user) {
+          if (reset) {
+            setPosts([]);
+          }
 
-      if (category === "인기") {
-        query = query
-          .order("like_count", {
-            ascending: false,
-          })
+          setHasMorePosts(false);
+
+          return true;
+        }
+
+        const from = reset ? 0 : bookmarkOffsetRef.current;
+
+        const to = from + POSTS_PER_PAGE - 1;
+
+        const { data: bookmarkRows, error: bookmarkError } = await supabase
+          .from("community_post_bookmarks")
+          .select("post_id, created_at")
+          .eq("user_id", user.id)
           .order("created_at", {
             ascending: false,
-          });
+          })
+          .range(from, to);
+
+        if (bookmarkError) {
+          throw bookmarkError;
+        }
+
+        const rows = bookmarkRows ?? [];
+
+        fetchedCount = rows.length;
+
+        if (reset) {
+          bookmarkOffsetRef.current = 0;
+        }
+
+        bookmarkOffsetRef.current = from + rows.length;
+
+        const bookmarkedPostIds = rows.map(row => row.post_id);
+
+        if (bookmarkedPostIds.length > 0) {
+          const { data: postRows, error: postsError } = await supabase
+            .from("community_posts")
+            .select("*")
+            .in("id", bookmarkedPostIds);
+
+          if (postsError) {
+            throw postsError;
+          }
+
+          /**
+           * .in() 조회는 전달한 id 배열 순서를
+           * 그대로 보장하지 않기 때문에
+           * 북마크 생성 최신순으로 다시 정렬한다.
+           */
+          const orderMap = new Map(bookmarkedPostIds.map((id, index) => [id, index]));
+
+          mappedPosts = (postRows ?? [])
+            .map(mapPost)
+            .map(post => ({
+              ...post,
+              bookmarked: true,
+            }))
+            .sort((a, b) => orderMap.get(a.id) - orderMap.get(b.id));
+        }
       } else {
-        query = query.order("created_at", {
-          ascending: false,
-        });
+        const from = reset ? 0 : posts.length;
+
+        const to = from + POSTS_PER_PAGE - 1;
+
+        let query = supabase.from("community_posts").select("*");
+
+        if (["요리 후기", "질문", "자유 이야기"].includes(category)) {
+          query = query.eq("category", category);
+        }
+
+        if (category === "인기") {
+          query = query
+            .order("like_count", {
+              ascending: false,
+            })
+            .order("created_at", {
+              ascending: false,
+            });
+        } else {
+          query = query.order("created_at", {
+            ascending: false,
+          });
+        }
+
+        const { data, error } = await query.range(from, to);
+
+        if (error) {
+          throw error;
+        }
+
+        mappedPosts = (data ?? []).map(mapPost);
+
+        fetchedCount = mappedPosts.length;
       }
-
-      const { data, error } = await query.range(from, to);
-
-      if (error) {
-        throw error;
-      }
-
-      const mappedPosts = (data ?? []).map(mapPost);
 
       /**
        * profiles 요청을 기다리지 않고
@@ -254,7 +333,7 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
         return [...previousPosts, ...mappedPosts.filter(post => !existingIds.has(post.id))];
       });
 
-      setHasMorePosts(mappedPosts.length === POSTS_PER_PAGE);
+      setHasMorePosts(fetchedCount === POSTS_PER_PAGE);
 
       /**
        * profiles는 첫 렌더링 이후
@@ -445,7 +524,7 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
   }
 
   /**
-   * 북마크
+   * 게시글 북마크 추가 / 취소
    */
   async function handleBookmarkToggle(postId) {
     if (authLoading) {
@@ -490,16 +569,25 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
         }
       }
 
-      setPosts(previousPosts =>
-        previousPosts.map(post =>
+      setPosts(previousPosts => {
+        /**
+         * 북마크 탭에서 북마크를 취소했다면
+         * 더 이상 북마크 목록에 존재하면 안 되므로
+         * 해당 카드를 즉시 제거한다.
+         */
+        if (selectedCategory === "북마크" && targetPost.bookmarked) {
+          return previousPosts.filter(post => post.id !== postId);
+        }
+
+        return previousPosts.map(post =>
           post.id === postId
             ? {
                 ...post,
                 bookmarked: !targetPost.bookmarked,
               }
             : post,
-        ),
-      );
+        );
+      });
     } catch (error) {
       console.error("게시글 북마크 처리 오류:", error);
 
@@ -516,6 +604,23 @@ export default function useCommunityFeed({ user, authLoading, moveToLogin, showN
     if (category === selectedCategory || categoryLoading) {
       return;
     }
+
+    /**
+     * 북마크 목록은 로그인 사용자만 볼 수 있음
+     */
+    if (category === "북마크") {
+      if (authLoading) {
+        return;
+      }
+
+      if (!user) {
+        moveToLogin();
+
+        return;
+      }
+    }
+
+    bookmarkOffsetRef.current = 0;
 
     setSelectedCategory(category);
 

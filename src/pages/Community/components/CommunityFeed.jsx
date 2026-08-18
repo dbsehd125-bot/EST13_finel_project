@@ -85,14 +85,22 @@ export default function CommunityFeed({
   }
 
   if (posts.length === 0) {
+    const isBookmarkCategory = selectedCategory === "북마크";
+
     return (
       <section className={styles.cards}>
         <div className={styles.emptyState}>
-          <p>아직 등록된 게시글이 없습니다.</p>
+          <p>
+            {isBookmarkCategory
+              ? "아직 북마크한 게시글이 없습니다."
+              : "아직 등록된 게시글이 없습니다."}
+          </p>
 
-          <button type="button" onClick={onWrite}>
-            첫 게시글 작성하기
-          </button>
+          {!isBookmarkCategory && (
+            <button type="button" onClick={onWrite}>
+              첫 게시글 작성하기
+            </button>
+          )}
         </div>
       </section>
     );

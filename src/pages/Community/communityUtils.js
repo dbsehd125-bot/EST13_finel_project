@@ -4,7 +4,7 @@
  * - 날짜 표시 등 여러 커뮤니티 컴포넌트에서 공통으로 사용하는 함수 관리
  * - 커뮤니티에서 사용하는 공통 상수 관리
  */
-export const categories = ["최신", "인기", "요리 후기", "질문", "자유 이야기"];
+export const categories = ["최신", "인기", "북마크", "요리 후기", "질문", "자유 이야기"];
 export const writableCategories = ["요리 후기", "질문", "자유 이야기"];
 export const COMMUNITY_BUCKET = "community-images";
 export const POSTS_PER_PAGE = 9;
