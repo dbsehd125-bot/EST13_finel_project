@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../../context/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
 import { RecipeJsonToMarkdown } from '../RecipeJsonToMarkdown';
-import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from '../../../utils/AlanApi';
+// import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from '../../../utils/AlanApi';
 
 const API_BASE = '/api/v1';
 // const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -11,6 +11,7 @@ const FALLBACK_URL = 'https://dummyimage.com/1024x1024/f26b3a/ffffff.png&text=No
 
 export function useAiRecipe() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   // Step 1: 프롬프트 입력
@@ -102,35 +103,60 @@ export function useAiRecipe() {
   };
 
   // OpenAI 이미지 생성 요청
+  // async function fetchOpenAIImage(promptText) {
+  //   try {
+  //     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  //     if (!apiKey) {
+  //       console.error('[OpenAI Error] VITE_OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
+  //       return null;
+  //     }
+
+  //     const res = await fetch('https://api.openai.com/v1/images/generations', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         Authorization: `Bearer ${apiKey}`,
+  //       },
+  //       body: JSON.stringify({
+  //         model: 'gpt-image-2',
+  //         prompt: promptText,
+  //         n: 1,
+  //         size: '1024x1024',
+  //         quality: 'low',
+  //         output_format: 'png',
+  //       }),
+  //     });
+
+  //     if (!res.ok) return null;
+  //     const responseData = await res.json();
+  //     const rawBase64 = responseData?.data?.[0]?.b64_json;
+  //     return rawBase64 ? `data:image/png;base64,${rawBase64}` : null;
+  //   } catch {
+  //     return null;
+  //   }
+  // }
+
+  /**
+   * Supabase Edge Function을 통한 OpenAI 이미지 생성 요청
+   */
   async function fetchOpenAIImage(promptText) {
     try {
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        console.error('[OpenAI Error] VITE_OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
+      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+        body: {
+          action: 'generate-image',
+          promptText,
+        },
+      });
+
+      if (error || !data) {
+        console.error('[OpenAI Edge Function Error]', error);
         return null;
       }
 
-      const res = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-image-2',
-          prompt: promptText,
-          n: 1,
-          size: '1024x1024',
-          quality: 'low',
-          output_format: 'png',
-        }),
-      });
-
-      if (!res.ok) return null;
-      const responseData = await res.json();
-      const rawBase64 = responseData?.data?.[0]?.b64_json;
+      const rawBase64 = data?.data?.[0]?.b64_json;
       return rawBase64 ? `data:image/png;base64,${rawBase64}` : null;
-    } catch {
+    } catch (err) {
+      console.error('[Image Generation Failure]', err);
       return null;
     }
   }
@@ -167,51 +193,73 @@ export function useAiRecipe() {
           .replace(/\s+/g, ' ')
           .trim();
 
-      let alanClientId = getCurrentAlanClientId();
-      let response = null;
+      // let alanClientId = getCurrentAlanClientId();
+      // let response = null;
 
-      while (alanClientId) {
-        const queryString = new URLSearchParams({
-          content: systemPrompt,
-          client_id: alanClientId,
-        }).toString();
+      // while (alanClientId) {
+      //   const queryString = new URLSearchParams({
+      //     content: systemPrompt,
+      //     client_id: alanClientId,
+      //   }).toString();
 
-        let res = null;
-        try {
-          res = await fetch(`${API_BASE}/question?${queryString}`);
-        } catch (netErr) {
-          console.warn(`[Alan AI] 네트워크 통신 에러 발생. 다음 Client ID로 전환합니다.`, netErr);
-          alanClientId = getNextAlanClientId();
-          continue;
-        }
+      //   let res = null;
+      //   try {
+      //     res = await fetch(`${API_BASE}/question?${queryString}`);
+      //   } catch (netErr) {
+      //     console.warn(`[Alan AI] 네트워크 통신 에러 발생. 다음 Client ID로 전환합니다.`, netErr);
+      //     alanClientId = getNextAlanClientId();
+      //     continue;
+      //   }
 
-        if (res.ok) {
-          response = res;
-          break;
-        }
+      //   if (res.ok) {
+      //     response = res;
+      //     break;
+      //   }
 
-        if (isFailoverError(res.status)) {
-          console.warn(
-            `[Alan AI] Status ${res.status} 감지 (Client ID: ${alanClientId}). 다음 Client ID로 전환합니다.`,
-          );
-          alanClientId = getNextAlanClientId();
-        } else {
-          throw new Error(`Alan API 요청 실패 (Status: ${res.status})`);
-        }
+      //   if (isFailoverError(res.status)) {
+      //     console.warn(
+      //       `[Alan AI] Status ${res.status} 감지 (Client ID: ${alanClientId}). 다음 Client ID로 전환합니다.`,
+      //     );
+      //     alanClientId = getNextAlanClientId();
+      //   } else {
+      //     throw new Error(`Alan API 요청 실패 (Status: ${res.status})`);
+      //   }
+      // }
+
+      // if (!response) {
+      //   throw new Error('모든 Alan Client ID 할당량이 소진되었거나 요청에 실패했습니다.');
+      // }
+
+      const { data: alanData, error: alanError } = await supabase.functions.invoke('generate-recipe', {
+        body: {
+          action: 'generate-recipe',
+          systemPrompt,
+        },
+      });
+
+      if (alanError || !alanData) {
+        throw new Error(alanError?.message || 'Alan AI 레시피 생성 실패');
       }
 
-      if (!response) {
-        throw new Error('모든 Alan Client ID 할당량이 소진되었거나 요청에 실패했습니다.');
-      }
-
-      const data = await response.json();
       const jsonString =
-        data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+        alanData.content ||
+        alanData.answer ||
+        (typeof alanData === 'string' ? alanData : JSON.stringify(alanData, null, 2));
 
-      const cleanedJsonString = jsonString
+      let cleanedJsonString = jsonString
         .replace(/```json/gi, '')
         .replace(/```/g, '')
         .trim();
+
+      // 💡 사족 텍스트 제거 (첫번째 '{' 시작 지점부터 마지막 '}' 지점까지 추출)
+      const firstBracketIndex = cleanedJsonString.indexOf('{');
+      const lastBracketIndex = cleanedJsonString.lastIndexOf('}');
+
+      if (firstBracketIndex !== -1 && lastBracketIndex !== -1 && lastBracketIndex > firstBracketIndex) {
+        cleanedJsonString = cleanedJsonString.substring(firstBracketIndex, lastBracketIndex + 1);
+      } else {
+        throw new Error('Alan AI 응답에서 올바른 JSON 형태를 찾을 수 없습니다.');
+      }
 
       const parsedRecipeJson = JSON.parse(cleanedJsonString);
       const markdownContent = RecipeJsonToMarkdown(parsedRecipeJson);
