@@ -68,15 +68,17 @@ export default function RecipeReviews({
                     comment.image_url ? styles.commentBodyWithImage : ""
                   }`}
                 >
-                  <div className={styles.commentTextArea}>
-                    {comment.content ? (
-                      <p className="text-sm">{comment.content}</p>
-                    ) : (
-                      <p className={`text-sm ${styles.commentContentEmpty}`}>
-                        사진으로 남긴 완성 후기입니다.
-                      </p>
-                    )}
-                  </div>
+                  {(comment.content || comment.image_url) && (
+                    <div className={styles.commentTextArea}>
+                      {comment.content ? (
+                        <p className="text-sm">{comment.content}</p>
+                      ) : (
+                        <p className={`text-sm ${styles.commentContentEmpty}`}>
+                          사진으로 남긴 완성 후기입니다.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {comment.image_url && (
                     <img
