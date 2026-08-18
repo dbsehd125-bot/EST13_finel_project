@@ -13,6 +13,7 @@ export function useRegistRecipe() {
   // CreateAIRecipe에서 라우팅으로 넘어온 JSON 데이터
   const aiRecipePreset = location.state?.recipe || null;
   const isFromAICreater = location.state?.isFromAICreater || false;
+  const isEditMode = location.state?.isEditMode || false;
 
   const steps = [
     { id: 1, label: '기본 정보' },
@@ -295,7 +296,7 @@ export function useRegistRecipe() {
    Main RegistRecipe 페이지 컴포넌트
    ========================================================================== */
   // URL 쿼리 스트링으로 현재 step 상태 유지
-  const recipeId = searchParams.get('id');
+  const recipeId = searchParams.get('id') || location.state?.recipe?.id;
   const [savedDraftId, setSavedDraftId] = useState(recipeId || null);
 
   // 로딩 상태
@@ -303,7 +304,9 @@ export function useRegistRecipe() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const isValidAccess = Boolean(isFromAICreater && aiRecipePreset);
+    const isValidAccess = Boolean(
+      (isFromAICreater && aiRecipePreset) || (isEditMode && aiRecipePreset)
+    );
 
     // 모달이 팝업되는 조건 (3가지 중 하나라도 해당 시)
     // 1) 사용자가 직접 브라우저를 새로고침(Reload)한 경우
