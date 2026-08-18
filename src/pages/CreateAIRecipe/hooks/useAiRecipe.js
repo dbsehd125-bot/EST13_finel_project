@@ -6,7 +6,7 @@ import { RecipeJsonToMarkdown } from '../RecipeJsonToMarkdown';
 import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from '../../../utils/AlanApi';
 
 const API_BASE = '/api/v1';
-const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+// const OPEN_AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 const FALLBACK_URL = 'https://dummyimage.com/1024x1024/f26b3a/ffffff.png&text=No+Image';
 
 export function useAiRecipe() {
@@ -104,11 +104,17 @@ export function useAiRecipe() {
   // OpenAI 이미지 생성 요청
   async function fetchOpenAIImage(promptText) {
     try {
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!apiKey) {
+        console.error('[OpenAI Error] VITE_OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
+        return null;
+      }
+
       const res = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${OPEN_AI_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           model: 'gpt-image-2',
