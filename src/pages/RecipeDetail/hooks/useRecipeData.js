@@ -9,16 +9,12 @@
  * - 다른 사용자가 생성 중이면 저장 완료된 결과를 DB에서 기다린 뒤 사용
  * - 레시피 변경 시 상세 페이지 관련 상태 초기화
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
-import { supabase } from "../../../lib/supabaseClient";
-import {
-  getCurrentAlanClientId,
-  getNextAlanClientId,
-  isFailoverError,
-} from "../../../utils/AlanApi";
+import { supabase } from '../../../lib/supabaseClient';
+// import { getCurrentAlanClientId, getNextAlanClientId, isFailoverError } from '../../../utils/AlanApi';
 
-const API_BASE = "/api/v1";
+// const API_BASE = '/api/v1';
 
 /**
  * 다른 사용자가 AI 요약을 생성 중일 때
@@ -34,21 +30,21 @@ const AI_SUMMARY_POLL_INTERVAL = 1000;
  */
 const AI_SUMMARY_POLL_COUNT = 30;
 
-const sleep = milliseconds =>
-  new Promise(resolve => {
+const sleep = (milliseconds) =>
+  new Promise((resolve) => {
     window.setTimeout(resolve, milliseconds);
   });
 
 /**
  * ai_step_summaries에 실제 저장값이 존재하는지 확인
  */
-const hasAiSummaries = summaries => Array.isArray(summaries) && summaries.length > 0;
+const hasAiSummaries = (summaries) => Array.isArray(summaries) && summaries.length > 0;
 
 export default function useRecipeData(id) {
   const [recipe, setRecipe] = useState(null);
   const [relatedRecipes, setRelatedRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [aiStepSummaries, setAiStepSummaries] = useState([]);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
@@ -74,7 +70,7 @@ export default function useRecipeData(id) {
         setLoading(true);
 
         setRecipe(null);
-        setErrorMessage("");
+        setErrorMessage('');
         setRelatedRecipes([]);
         setAiStepSummaries([]);
         setAiSummaryLoading(false);
@@ -87,10 +83,10 @@ export default function useRecipeData(id) {
          * Number로 변환하지 않고 문자열 형태 그대로 DB에 전달해서
          * bigint가 커져도 JS Number 안전 범위 문제를 피한다.
          */
-        const isValidRecipeId = typeof id === "string" && /^[1-9]\d*$/.test(id);
+        const isValidRecipeId = typeof id === 'string' && /^[1-9]\d*$/.test(id);
 
         if (!isValidRecipeId) {
-          setErrorMessage("잘못된 레시피 주소입니다.");
+          setErrorMessage('잘못된 레시피 주소입니다.');
           return;
         }
 
@@ -103,9 +99,9 @@ export default function useRecipeData(id) {
          * 두 상황을 구분할 수 있다.
          */
         const { data: recipeData, error: recipeError } = await supabase
-          .from("recipes")
-          .select("*")
-          .eq("id", id)
+          .from('recipes')
+          .select('*')
+          .eq('id', id)
           .maybeSingle();
 
         if (recipeError) {
@@ -116,7 +112,7 @@ export default function useRecipeData(id) {
          * URL 형식은 맞지만 실제 레시피가 존재하지 않는 경우
          */
         if (!recipeData) {
-          setErrorMessage("레시피를 찾을 수 없습니다.");
+          setErrorMessage('레시피를 찾을 수 없습니다.');
           return;
         }
 
@@ -130,9 +126,9 @@ export default function useRecipeData(id) {
 
         if (recipeData.user_id) {
           const { data: profileData, error: profileError } = await supabase
-            .from("profiles")
-            .select("user_id, nickname, avatar_url")
-            .eq("user_id", recipeData.user_id)
+            .from('profiles')
+            .select('user_id, nickname, avatar_url')
+            .eq('user_id', recipeData.user_id)
             .maybeSingle();
 
           if (profileError) {
@@ -140,7 +136,7 @@ export default function useRecipeData(id) {
              * 프로필 조회 실패만으로
              * 레시피 상세 전체를 에러 처리하지 않는다.
              */
-            console.error("레시피 작성자 프로필 조회 실패:", profileError);
+            console.error('레시피 작성자 프로필 조회 실패:', profileError);
           } else {
             authorProfile = profileData ?? null;
           }
@@ -166,7 +162,7 @@ export default function useRecipeData(id) {
          */
         try {
           const { data: relatedData, error: relatedError } = await supabase
-            .from("recipes")
+            .from('recipes')
             .select(
               `
                 id,
@@ -178,8 +174,8 @@ export default function useRecipeData(id) {
                 like_count
               `,
             )
-            .eq("cuisine", recipeData.cuisine)
-            .neq("id", recipeData.id)
+            .eq('cuisine', recipeData.cuisine)
+            .neq('id', recipeData.id)
             .limit(4);
 
           if (relatedError) {
@@ -190,18 +186,18 @@ export default function useRecipeData(id) {
             setRelatedRecipes(relatedData || []);
           }
         } catch (relatedError) {
-          console.error("연관 레시피 조회 실패:", relatedError);
+          console.error('연관 레시피 조회 실패:', relatedError);
 
           if (!cancelled) {
             setRelatedRecipes([]);
           }
         }
       } catch (error) {
-        console.error("레시피 조회 실패:", error);
+        console.error('레시피 조회 실패:', error);
 
         if (!cancelled) {
           setRecipe(null);
-          setErrorMessage("레시피를 불러오지 못했습니다.");
+          setErrorMessage('레시피를 불러오지 못했습니다.');
         }
       } finally {
         if (!cancelled) {
@@ -231,16 +227,16 @@ export default function useRecipeData(id) {
     lastViewedRecipeIdRef.current = recipe.id;
 
     const increaseViewCount = async () => {
-      const { data, error } = await supabase.rpc("increment_recipe_view", {
+      const { data, error } = await supabase.rpc('increment_recipe_view', {
         target_recipe_id: recipe.id,
       });
 
       if (error) {
-        console.error("조회수 증가 실패:", error);
+        console.error('조회수 증가 실패:', error);
         return;
       }
 
-      setRecipe(previousRecipe => {
+      setRecipe((previousRecipe) => {
         if (!previousRecipe || previousRecipe.id !== recipe.id) {
           return previousRecipe;
         }
@@ -273,13 +269,13 @@ export default function useRecipeData(id) {
       }
 
       const { data, error } = await supabase
-        .from("recipes")
-        .select("ai_step_summaries")
-        .eq("id", recipeId)
+        .from('recipes')
+        .select('ai_step_summaries')
+        .eq('id', recipeId)
         .maybeSingle();
 
       if (error) {
-        console.error("AI 요약 대기 중 DB 조회 실패:", error);
+        console.error('AI 요약 대기 중 DB 조회 실패:', error);
         continue;
       }
 
@@ -333,12 +329,9 @@ export default function useRecipeData(id) {
          * 성공 → UUID 반환
          * 이미 다른 사용자가 생성 중 → null 반환
          */
-        const { data: claimData, error: claimError } = await supabase.rpc(
-          "claim_recipe_ai_summary",
-          {
-            target_recipe_id: recipe.id,
-          },
-        );
+        const { data: claimData, error: claimError } = await supabase.rpc('claim_recipe_ai_summary', {
+          target_recipe_id: recipe.id,
+        });
 
         if (claimError) {
           throw claimError;
@@ -360,7 +353,7 @@ export default function useRecipeData(id) {
           if (hasAiSummaries(savedSummaries)) {
             setAiStepSummaries(savedSummaries);
 
-            setRecipe(previousRecipe => {
+            setRecipe((previousRecipe) => {
               if (!previousRecipe || previousRecipe.id !== recipe.id) {
                 return previousRecipe;
               }
@@ -374,18 +367,15 @@ export default function useRecipeData(id) {
             return;
           }
 
-          throw new Error("AI 요약 생성 결과를 불러오지 못했습니다.");
+          throw new Error('AI 요약 생성 결과를 불러오지 못했습니다.');
         }
 
         /**
          * 이 아래는 claim을 획득한 클라이언트만 실행된다.
          */
         const stepText = recipe.steps
-          .map(
-            step =>
-              `${step.step}단계 | 제목: ${step.title || ""} | 설명: ${step.description || ""}`,
-          )
-          .join(" / ");
+          .map((step) => `${step.step}단계 | 제목: ${step.title || ''} | 설명: ${step.description || ''}`)
+          .join(' / ');
 
         const prompt =
           `다음 요리 레시피의 각 조리 단계를 핵심 행동만 남겨 한 문장으로 짧게 요약해줘. ` +
@@ -395,80 +385,96 @@ export default function useRecipeData(id) {
           `모든 summary는 한국어로 작성해. ` +
           `레시피명: ${recipe.title}. 조리 단계: ${stepText}`;
 
-        let alanClientId = getCurrentAlanClientId();
+        /**
+         * [fix] claim api keys via edge function  
+         * */
+        // let alanClientId = getCurrentAlanClientId();
 
-        let response = null;
+        // let response = null;
 
         /**
          * 기존 Alan Client ID failover 로직 유지
          */
-        while (alanClientId) {
-          const queryString = new URLSearchParams({
-            content: prompt,
-            client_id: alanClientId,
-          }).toString();
+        // while (alanClientId) {
+        //   const queryString = new URLSearchParams({
+        //     content: prompt,
+        //     client_id: alanClientId,
+        //   }).toString();
 
-          let currentResponse = null;
+        //   let currentResponse = null;
 
-          try {
-            currentResponse = await fetch(`${API_BASE}/question?${queryString}`);
-          } catch (networkError) {
-            console.warn("Alan AI 요약 네트워크 오류:", networkError);
+        //   try {
+        //     currentResponse = await fetch(`${API_BASE}/question?${queryString}`);
+        //   } catch (networkError) {
+        //     console.warn("Alan AI 요약 네트워크 오류:", networkError);
 
-            alanClientId = getNextAlanClientId();
+        //     alanClientId = getNextAlanClientId();
 
-            continue;
-          }
+        //     continue;
+        //   }
 
-          if (currentResponse.ok) {
-            response = currentResponse;
-            break;
-          }
+        //   if (currentResponse.ok) {
+        //     response = currentResponse;
+        //     break;
+        //   }
 
-          if (isFailoverError(currentResponse.status)) {
-            alanClientId = getNextAlanClientId();
+        //   if (isFailoverError(currentResponse.status)) {
+        //     alanClientId = getNextAlanClientId();
 
-            continue;
-          }
+        //     continue;
+        //   }
 
-          throw new Error(`Alan API 요청 실패 (Status: ${currentResponse.status})`);
-        }
+        //   throw new Error(`Alan API 요청 실패 (Status: ${currentResponse.status})`);
+        // }
 
-        if (!response) {
-          throw new Error("Alan API 요청에 사용할 수 있는 Client ID가 없습니다.");
-        }
+        // if (!response) {
+        //   throw new Error("Alan API 요청에 사용할 수 있는 Client ID가 없습니다.");
+        // }
 
         /**
          * Alan 응답 Parsing
          */
-        const data = await response.json();
+        // const data = await response.json();
+
+        // const rawContent = data.content || data.answer || (typeof data === 'string' ? data : JSON.stringify(data));
+
+        const { data: alanData, error: alanError } = await supabase.functions.invoke('generate-recipe', {
+          body: {
+            action: 'generate-recipe',
+            systemPrompt: prompt,
+          },
+        });
+
+        if (alanError || !alanData) {
+          throw new Error(alanError?.message || 'Alan AI 레시피 요약 생성 실패');
+        }
 
         const rawContent =
-          data.content || data.answer || (typeof data === "string" ? data : JSON.stringify(data));
+          alanData.content || alanData.answer || (typeof alanData === 'string' ? alanData : JSON.stringify(alanData));
+        /**[fix] claim api keys via edge function  */
 
         const cleanedContent = rawContent
-          .replace(/```json/gi, "")
-          .replace(/```/g, "")
+          .replace(/```json/gi, '')
+          .replace(/```/g, '')
           .trim();
 
         const parsed = JSON.parse(cleanedContent);
 
         if (!Array.isArray(parsed.summaries)) {
-          throw new Error("Alan API 요약 응답 형식이 올바르지 않습니다.");
+          throw new Error('Alan API 요약 응답 형식이 올바르지 않습니다.');
         }
 
         const summaryMap = new Map(
-          parsed.summaries.map(item => [Number(item.step), String(item.summary || "").trim()]),
+          parsed.summaries.map((item) => [Number(item.step), String(item.summary || '').trim()]),
         );
 
         /**
          * Alan이 특정 단계를 누락해도
          * 기존 단계 description/title을 fallback으로 사용
          */
-        const normalizedSummaries = recipe.steps.map(step => ({
+        const normalizedSummaries = recipe.steps.map((step) => ({
           step: step.step,
-          summary:
-            summaryMap.get(Number(step.step)) || step.description?.trim() || step.title || "",
+          summary: summaryMap.get(Number(step.step)) || step.description?.trim() || step.title || '',
         }));
 
         if (cancelled) return;
@@ -478,14 +484,11 @@ export default function useRecipeData(id) {
          *
          * 자신이 획득했던 claim_token과 일치해야 DB에 저장된다.
          */
-        const { data: savedSummaries, error: saveError } = await supabase.rpc(
-          "complete_recipe_ai_summary",
-          {
-            target_recipe_id: recipe.id,
-            claim_token: claimToken,
-            summaries: normalizedSummaries,
-          },
-        );
+        const { data: savedSummaries, error: saveError } = await supabase.rpc('complete_recipe_ai_summary', {
+          target_recipe_id: recipe.id,
+          claim_token: claimToken,
+          summaries: normalizedSummaries,
+        });
 
         if (saveError) {
           throw saveError;
@@ -497,15 +500,13 @@ export default function useRecipeData(id) {
         /**
          * DB가 반환한 값을 우선 사용
          */
-        const finalSummaries = hasAiSummaries(savedSummaries)
-          ? savedSummaries
-          : normalizedSummaries;
+        const finalSummaries = hasAiSummaries(savedSummaries) ? savedSummaries : normalizedSummaries;
 
         if (cancelled) return;
 
         setAiStepSummaries(finalSummaries);
 
-        setRecipe(previousRecipe => {
+        setRecipe((previousRecipe) => {
           if (!previousRecipe || previousRecipe.id !== recipe.id) {
             return previousRecipe;
           }
@@ -516,7 +517,7 @@ export default function useRecipeData(id) {
           };
         });
       } catch (error) {
-        console.error("Alan AI 단계 요약 실패:", error);
+        console.error('Alan AI 단계 요약 실패:', error);
 
         /**
          * AI 생성권을 획득한 상태에서 실패했다면
@@ -525,13 +526,13 @@ export default function useRecipeData(id) {
          * 그러면 다음 사용자가 다시 요약 생성을 시도할 수 있다.
          */
         if (claimToken) {
-          const { error: releaseError } = await supabase.rpc("release_recipe_ai_summary_claim", {
+          const { error: releaseError } = await supabase.rpc('release_recipe_ai_summary_claim', {
             target_recipe_id: recipe.id,
             claim_token: claimToken,
           });
 
           if (releaseError) {
-            console.error("AI 요약 claim 해제 실패:", releaseError);
+            console.error('AI 요약 claim 해제 실패:', releaseError);
           }
         }
 
@@ -543,9 +544,9 @@ export default function useRecipeData(id) {
            * 기존 조리 단계 설명을 fallback으로 표시
            */
           setAiStepSummaries(
-            recipe.steps.map(step => ({
+            recipe.steps.map((step) => ({
               step: step.step,
-              summary: step.description?.trim() || step.title || "",
+              summary: step.description?.trim() || step.title || '',
             })),
           );
         }
@@ -562,7 +563,7 @@ export default function useRecipeData(id) {
       cancelled = true;
 
       if (claimToken) {
-        void supabase.rpc("release_recipe_ai_summary_claim", {
+        void supabase.rpc('release_recipe_ai_summary_claim', {
           target_recipe_id: recipe.id,
           claim_token: claimToken,
         });
