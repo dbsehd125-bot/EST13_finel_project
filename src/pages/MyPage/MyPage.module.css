@@ -369,16 +369,16 @@
 /* Mobile Layout Overrides */
 @media (max-width: 768px) {
   .mypage-container {
-    padding: 24px 16px;
+    padding: 20px 16px;
   }
 
   .profile-section {
     flex-direction: column;
-    padding: 32px 20px;
+    padding: 24px 20px;
     background-color: #fff;
-    border: 1px solid rgba(240, 90, 36, 0.2);
+    border: 1px solid rgba(240, 90, 36, 0.15);
     border-radius: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     gap: 16px;
   }
 
@@ -390,8 +390,8 @@
   }
 
   .profile-avatar {
-    width: 90px;
-    height: 90px;
+    width: 80px;
+    height: 80px;
     margin: 0 auto;
   }
 
@@ -399,38 +399,52 @@
     font-size: 20px;
   }
 
+  .profile-handle {
+    margin-bottom: 8px;
+  }
+
   .profile-stats {
     width: 100%;
-    justify-content: space-between;
-    padding: 16px 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 12px 0;
     gap: 0;
     box-shadow: none;
     background: transparent;
+    border-top: 1px solid var(--brand-divider, #f0f0f0);
   }
 
   .stat-item {
-    gap: 8px;
+    padding: 8px 0;
+    gap: 2px;
+  }
+
+  .stat-icon {
+    width: 16px;
+    height: 16px;
   }
 
   .stat-number {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .stat-label {
-    font-size: 12px;
+    font-size: 10px;
+    white-space: nowrap;
   }
 
   .profile-actions {
     width: 100%;
-    margin-top: 8px;
+    margin-top: 4px;
   }
 
   .btn-edit-profile {
     width: 100%;
     justify-content: center;
-    padding: 12px;
+    padding: 10px;
     border: 1px solid rgba(240, 90, 36, 0.3);
     color: var(--brand-brown);
+    font-size: 13px;
   }
 
   .btn-follow, .btn-message {
@@ -441,34 +455,66 @@
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
-    gap: 20px;
+    gap: 16px;
     padding-bottom: 8px;
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: var(--brand-divider, #e0e0e0) transparent;
+    margin-bottom: 16px;
+    scrollbar-width: none;
   }
   
   .tabs-container::-webkit-scrollbar {
-    display: block;
-    height: 4px;
-  }
-  
-  .tabs-container::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  .tabs-container::-webkit-scrollbar-thumb {
-    background-color: var(--brand-divider, #e0e0e0);
-    border-radius: 4px;
+    display: none;
   }
 
+  .tab-item {
+    font-size: 13px;
+    padding: 10px 0;
+    flex-shrink: 0;
+  }
+
+  /* Search & Toolbar */
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .search-bar {
+    width: 100%;
+    padding: 8px 12px;
+    order: -1;
+  }
+
+  .toolbar-right {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .sort-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .btn-new-recipe {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .sort-wrapper {
+    display: none;
+  }
+
+  /* Cards */
   .recipe-card {
     border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   }
 
   .recipe-actions {
     border-top: none;
-    padding: 0 16px 16px;
+    padding: 0 12px 12px;
     gap: 8px;
     display: flex;
   }
@@ -482,7 +528,8 @@
     border: 1px solid rgba(240, 90, 36, 0.2);
     border-radius: 9999px;
     background: #fff;
-    padding: 10px 0;
+    padding: 8px 0;
+    font-size: 13px;
   }
 
   .btn-card-delete {
@@ -490,44 +537,17 @@
     border: 1px solid rgba(240, 90, 36, 0.2);
     border-radius: 9999px;
     background: #fff;
-    padding: 10px 0;
+    padding: 8px 0;
     color: #e53e3e;
-  }
-
-  /* Search & Toolbar Adjustments */
-  .toolbar {
-    gap: 8px;
-  }
-
-  .search-bar {
-    width: auto;
-    flex-grow: 1;
-    padding: 8px 12px;
-  }
-
-  .toolbar-right {
-    gap: 8px;
-  }
-
-  .sort-btn {
-    padding: 6px 10px;
     font-size: 13px;
   }
 
-  .btn-new-recipe {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-
-  .sort-wrapper {
-    display: none;
-  }
-
-  /* Privacy Badge Position Fix */
   .privacy-badge {
     left: 12px;
-    right: auto; /* override right position from desktop */
+    right: auto;
     top: 12px;
     z-index: 10;
+    font-size: 11px;
+    padding: 3px 8px;
   }
 }
