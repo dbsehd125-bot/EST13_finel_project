@@ -238,6 +238,35 @@ export default function MyPage() {
   const [bookmarkedRecipes, setBookmarkedRecipes] = useState([]);
   const [loadingBookmarked, setLoadingBookmarked] = useState(false);
 
+  const [myReviews, setMyReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  // 내 요리 후기 불러오기
+  useEffect(() => {
+    async function fetchMyReviews() {
+      if (!user) return;
+      try {
+        setLoadingReviews(true);
+        const { data, error } = await supabase
+          .from('community_posts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setMyReviews(data || []);
+      } catch (err) {
+        console.error('내 요리 후기 목록 조회 오류:', err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    }
+
+    if (activeTab === '요리 후기') {
+      fetchMyReviews();
+    }
+  }, [user, activeTab]);
+
   // 저장한(즐겨찾기) 레시피 불러오기
   useEffect(() => {
     async function fetchBookmarkedRecipes() {
@@ -671,9 +700,47 @@ export default function MyPage() {
         )}
 
         {activeTab === '요리 후기' && (
-          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
-            <p className="text-lg">작성한 요리 후기가 없습니다.</p>
-          </div>
+          loadingReviews ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">로딩 중...</p>
+            </div>
+          ) : myReviews.length === 0 ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">작성한 요리 후기가 없습니다.</p>
+              <button 
+                className={`text-button ${styles['btn-new-recipe']}`} 
+                style={{ marginTop: '1.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                onClick={() => navigate('/community')}
+              >
+                + 커뮤니티에서 후기 작성하기
+              </button>
+            </div>
+          ) : (
+            <div className={styles['recipe-grid']}>
+              {myReviews.map(review => (
+                <div key={review.id} style={{
+                  border: '1px solid var(--brand-divider)', borderRadius: '12px', padding: '16px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                }}
+                onClick={() => navigate(`/community`)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  {review.image_url && (
+                    <img src={review.image_url} alt="리뷰 이미지" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }} />
+                  )}
+                  <p className="text-m" style={{ color: 'var(--brand-black)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: review.image_url ? 'auto' : '60px' }}>{review.content}</p>
+                  {review.recipe_name && (
+                    <span className="text-s" style={{ color: 'var(--brand-primary)', backgroundColor: 'var(--brand-cream)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>
+                      🍳 {review.recipe_name}
+                    </span>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', color: 'var(--brand-gray)' }}>
+                    <span className="text-s">{new Date(review.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
 
         {activeTab === '주간 식단' && (
