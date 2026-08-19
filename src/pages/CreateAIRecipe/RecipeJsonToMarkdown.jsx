@@ -17,18 +17,28 @@ export function RecipeJsonToMarkdown(recipe) {
     })
     .join('\n\n');
 
-  // 부족한 재료 장보기 목록 마크다운 변환
+  // 💡 [방어 로직 1] shopping_list, shoppingList, shoppinglist 키 이름 모두 대응
+  let rawShoppingList = recipe.shopping_list || recipe.shoppingList || recipe.shoppinglist;
+
+  // 💡 [방어 로직 2] 혹시 AI가 배열이 아니라 문자열로 넘겨줬을 경우 배열로 포맷팅
+  if (typeof rawShoppingList === 'string') {
+    rawShoppingList = [rawShoppingList];
+  }
+
+  // 💡 [방어 로직 3] 배열 형태 검증 및 마크다운 변환
   const shoppingListSection =
-    recipe.shopping_list && recipe.shopping_list.length > 0
-      ? `---\n\n### 🛍️ 부족한 재료 장보기 목록\n` +
-        recipe.shopping_list
-          .map((item) => (item.startsWith('☑️') || item.startsWith('☐') ? item : `☑️ ${item}`))
-          .join('\n\n') +
-        '\n\n'
+    Array.isArray(rawShoppingList) && rawShoppingList.length > 0
+      ? `\n\n---\n\n### 🛍️ 부족한 재료 장보기 목록\n` +
+        rawShoppingList
+          .map((item) => {
+            const strItem = String(item).trim();
+            return strItem.startsWith('☑️') || strItem.startsWith('☐') ? strItem : `- ☑️ ${strItem}`;
+          })
+          .join('\n\n')
       : '';
 
   // 태그 목록 마크다운 변환
-  const tagsList = recipe.tags?.length > 0 ? `\n\n${recipe.tags.map((tag) => `#${tag}`).join(' ')}` : '';
+  const tagsList = recipe.tags?.length > 0 ? `\n\n---\n\n${recipe.tags.map((tag) => `#${tag}`).join(' ')}` : '';
 
   return `# 🍳 ${recipe.title}
 
@@ -51,8 +61,6 @@ ${ingredientsList || '- 등록된 재료가 없습니다.'}
 ---
 
 ### 🍳 상세 조리 순서
-${stepsList || '등록된 조리 순서가 없습니다.'}
-
-${shoppingListSection}---${tagsList}
+${stepsList || '등록된 조리 순서가 없습니다.'}${shoppingListSection}${tagsList}
 `.trim();
 }
