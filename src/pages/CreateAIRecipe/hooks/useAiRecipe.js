@@ -185,9 +185,13 @@ export function useAiRecipe() {
 
     try {
       // [Step 1] Alan AI 텍스트 생성
+      // const shoppingListInstruction = options.shoppinglist
+      //   ? `Include "shopping_list" array containing ONLY ingredients NOT in the available ingredients list [${ingredients.join(', ')}]. Format each item string starting with checkbox emoji like "☑️ 재료명 (필요 수량)".`
+      //   : `Set "shopping_list" as empty array [].`;
+      const userIngredientsText = ingredients.length > 0 ? ingredients.join(', ') : '없음';
       const shoppingListInstruction = options.shoppinglist
-        ? `Include "shopping_list" array containing ONLY ingredients NOT in the available ingredients list [${ingredients.join(', ')}]. Format each item string starting with checkbox emoji like "☑️ 재료명 (필요 수량)".`
-        : `Set "shopping_list" as empty array [].`;
+        ? `MUST generate "shopping_list" array with 2-5 essential edible ingredients or seasonings required for this recipe that are NOT in [${userIngredientsText}]. Format each item as "☑️ 재료명 (필요 수량)".`
+        : `Set "shopping_list" as [].`;
       const systemPrompt =
         `You are a professional chef AI. Create a recipe in pure JSON format matching user conditions. [Rules] 1.Return ONLY a single valid JSON object. Do NOT include markdown blocks (\`\`\`json), greetings, or extra explanations. 2.JSON field values MUST be in KOREAN. [User Request] ${prompt} [Conditions] Ingredients: ${ingredients.join(', ')} / Servings: ${conditions.servings} / Time: ${conditions.cookingTime} / Difficulty: ${conditions.difficulty} / Cuisine: ${conditions.cuisine} / Diet Goal: ${conditions.dietGoal} / Exclude: ${excluded.length > 0 ? excluded.join(', ') : 'None'} / Shopping List Option: ${shoppingListInstruction} [JSON Schema] {"title":"Korean Title","summary":"Korean Summary","cuisine":"${conditions.cuisine || '기타'}","cooking_time":"${conditions.cookingTime || '30분 이내'}","difficulty":"${conditions.difficulty || '보통'}","servings":"${conditions.servings || '1인분'}","tags":["Tag1","Tag2"],"diets":"${conditions.dietGoal || '해당없음'}","ingredients":[{"name":"Korean Ingredient and amount","isSubstitutable":false,"substituteName":""}],"steps":[{"step":1,"title":"Korean Title","description":"Korean Description","tip":""}],"shopping_list":["☑️ 부족한 재료명 1 (필요 수량)","☑️ 부족한 재료명 2 (필요 수량)"]}`
           .replace(/\s+/g, ' ')
@@ -320,10 +324,13 @@ export function useAiRecipe() {
         console.error('단계별 이미지 생성 실패:', error);
       }
 
+      console.log('최종 AI 수신 데이터:', parsedRecipeJson);
+      const finalMarkdownContent = RecipeJsonToMarkdown(parsedRecipeJson);
+
       // [Step 3] 최종 결과 저장
       setResult({
         thumbnail: parsedRecipeJson.thumbnail_url,
-        markdown: markdownContent,
+        markdown: finalMarkdownContent,
         raw: parsedRecipeJson,
       });
     } catch (error) {
