@@ -140,7 +140,7 @@ export default function MyPage() {
         const { data: urlData } = supabase.storage
           .from('profile-images')
           .getPublicUrl(filePath);
-        finalAvatarUrl = urlData.publicUrl;
+        finalAvatarUrl = `${urlData.publicUrl}?t=${new Date().getTime()}`;
       }
 
       // 1) profiles 테이블 upsert
@@ -226,7 +226,7 @@ export default function MyPage() {
 
 
   const tabs = [
-    '내가 작성한 레시피', '저장한 레시피', '좋아요한 레시피', '요리 후기', '주간 식단', '장보기 목록'
+    '내가 작성한 레시피', '즐겨찾기한 레시피', '좋아요한 레시피', '커뮤니티', '주간 식단', '장보기 목록'
   ];
 
   const [recipeData, setRecipeData] = useState([]);
@@ -262,7 +262,7 @@ export default function MyPage() {
       }
     }
 
-    if (activeTab === '요리 후기') {
+    if (activeTab === '커뮤니티') {
       fetchMyReviews();
     }
   }, [user, activeTab]);
@@ -313,7 +313,7 @@ export default function MyPage() {
       }
     }
 
-    if (activeTab === '저장한 레시피') {
+    if (activeTab === '즐겨찾기한 레시피') {
       fetchBookmarkedRecipes();
     }
   }, [user, activeTab]);
@@ -482,10 +482,19 @@ export default function MyPage() {
     }
   };
 
-  // 최종 검색어(debouncedSearchTerm)가 포함된 레시피만 걸러냅니다.
-  const filteredRecipes = recipeData.filter(recipe =>
-    recipe.title.includes(debouncedSearchTerm)
-  );
+  // 최종 검색어(debouncedSearchTerm)가 포함된 레시피만 걸러내고 선택된 기준으로 정렬합니다.
+  const filteredRecipes = [...recipeData]
+    .filter(recipe => recipe.title.includes(debouncedSearchTerm))
+    .sort((a, b) => {
+      if (sortOrder === '최신순') {
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      } else if (sortOrder === '좋아요순' || sortOrder === '인기순') {
+        return (b.likes || 0) - (a.likes || 0);
+      } else if (sortOrder === '조회순') {
+        return (b.views || 0) - (a.views || 0);
+      }
+      return 0;
+    });
 
   return (
     <Layout activeMenu="커뮤니티">
@@ -662,15 +671,15 @@ export default function MyPage() {
           </>
         )}
 
-        {activeTab === '저장한 레시피' && (
+        {activeTab === '즐겨찾기한 레시피' && (
           loadingBookmarked ? (
             <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
               <p className="text-lg">로딩 중...</p>
             </div>
           ) : bookmarkedRecipes.length === 0 ? (
             <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
-              <p className="text-lg">아직 저장한 레시피가 없습니다.</p>
-              <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 저장해보세요!</p>
+              <p className="text-lg">아직 즐겨찾기한 레시피가 없습니다.</p>
+              <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 즐겨찾기 해보세요!</p>
             </div>
           ) : (
             <div className={styles['recipe-grid']}>
@@ -699,7 +708,7 @@ export default function MyPage() {
           )
         )}
 
-        {activeTab === '요리 후기' && (
+        {activeTab === '커뮤니티' && (
           loadingReviews ? (
             <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
               <p className="text-lg">로딩 중...</p>
