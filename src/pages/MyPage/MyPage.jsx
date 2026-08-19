@@ -273,7 +273,7 @@ export default function MyPage() {
           views: row.views || 0,
           likes: row.like_count || row.likes || 0,
           image: row.thumbnail_url || row.image_url || '',
-          isPublic: row.is_public || false
+          isPublic: row.ispublic ?? false
         }));
 
         setBookmarkedRecipes(mappedRecipes);
@@ -324,7 +324,7 @@ export default function MyPage() {
           views: row.views || 0,
           likes: row.like_count || row.likes || 0,
           image: row.thumbnail_url || row.image_url || '',
-          isPublic: row.is_public || false
+          isPublic: row.ispublic ?? false
         }));
 
         setLikedRecipes(mappedRecipes);
@@ -358,9 +358,9 @@ export default function MyPage() {
           id: row.id,
           title: row.title,
           views: row.views || 0,
-          likes: row.likes || 0,
+          likes: row.like_count || row.likes || 0,
           image: row.thumbnail_url || row.image_url || '',
-          isPublic: row.is_public || false
+          isPublic: row.ispublic ?? false
         }));
 
         setRecipeData(mappedRecipes);
@@ -385,7 +385,7 @@ export default function MyPage() {
     try {
       const { error } = await supabase
         .from('recipes')
-        .update({ is_public: !targetRecipe.isPublic })
+        .update({ ispublic: !targetRecipe.isPublic })
         .eq('id', id);
 
       if (error) throw error;
@@ -412,7 +412,7 @@ export default function MyPage() {
           ingredients: recipe.ingredients,
           steps: recipe.steps,
           thumbnail_url: recipe.thumbnail_url,
-          isPublic: recipe.is_public
+          isPublic: recipe.ispublic ?? false
         },
         isEditMode: true
       }
