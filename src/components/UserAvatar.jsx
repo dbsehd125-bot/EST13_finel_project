@@ -8,13 +8,17 @@ export default function UserAvatar({ src, name = "사용자", size = "md", class
   const safeName = name?.trim() || "사용자";
   const initial = safeName.charAt(0);
 
-  const showImage = Boolean(src) && !imageError;
+  // HTTPS 페이지에서 HTTP 이미지 요청 시 Mixed Content 경고가 발생하므로
+  // 프로필 이미지 URL이 http://로 시작하면 https://로 변환
+  const safeSrc = src?.startsWith("http://") ? src.replace(/^http:\/\//, "https://") : src;
+
+  const showImage = Boolean(safeSrc) && !imageError;
 
   if (showImage) {
     return (
       <img
         className={`${styles.avatar} ${styles[size]} ${className}`}
-        src={src}
+        src={safeSrc}
         alt={`${safeName} 프로필`}
         referrerPolicy="no-referrer"
         onError={() => setImageError(true)}
