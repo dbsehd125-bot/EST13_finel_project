@@ -433,13 +433,34 @@ export default function MyPage() {
   const handleDelete = async (id) => {
     if (window.confirm("정말로 이 레시피를 삭제하시겠습니까?")) {
       try {
-        const { error } = await supabase.from('recipes').delete().eq('id', id);
-        if (error) throw error;
+        console.log(`[레시피 삭제 시도] ID: ${id}`);
+        // 1. DB의 ON DELETE CASCADE 설정이 안 되어 있을 수 있으므로 연관 데이터 먼저 삭제 시도
+        await Promise.all([
+          supabase.from('recipe_likes').delete().eq('recipe_id', id),
+          supabase.from('recipe_bookmarks').delete().eq('recipe_id', id),
+          supabase.from('recipe_comments').delete().eq('recipe_id', id)
+        ]);
+
+        // 2. 레시피 테이블에서 삭제
+        const { error, status } = await supabase.from('recipes').delete().eq('id', id);
+        
+        if (error) {
+          console.error('[레시피 삭제 실패] Supabase Error:', error, 'Status:', status);
+          throw Object.assign(new Error(error.message), { code: error.code, status });
+        }
+
         setRecipeData(prev => prev.filter(r => r.id !== id));
         alert("레시피가 삭제되었습니다.");
       } catch (err) {
-        console.error('레시피 삭제 오류:', err);
-        alert("삭제 중 오류가 발생했습니다.");
+        console.error('[레시피 삭제 예외 발생]:', err);
+        
+        if (err.status === 401 || err.code === '401') {
+          alert("권한이 없거나 세션이 만료되었습니다. 다시 로그인한 후 시도해주세요.");
+        } else if (err.code === '23503') {
+          alert("이 레시피와 연결된 데이터(다른 사용자의 댓글/좋아요 등)가 남아있어 삭제할 수 없습니다.\nDB의 CASCADE 설정을 확인해주세요.");
+        } else {
+          alert(`삭제 중 오류가 발생했습니다.\n상세 내용: ${err.message || '알 수 없는 오류'}`);
+        }
       }
     }
   };

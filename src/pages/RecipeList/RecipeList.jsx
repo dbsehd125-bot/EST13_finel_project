@@ -228,7 +228,7 @@ export default function RecipeList() {
         // 건강/식단 필터 적용 (tags text[] 컬럼 매칭)
         const activeDiets = activeFilters.filter(f => filterDiets.includes(f));
         if (activeDiets.length > 0) {
-          query = query.cs("tags", activeDiets);
+          query = query.contains("tags", activeDiets);
         }
 
         // 정렬 적용
