@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
-import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart, X, Camera } from 'lucide-react';
+import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart, X, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SEO from "../../components/SEO";
 import styles from './MyPage.module.css';
@@ -18,7 +18,7 @@ function TabButton({ tab, activeTab, onClick }) {
   );
 }
 
-function MyRecipeCard({ recipe, onTogglePublic, isLikedCard }) {
+function MyRecipeCard({ recipe, onTogglePublic, isLikedCard, onEdit, onDelete }) {
   const navigate = useNavigate();
 
   return (
@@ -27,7 +27,16 @@ function MyRecipeCard({ recipe, onTogglePublic, isLikedCard }) {
       onClick={() => navigate(`/recipes/${recipe.id}`)}
       style={{ cursor: 'pointer' }}
     >
-      <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)', backgroundImage: recipe.image ? `url(${recipe.image})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className={styles['recipe-image-container']} style={{ backgroundColor: 'var(--brand-light-gray)', position: 'relative', overflow: 'hidden' }}>
+        {recipe.image && (
+          <img 
+            src={recipe.image} 
+            alt={recipe.title} 
+            loading="lazy" 
+            decoding="async"
+            style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', left: 0, top: 0, zIndex: 0 }} 
+          />
+        )}
         {!isLikedCard && (
           <button 
             type="button"
@@ -38,6 +47,7 @@ function MyRecipeCard({ recipe, onTogglePublic, isLikedCard }) {
             }}
             title="공개/비공개 전환"
             aria-label={`레시피 ${recipe.isPublic ? "비공개로" : "공개로"} 전환`}
+            style={{ position: 'relative', zIndex: 1 }}
           >
             {recipe.isPublic ? '공개' : '비공개'}
           </button>
@@ -51,8 +61,11 @@ function MyRecipeCard({ recipe, onTogglePublic, isLikedCard }) {
         </div>
         {!isLikedCard && (
           <div className={styles['recipe-actions']}>
-            <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}><Pencil size={14} /> 수정</button>
-            <button className={`text-button ${styles['btn-card-action']}`} onClick={(e) => e.stopPropagation()}>🗑 삭제</button>
+            <button className={`text-button ${styles['btn-card-edit']}`} onClick={(e) => { e.stopPropagation(); onEdit && onEdit(recipe); }}><Pencil size={14} /> 수정</button>
+            <button className={`text-button ${styles['btn-card-delete']}`} onClick={(e) => { e.stopPropagation(); onDelete && onDelete(recipe.id); }}>
+              <Trash2 size={16} />
+              <span className={styles['desktop-only']}>삭제</span>
+            </button>
           </div>
         )}
       </div>
@@ -352,6 +365,7 @@ export default function MyPage() {
         if (error) throw error;
 
         const mappedRecipes = (data || []).map(row => ({
+          ...row,
           id: row.id,
           title: row.title,
           views: row.views || 0,
@@ -393,6 +407,64 @@ export default function MyPage() {
     }
   };
 
+  const handleEdit = (recipe) => {
+    navigate('/register', {
+      state: {
+        recipe: {
+          id: recipe.id,
+          title: recipe.title,
+          summary: recipe.summary,
+          cuisine: recipe.cuisine,
+          cooking_time: recipe.cooking_time,
+          difficulty: recipe.difficulty,
+          servings: recipe.servings,
+          tags: recipe.tags,
+          diets: recipe.diets,
+          ingredients: recipe.ingredients,
+          steps: recipe.steps,
+          thumbnail_url: recipe.thumbnail_url,
+          isPublic: recipe.is_public
+        },
+        isEditMode: true
+      }
+    });
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("정말로 이 레시피를 삭제하시겠습니까?")) {
+      try {
+        console.log(`[레시피 삭제 시도] ID: ${id}`);
+        // 1. DB의 ON DELETE CASCADE 설정이 안 되어 있을 수 있으므로 연관 데이터 먼저 삭제 시도
+        await Promise.all([
+          supabase.from('recipe_likes').delete().eq('recipe_id', id),
+          supabase.from('recipe_bookmarks').delete().eq('recipe_id', id),
+          supabase.from('recipe_comments').delete().eq('recipe_id', id)
+        ]);
+
+        // 2. 레시피 테이블에서 삭제
+        const { error, status } = await supabase.from('recipes').delete().eq('id', id);
+        
+        if (error) {
+          console.error('[레시피 삭제 실패] Supabase Error:', error, 'Status:', status);
+          throw Object.assign(new Error(error.message), { code: error.code, status });
+        }
+
+        setRecipeData(prev => prev.filter(r => r.id !== id));
+        alert("레시피가 삭제되었습니다.");
+      } catch (err) {
+        console.error('[레시피 삭제 예외 발생]:', err);
+        
+        if (err.status === 401 || err.code === '401') {
+          alert("권한이 없거나 세션이 만료되었습니다. 다시 로그인한 후 시도해주세요.");
+        } else if (err.code === '23503') {
+          alert("이 레시피와 연결된 데이터(다른 사용자의 댓글/좋아요 등)가 남아있어 삭제할 수 없습니다.\nDB의 CASCADE 설정을 확인해주세요.");
+        } else {
+          alert(`삭제 중 오류가 발생했습니다.\n상세 내용: ${err.message || '알 수 없는 오류'}`);
+        }
+      }
+    }
+  };
+
   // 최종 검색어(debouncedSearchTerm)가 포함된 레시피만 걸러냅니다.
   const filteredRecipes = recipeData.filter(recipe =>
     recipe.title.includes(debouncedSearchTerm)
@@ -404,50 +476,59 @@ export default function MyPage() {
         title="마이페이지 | 깃깔나는 레시피"
         description="나만의 깃깔나는 레시피 공간입니다."
         url="/mypage"
-        robots="noindex, nofollow"
       />
       <div className={styles['mypage-container']}>
         {/* 사용자 프로필 영역 */}
         <div className={styles['profile-section']}>
           <div className={styles['profile-info']}>
             <div className={styles['profile-avatar']} style={{ backgroundColor: 'var(--brand-light-gray)' }}>
-              {profileAvatarUrl && (
-                <img src={profileAvatarUrl} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-              )}
+              <img 
+                src={profileAvatarUrl || user?.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop'} 
+                alt="프로필" 
+                fetchPriority="high"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+              />
             </div>
             <div className={styles['profile-details']}>
-              <h2 className={`font-display dtext-2xl ${styles['profile-name']}`}>{profileNickname || user?.user_metadata?.nickname || '사용자'}</h2>              <p className={`text-m ${styles['profile-handle']}`}>{user?.email ? `@${user.email.split('@')[0]}` : '@user'}</p>
-              <div className={styles['profile-actions']}>
-                <button className={`text-button ${styles['btn-edit-profile']}`} onClick={openEditModal}>
-                  <Pencil size={14} /> 프로필 수정
-                </button>
-                <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
-                <button className={styles['btn-message']}>
-                  <MessageCircle size={16} />
-                </button>
-              </div>
+              <h2 className={styles['profile-name']}>{profileNickname || user?.user_metadata?.nickname || '사용자'}</h2>
+              <p className={`text-m ${styles['profile-handle']}`}>
+                매일의 집밥을 조금 더 특별하게
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#3b82f6" style={{ marginLeft: '4px', verticalAlign: 'middle' }}>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </p>
             </div>
           </div>
 
           <div className={styles['profile-stats']}>
             <div className={styles['stat-item']}>
-              <span className={`font-display dtext-xl ${styles['stat-number']}`}>{recipeData.length}</span>
-              <span className={`text-s ${styles['stat-label']}`}>레시피</span>
+              <span className={styles['stat-number']}>{recipeData.length}</span>
+              <span className={styles['stat-label']}>레시피</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={`font-display dtext-xl ${styles['stat-number']}`}>0</span>
-              <span className={`text-s ${styles['stat-label']}`}>팔로워</span>
+              <span className={styles['stat-number']}>1.2천</span>
+              <span className={styles['stat-label']}>팔로워</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={`font-display dtext-xl ${styles['stat-number']}`}>0</span>
-              <span className={`text-s ${styles['stat-label']}`}>팔로잉</span>
+              <span className={styles['stat-number']}>318</span>
+              <span className={styles['stat-label']}>팔로잉</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={`font-display dtext-xl ${styles['stat-number']}`}>
-                {recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0).toLocaleString()}
+              <span className={styles['stat-number']}>
+                {(recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0) / 1000).toFixed(1)}천
               </span>
-              <span className={`text-s ${styles['stat-label']}`}>좋아요</span>
+              <span className={styles['stat-label']}>받은 좋아요</span>
             </div>
+          </div>
+
+          <div className={styles['profile-actions']}>
+            <button className={`text-button ${styles['btn-edit-profile']}`} onClick={openEditModal}>
+              <Pencil size={14} /> 프로필 수정
+            </button>
+            <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
+            <button className={styles['btn-message']}>
+              <MessageCircle size={16} />
+            </button>
           </div>
         </div>
 
@@ -478,54 +559,56 @@ export default function MyPage() {
                 />
               </div>
               <div className={styles['toolbar-right']} style={{ position: 'relative' }}>
-                <button 
-                  className={`text-button ${styles['sort-btn']}`}
-                  onClick={() => setIsSortOpen(!isSortOpen)}
-                >
-                  {sortOrder} <ChevronDown size={16} />
-                </button>
-                
-                {isSortOpen && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    width: '100%',
-                    backgroundColor: 'white',
-                    border: '1px solid #eee',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    zIndex: 10,
-                    marginTop: '4px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden'
-                  }}>
-                    {['최신순', '인기순', '조회순', '좋아요순'].map(option => (
-                      <button 
-                        key={option} 
-                        className="text-m"
-                        style={{
-                          padding: '10px', 
-                          cursor: 'pointer',
-                          backgroundColor: sortOrder === option ? '#f8f9fa' : 'white',
-                          border: 'none',
-                          textAlign: 'center',
-                          width: '100%',
-                          color: 'var(--brand-black)'
-                        }}
-                        onClick={() => {
-                          setSortOrder(option);
-                          setIsSortOpen(false);
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = sortOrder === option ? '#f8f9fa' : 'white'}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className={styles['sort-wrapper']}>
+                  <button 
+                    className={`text-button ${styles['sort-btn']}`}
+                    onClick={() => setIsSortOpen(!isSortOpen)}
+                  >
+                    {sortOrder} <ChevronDown size={16} />
+                  </button>
+                  
+                  {isSortOpen && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      width: '100%',
+                      backgroundColor: 'white',
+                      border: '1px solid #eee',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      zIndex: 10,
+                      marginTop: '4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      overflow: 'hidden'
+                    }}>
+                      {['최신순', '인기순', '조회순', '좋아요순'].map(option => (
+                        <button 
+                          key={option} 
+                          className="text-m"
+                          style={{
+                            padding: '10px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortOrder === option ? '#f8f9fa' : 'white',
+                            border: 'none',
+                            textAlign: 'center',
+                            width: '100%',
+                            color: 'var(--brand-black)'
+                          }}
+                          onClick={() => {
+                            setSortOrder(option);
+                            setIsSortOpen(false);
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = sortOrder === option ? '#f8f9fa' : 'white'}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <button 
                   className={`text-button ${styles['btn-new-recipe']}`}
@@ -536,11 +619,25 @@ export default function MyPage() {
               </div>
             </div>
 
-            <div className={styles['recipe-grid']}>
-              {filteredRecipes.map(recipe => (
-                <MyRecipeCard key={recipe.id} recipe={recipe} onTogglePublic={togglePublic} />
-              ))}
-            </div>
+            {filteredRecipes.length === 0 ? (
+              <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+                <p className="text-lg">아직 등록된 레시피가 없습니다.</p>
+                <p className="text-sm" style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>나만의 깃깔나는 첫 레시피를 작성해보세요!</p>
+                <button 
+                  className={`text-button ${styles['btn-new-recipe']}`}
+                  style={{ display: 'inline-block', padding: '0.75rem 1.5rem', backgroundColor: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                  onClick={() => navigate('/register')}
+                >
+                  + 첫 레시피 작성하러 가기
+                </button>
+              </div>
+            ) : (
+              <div className={styles['recipe-grid']}>
+                {filteredRecipes.map(recipe => (
+                  <MyRecipeCard key={recipe.id} recipe={recipe} onTogglePublic={togglePublic} onEdit={handleEdit} onDelete={handleDelete} />
+                ))}
+              </div>
+            )}
           </>
         )}
 

@@ -42,6 +42,8 @@
 
 .profile-name {
   color: var(--brand-brown);
+  font-size: 32px;
+  font-weight: 700;
   margin: 0 0 4px 0;
 }
 
@@ -65,6 +67,11 @@
   border-radius: 9999px;
   color: var(--brand-brown);
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit-profile:hover {
+  background-color: var(--brand-light-gray);
 }
 
 .btn-follow {
@@ -119,8 +126,15 @@
   color: var(--brand-brown);
 }
 
+.stat-number {
+  color: var(--brand-brown);
+  font-size: 24px;
+  font-weight: 700;
+}
+
 .stat-label {
   color: var(--brand-gray);
+  font-size: 14px;
 }
 
 .tabs-container {
@@ -202,6 +216,7 @@
   border-radius: 9999px;
   color: var(--brand-brown);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .btn-new-recipe {
@@ -212,6 +227,7 @@
   border-radius: 9999px;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 .btn-new-recipe:hover {
@@ -313,7 +329,21 @@
   border-top: 1px solid var(--brand-divider, #f0f0f0);
 }
 
-.btn-card-action {
+.btn-card-edit {
+  flex: 1;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  color: var(--brand-gray);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  border-right: 1px solid var(--brand-divider, #f0f0f0);
+}
+
+.btn-card-delete {
   flex: 1;
   padding: 12px 0;
   background: none;
@@ -326,10 +356,172 @@
   gap: 6px;
 }
 
-.btn-card-action:first-child {
-  border-right: 1px solid var(--brand-divider, #f0f0f0);
+.btn-card-edit:hover, .btn-card-delete:hover {
+  background-color: var(--brand-light-gray);
 }
 
-.btn-card-action:hover {
-  background-color: var(--brand-light-gray);
+/* Mobile Layout Overrides */
+@media (max-width: 768px) {
+  .mypage-container {
+    padding: 24px 16px;
+  }
+
+  .profile-section {
+    flex-direction: column;
+    padding: 32px 20px;
+    background-color: #fff;
+    border: 1px solid rgba(240, 90, 36, 0.2);
+    border-radius: 16px;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+
+  .profile-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .profile-avatar {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto;
+  }
+
+  .profile-name {
+    font-size: 20px;
+  }
+
+  .profile-stats {
+    width: 100%;
+    justify-content: space-between;
+    padding: 16px 0;
+    gap: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .stat-item {
+    gap: 8px;
+  }
+
+  .stat-number {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .profile-actions {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .btn-edit-profile {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+    border: 1px solid rgba(240, 90, 36, 0.3);
+    color: var(--brand-brown);
+  }
+
+  .btn-follow, .btn-message {
+    display: none;
+  }
+
+  .tabs-container {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    gap: 20px;
+    padding-bottom: 8px;
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: var(--brand-divider, #e0e0e0) transparent;
+  }
+  
+  .tabs-container::-webkit-scrollbar {
+    display: block;
+    height: 4px;
+  }
+  
+  .tabs-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .tabs-container::-webkit-scrollbar-thumb {
+    background-color: var(--brand-divider, #e0e0e0);
+    border-radius: 4px;
+  }
+
+  .recipe-card {
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .recipe-actions {
+    border-top: none;
+    padding: 0 16px 16px;
+    gap: 8px;
+    display: flex;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .btn-card-edit {
+    flex: 4;
+    border: 1px solid rgba(240, 90, 36, 0.2);
+    border-radius: 9999px;
+    background: #fff;
+    padding: 10px 0;
+  }
+
+  .btn-card-delete {
+    flex: 1;
+    border: 1px solid rgba(240, 90, 36, 0.2);
+    border-radius: 9999px;
+    background: #fff;
+    padding: 10px 0;
+    color: #e53e3e;
+  }
+
+  /* Search & Toolbar Adjustments */
+  .toolbar {
+    gap: 8px;
+  }
+
+  .search-bar {
+    width: auto;
+    flex-grow: 1;
+    padding: 8px 12px;
+  }
+
+  .toolbar-right {
+    gap: 8px;
+  }
+
+  .sort-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .btn-new-recipe {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .sort-wrapper {
+    display: none;
+  }
+
+  /* Privacy Badge Position Fix */
+  .privacy-badge {
+    left: 12px;
+    right: auto; /* override right position from desktop */
+    top: 12px;
+    z-index: 10;
+  }
 }
