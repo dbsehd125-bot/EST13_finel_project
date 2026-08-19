@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
-import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart, X, Camera, Trash2 } from 'lucide-react';
+import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart, X, Camera, Trash2, UtensilsCrossed, Users, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SEO from "../../components/SEO";
 import styles from './MyPage.module.css';
@@ -47,7 +47,7 @@ function MyRecipeCard({ recipe, onTogglePublic, isLikedCard, onEdit, onDelete })
             }}
             title="공개/비공개 전환"
             aria-label={`레시피 ${recipe.isPublic ? "비공개로" : "공개로"} 전환`}
-            style={{ position: 'relative', zIndex: 1 }}
+            style={{ zIndex: 1 }}
           >
             {recipe.isPublic ? '공개' : '비공개'}
           </button>
@@ -144,7 +144,6 @@ export default function MyPage() {
       }
 
       // 1) profiles 테이블 upsert
-      console.log('[프로필저장] 1단계: profiles 업데이트 시작');
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert({
@@ -157,10 +156,8 @@ export default function MyPage() {
         console.error('[프로필저장] profiles 오류:', upsertError.message, upsertError.code);
         throw upsertError;
       }
-      console.log('[프로필저장] 1단계 완료');
 
       // 2) recipes 테이블 nickname 업데이트
-      console.log('[프로필저장] 2단계: recipes 닉네임 업데이트 시작, user.id:', user.id);
       const { data: recipesData, error: recipesNicknameError } = await supabase
         .from('recipes')
         .update({ nickname: profileNickname })
@@ -168,12 +165,9 @@ export default function MyPage() {
         .select();
       if (recipesNicknameError) {
         console.error('[프로필저장] recipes 오류:', recipesNicknameError.message, recipesNicknameError.code);
-      } else {
-        console.log('[프로필저장] 2단계 완료, 업데이트된 레시피 수:', recipesData?.length);
       }
 
       // 3) recipe_comments 테이블 nickname 업데이트
-      console.log('[프로필저장] 3단계: recipe_comments 닉네임 업데이트 시작');
       const { data: commentsData, error: commentsNicknameError } = await supabase
         .from('recipe_comments')
         .update({ nickname: profileNickname })
@@ -181,8 +175,6 @@ export default function MyPage() {
         .select();
       if (commentsNicknameError) {
         console.error('[프로필저장] recipe_comments 오류:', commentsNicknameError.message, commentsNicknameError.code);
-      } else {
-        console.log('[프로필저장] 3단계 완료, 업데이트된 댓글 수:', commentsData?.length);
       }
 
       setProfileAvatarUrl(finalAvatarUrl);
@@ -228,9 +220,6 @@ export default function MyPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      if (searchTerm) {
-        console.log("마이페이지 검색 실행 (디바운스 완료):", searchTerm);
-      }
     }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -433,7 +422,6 @@ export default function MyPage() {
   const handleDelete = async (id) => {
     if (window.confirm("정말로 이 레시피를 삭제하시겠습니까?")) {
       try {
-        console.log(`[레시피 삭제 시도] ID: ${id}`);
         // 1. DB의 ON DELETE CASCADE 설정이 안 되어 있을 수 있으므로 연관 데이터 먼저 삭제 시도
         await Promise.all([
           supabase.from('recipe_likes').delete().eq('recipe_id', id),
@@ -492,43 +480,47 @@ export default function MyPage() {
             <div className={styles['profile-details']}>
               <h2 className={styles['profile-name']}>{profileNickname || user?.user_metadata?.nickname || '사용자'}</h2>
               <p className={`text-m ${styles['profile-handle']}`}>
-                매일의 집밥을 조금 더 특별하게
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="#3b82f6" style={{ marginLeft: '4px', verticalAlign: 'middle' }}>
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
+                @{user?.user_metadata?.handle || user?.email?.split('@')[0] || 'SarahCooks'}
               </p>
+              <div className={styles['profile-actions']}>
+                <button className={`text-button ${styles['btn-edit-profile']}`} onClick={openEditModal}>
+                  <Pencil size={14} /> 프로필 수정
+                </button>
+                <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
+                <button className={styles['btn-message']} aria-label="메시지 보내기">
+                  <MessageCircle size={16} />
+                </button>
+              </div>
             </div>
           </div>
 
           <div className={styles['profile-stats']}>
             <div className={styles['stat-item']}>
+              <UtensilsCrossed size={20} className={styles['stat-icon']} />
               <span className={styles['stat-number']}>{recipeData.length}</span>
               <span className={styles['stat-label']}>레시피</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-number']}>1.2천</span>
+              <Users size={20} className={styles['stat-icon']} />
+              <span className={styles['stat-number']}>0</span>
               <span className={styles['stat-label']}>팔로워</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-number']}>318</span>
+              <UserPlus size={20} className={styles['stat-icon']} />
+              <span className={styles['stat-number']}>0</span>
               <span className={styles['stat-label']}>팔로잉</span>
             </div>
             <div className={styles['stat-item']}>
+              <Heart size={20} className={styles['stat-icon']} />
               <span className={styles['stat-number']}>
-                {(recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0) / 1000).toFixed(1)}천
+                {recipeData.length > 0 
+                  ? (recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0) >= 1000
+                    ? (recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0) / 1000).toFixed(1) + '천'
+                    : recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0))
+                  : 0}
               </span>
               <span className={styles['stat-label']}>받은 좋아요</span>
             </div>
-          </div>
-
-          <div className={styles['profile-actions']}>
-            <button className={`text-button ${styles['btn-edit-profile']}`} onClick={openEditModal}>
-              <Pencil size={14} /> 프로필 수정
-            </button>
-            <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
-            <button className={styles['btn-message']}>
-              <MessageCircle size={16} />
-            </button>
           </div>
         </div>
 

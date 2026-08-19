@@ -103,10 +103,11 @@
 
 .profile-stats {
   display: flex;
-  gap: 40px;
-  padding: 24px 40px;
+  align-items: center;
+  gap: 0;
+  padding: 16px 20px;
   background-color: #fff;
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.03);
 }
 
@@ -114,27 +115,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  padding: 0 22px;
+  gap: 2px;
+}
+
+.stat-item:not(:last-child) {
+  border-right: 1px solid var(--brand-divider, #f0f0f0);
 }
 
 .stat-icon {
-  font-size: 20px;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  color: var(--brand-brown);
+  color: var(--brand-primary, #A04A2C);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stat-number {
   color: var(--brand-brown);
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .stat-label {
   color: var(--brand-gray);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .tabs-container {
