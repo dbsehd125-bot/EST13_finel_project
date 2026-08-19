@@ -43,7 +43,7 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
             style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', left: 0, top: 0, zIndex: 0 }} 
           />
         )}
-        <span className={`${styles['category-badge']} text-s`} style={{ position: 'relative', zIndex: 1 }}>{recipe.category}</span>
+        <span className={`${styles['category-badge']} text-s`} style={{ zIndex: 1 }}>{recipe.category}</span>
         <button 
           type="button"
           className={styles['like-btn']} 
@@ -53,7 +53,7 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
           }}
           aria-label={isWished ? "관심 레시피 취소" : "관심 레시피 등록"}
           aria-pressed={isWished}
-          style={{ position: 'relative', zIndex: 1 }}
+          style={{ zIndex: 1 }}
         >
           <Heart 
             size={18} 
