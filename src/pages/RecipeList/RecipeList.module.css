@@ -54,18 +54,22 @@
 
 .active-filters {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .filter-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background-color: var(--brand-cream);
   color: var(--brand-primary);
-  padding: 6px 14px;
+  padding: 4px 10px;
   border-radius: 9999px;
+  white-space: nowrap;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 .remove-filter {
@@ -83,6 +87,9 @@
   border: none;
   color: var(--brand-gray);
   cursor: pointer;
+  white-space: nowrap;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 .clear-filters:hover {
@@ -93,12 +100,133 @@
   display: flex;
   flex-direction: column;
   gap: 40px;
+  position: relative;
 }
 
 .sidebar {
   width: 100%;
 }
 
+/* 모바일 필터 닫기 버튼 */
+.filter-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--brand-gray);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.filter-close-btn:hover {
+  background: var(--brand-light-gray);
+}
+
+/* 모바일 필터 적용 버튼 - 기본 숨김 */
+.filter-apply-btn {
+  display: none;
+}
+
+/* 모바일 필터 토글 버튼 */
+.mobile-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--brand-divider, #e2e8f0);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 14px;
+  color: var(--brand-black);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mobile-filter-btn:hover {
+  background: var(--brand-cream);
+}
+
+/* 필터 활성 뱃지 */
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+/* 오버레이 - 기본 숨김 */
+.filter-overlay {
+  display: none;
+}
+
+/* ========== 모바일 스타일 (768px 미만) ========== */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    max-height: 75vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    padding: 8px 0 0 0;
+  }
+
+  .sidebar-open {
+    transform: translateY(0);
+  }
+
+  .filter-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .filter-apply-btn {
+    display: block;
+    width: calc(100% - 40px);
+    margin: 12px 20px 20px 20px;
+    padding: 14px;
+    background: var(--brand-primary);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .filter-apply-btn:hover {
+    opacity: 0.9;
+  }
+}
+
+/* ========== 데스크톱 스타일 (768px 이상) ========== */
 @media (min-width: 768px) {
   .content-area {
     flex-direction: row;
@@ -106,6 +234,23 @@
   .sidebar {
     width: 240px;
     flex-shrink: 0;
+    position: static;
+    transform: none;
+    box-shadow: none;
+    border-radius: 0;
+    max-height: none;
+    overflow: visible;
+    transition: none;
+  }
+  /* 데스크톱에서 닫기 버튼, 필터 버튼 숨기기 */
+  .filter-close-btn {
+    display: none;
+  }
+  .mobile-filter-btn {
+    display: none;
+  }
+  .filter-overlay {
+    display: none !important;
   }
 }
 
@@ -167,19 +312,48 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  gap: 8px;
+}
+
+.results-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sort-select {
+  appearance: none;
+  background-color: #fff;
+  border: 1px solid var(--brand-divider, #e2e8f0);
+  border-radius: 20px;
+  padding: 6px 30px 6px 14px;
+  font-size: 13px;
+  color: var(--brand-black);
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
 }
 
 .results-count {
   color: var(--brand-gray);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .view-toggles {
-  display: flex;
+  display: none;
   gap: 4px;
   background: var(--brand-light-gray);
   padding: 4px;
   border-radius: 12px;
+}
+
+@media (min-width: 768px) {
+  .view-toggles {
+    display: flex;
+  }
 }
 
 .view-btn {
@@ -266,6 +440,59 @@
   color: white;
   padding: 4px 10px;
   border-radius: 9999px;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  background-color: #fff;
+  border-radius: 20px;
+  border: 1px dashed var(--brand-divider, #e2e8f0);
+}
+
+.empty-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background-color: var(--brand-light-gray);
+  border-radius: 50%;
+  margin-bottom: 24px;
+}
+
+.empty-title {
+  color: var(--brand-brown);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.empty-desc {
+  color: var(--brand-gray);
+  font-size: 14px;
+  margin: 0 0 24px 0;
+}
+
+.btn-reset-filters {
+  background-color: var(--brand-primary);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-reset-filters:hover {
+  background-color: var(--brand-primary-dark);
 }
 
 .like-btn {

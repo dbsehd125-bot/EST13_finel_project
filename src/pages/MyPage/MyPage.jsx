@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabaseClient';
 import { Layout } from '../../components';
-import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart, X, Camera, Trash2 } from 'lucide-react';
+import { Pencil, MessageCircle, Search, ChevronDown, Eye, Heart, X, Camera, Trash2, UtensilsCrossed, Users, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SEO from "../../components/SEO";
 import styles from './MyPage.module.css';
@@ -47,7 +47,7 @@ function MyRecipeCard({ recipe, onTogglePublic, isLikedCard, onEdit, onDelete })
             }}
             title="공개/비공개 전환"
             aria-label={`레시피 ${recipe.isPublic ? "비공개로" : "공개로"} 전환`}
-            style={{ position: 'relative', zIndex: 1 }}
+            style={{ zIndex: 1 }}
           >
             {recipe.isPublic ? '공개' : '비공개'}
           </button>
@@ -140,11 +140,10 @@ export default function MyPage() {
         const { data: urlData } = supabase.storage
           .from('profile-images')
           .getPublicUrl(filePath);
-        finalAvatarUrl = urlData.publicUrl;
+        finalAvatarUrl = `${urlData.publicUrl}?t=${new Date().getTime()}`;
       }
 
       // 1) profiles 테이블 upsert
-      console.log('[프로필저장] 1단계: profiles 업데이트 시작');
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert({
@@ -157,10 +156,8 @@ export default function MyPage() {
         console.error('[프로필저장] profiles 오류:', upsertError.message, upsertError.code);
         throw upsertError;
       }
-      console.log('[프로필저장] 1단계 완료');
 
       // 2) recipes 테이블 nickname 업데이트
-      console.log('[프로필저장] 2단계: recipes 닉네임 업데이트 시작, user.id:', user.id);
       const { data: recipesData, error: recipesNicknameError } = await supabase
         .from('recipes')
         .update({ nickname: profileNickname })
@@ -168,12 +165,9 @@ export default function MyPage() {
         .select();
       if (recipesNicknameError) {
         console.error('[프로필저장] recipes 오류:', recipesNicknameError.message, recipesNicknameError.code);
-      } else {
-        console.log('[프로필저장] 2단계 완료, 업데이트된 레시피 수:', recipesData?.length);
       }
 
       // 3) recipe_comments 테이블 nickname 업데이트
-      console.log('[프로필저장] 3단계: recipe_comments 닉네임 업데이트 시작');
       const { data: commentsData, error: commentsNicknameError } = await supabase
         .from('recipe_comments')
         .update({ nickname: profileNickname })
@@ -181,8 +175,6 @@ export default function MyPage() {
         .select();
       if (commentsNicknameError) {
         console.error('[프로필저장] recipe_comments 오류:', commentsNicknameError.message, commentsNicknameError.code);
-      } else {
-        console.log('[프로필저장] 3단계 완료, 업데이트된 댓글 수:', commentsData?.length);
       }
 
       setProfileAvatarUrl(finalAvatarUrl);
@@ -228,16 +220,13 @@ export default function MyPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      if (searchTerm) {
-        console.log("마이페이지 검색 실행 (디바운스 완료):", searchTerm);
-      }
     }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
 
   const tabs = [
-    '내가 작성한 레시피', '저장한 레시피', '좋아요한 레시피', '요리 후기', '주간 식단', '장보기 목록'
+    '내가 작성한 레시피', '즐겨찾기한 레시피', '좋아요한 레시피', '커뮤니티', '주간 식단', '장보기 목록'
   ];
 
   const [recipeData, setRecipeData] = useState([]);
@@ -248,6 +237,35 @@ export default function MyPage() {
 
   const [bookmarkedRecipes, setBookmarkedRecipes] = useState([]);
   const [loadingBookmarked, setLoadingBookmarked] = useState(false);
+
+  const [myReviews, setMyReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  // 내 요리 후기 불러오기
+  useEffect(() => {
+    async function fetchMyReviews() {
+      if (!user) return;
+      try {
+        setLoadingReviews(true);
+        const { data, error } = await supabase
+          .from('community_posts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setMyReviews(data || []);
+      } catch (err) {
+        console.error('내 요리 후기 목록 조회 오류:', err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    }
+
+    if (activeTab === '커뮤니티') {
+      fetchMyReviews();
+    }
+  }, [user, activeTab]);
 
   // 저장한(즐겨찾기) 레시피 불러오기
   useEffect(() => {
@@ -284,7 +302,7 @@ export default function MyPage() {
           views: row.views || 0,
           likes: row.like_count || row.likes || 0,
           image: row.thumbnail_url || row.image_url || '',
-          isPublic: row.is_public || false
+          isPublic: row.ispublic ?? false
         }));
 
         setBookmarkedRecipes(mappedRecipes);
@@ -295,7 +313,7 @@ export default function MyPage() {
       }
     }
 
-    if (activeTab === '저장한 레시피') {
+    if (activeTab === '즐겨찾기한 레시피') {
       fetchBookmarkedRecipes();
     }
   }, [user, activeTab]);
@@ -335,7 +353,7 @@ export default function MyPage() {
           views: row.views || 0,
           likes: row.like_count || row.likes || 0,
           image: row.thumbnail_url || row.image_url || '',
-          isPublic: row.is_public || false
+          isPublic: row.ispublic ?? false
         }));
 
         setLikedRecipes(mappedRecipes);
@@ -369,9 +387,9 @@ export default function MyPage() {
           id: row.id,
           title: row.title,
           views: row.views || 0,
-          likes: row.likes || 0,
+          likes: row.like_count || row.likes || 0,
           image: row.thumbnail_url || row.image_url || '',
-          isPublic: row.is_public || false
+          isPublic: row.ispublic ?? false
         }));
 
         setRecipeData(mappedRecipes);
@@ -396,7 +414,7 @@ export default function MyPage() {
     try {
       const { error } = await supabase
         .from('recipes')
-        .update({ is_public: !targetRecipe.isPublic })
+        .update({ ispublic: !targetRecipe.isPublic })
         .eq('id', id);
 
       if (error) throw error;
@@ -423,7 +441,7 @@ export default function MyPage() {
           ingredients: recipe.ingredients,
           steps: recipe.steps,
           thumbnail_url: recipe.thumbnail_url,
-          isPublic: recipe.is_public
+          isPublic: recipe.ispublic ?? false
         },
         isEditMode: true
       }
@@ -433,7 +451,6 @@ export default function MyPage() {
   const handleDelete = async (id) => {
     if (window.confirm("정말로 이 레시피를 삭제하시겠습니까?")) {
       try {
-        console.log(`[레시피 삭제 시도] ID: ${id}`);
         // 1. DB의 ON DELETE CASCADE 설정이 안 되어 있을 수 있으므로 연관 데이터 먼저 삭제 시도
         await Promise.all([
           supabase.from('recipe_likes').delete().eq('recipe_id', id),
@@ -465,10 +482,19 @@ export default function MyPage() {
     }
   };
 
-  // 최종 검색어(debouncedSearchTerm)가 포함된 레시피만 걸러냅니다.
-  const filteredRecipes = recipeData.filter(recipe =>
-    recipe.title.includes(debouncedSearchTerm)
-  );
+  // 최종 검색어(debouncedSearchTerm)가 포함된 레시피만 걸러내고 선택된 기준으로 정렬합니다.
+  const filteredRecipes = [...recipeData]
+    .filter(recipe => recipe.title.includes(debouncedSearchTerm))
+    .sort((a, b) => {
+      if (sortOrder === '최신순') {
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      } else if (sortOrder === '좋아요순' || sortOrder === '인기순') {
+        return (b.likes || 0) - (a.likes || 0);
+      } else if (sortOrder === '조회순') {
+        return (b.views || 0) - (a.views || 0);
+      }
+      return 0;
+    });
 
   return (
     <Layout activeMenu="커뮤니티">
@@ -492,43 +518,47 @@ export default function MyPage() {
             <div className={styles['profile-details']}>
               <h2 className={styles['profile-name']}>{profileNickname || user?.user_metadata?.nickname || '사용자'}</h2>
               <p className={`text-m ${styles['profile-handle']}`}>
-                매일의 집밥을 조금 더 특별하게
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="#3b82f6" style={{ marginLeft: '4px', verticalAlign: 'middle' }}>
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
+                @{user?.user_metadata?.handle || user?.email?.split('@')[0] || 'SarahCooks'}
               </p>
+              <div className={styles['profile-actions']}>
+                <button className={`text-button ${styles['btn-edit-profile']}`} onClick={openEditModal}>
+                  <Pencil size={14} /> 프로필 수정
+                </button>
+                <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
+                <button className={styles['btn-message']} aria-label="메시지 보내기">
+                  <MessageCircle size={16} />
+                </button>
+              </div>
             </div>
           </div>
 
           <div className={styles['profile-stats']}>
             <div className={styles['stat-item']}>
+              <UtensilsCrossed size={20} className={styles['stat-icon']} />
               <span className={styles['stat-number']}>{recipeData.length}</span>
               <span className={styles['stat-label']}>레시피</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-number']}>1.2천</span>
+              <Users size={20} className={styles['stat-icon']} />
+              <span className={styles['stat-number']}>0</span>
               <span className={styles['stat-label']}>팔로워</span>
             </div>
             <div className={styles['stat-item']}>
-              <span className={styles['stat-number']}>318</span>
+              <UserPlus size={20} className={styles['stat-icon']} />
+              <span className={styles['stat-number']}>0</span>
               <span className={styles['stat-label']}>팔로잉</span>
             </div>
             <div className={styles['stat-item']}>
+              <Heart size={20} className={styles['stat-icon']} />
               <span className={styles['stat-number']}>
-                {(recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0) / 1000).toFixed(1)}천
+                {recipeData.length > 0 
+                  ? (recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0) >= 1000
+                    ? (recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0) / 1000).toFixed(1) + '천'
+                    : recipeData.reduce((sum, recipe) => sum + (recipe.likes || 0), 0))
+                  : 0}
               </span>
               <span className={styles['stat-label']}>받은 좋아요</span>
             </div>
-          </div>
-
-          <div className={styles['profile-actions']}>
-            <button className={`text-button ${styles['btn-edit-profile']}`} onClick={openEditModal}>
-              <Pencil size={14} /> 프로필 수정
-            </button>
-            <button className={`text-button ${styles['btn-follow']}`}>팔로우</button>
-            <button className={styles['btn-message']}>
-              <MessageCircle size={16} />
-            </button>
           </div>
         </div>
 
@@ -641,15 +671,15 @@ export default function MyPage() {
           </>
         )}
 
-        {activeTab === '저장한 레시피' && (
+        {activeTab === '즐겨찾기한 레시피' && (
           loadingBookmarked ? (
             <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
               <p className="text-lg">로딩 중...</p>
             </div>
           ) : bookmarkedRecipes.length === 0 ? (
             <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
-              <p className="text-lg">아직 저장한 레시피가 없습니다.</p>
-              <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 저장해보세요!</p>
+              <p className="text-lg">아직 즐겨찾기한 레시피가 없습니다.</p>
+              <p className="text-sm" style={{ marginTop: '0.5rem' }}>마음에 드는 레시피를 즐겨찾기 해보세요!</p>
             </div>
           ) : (
             <div className={styles['recipe-grid']}>
@@ -678,10 +708,48 @@ export default function MyPage() {
           )
         )}
 
-        {activeTab === '요리 후기' && (
-          <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
-            <p className="text-lg">작성한 요리 후기가 없습니다.</p>
-          </div>
+        {activeTab === '커뮤니티' && (
+          loadingReviews ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">로딩 중...</p>
+            </div>
+          ) : myReviews.length === 0 ? (
+            <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--brand-gray)' }}>
+              <p className="text-lg">작성한 요리 후기가 없습니다.</p>
+              <button 
+                className={`text-button ${styles['btn-new-recipe']}`} 
+                style={{ marginTop: '1.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                onClick={() => navigate('/community')}
+              >
+                + 커뮤니티에서 후기 작성하기
+              </button>
+            </div>
+          ) : (
+            <div className={styles['recipe-grid']}>
+              {myReviews.map(review => (
+                <div key={review.id} style={{
+                  border: '1px solid var(--brand-divider)', borderRadius: '12px', padding: '16px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                }}
+                onClick={() => navigate(`/community`)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  {review.image_url && (
+                    <img src={review.image_url} alt="리뷰 이미지" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }} />
+                  )}
+                  <p className="text-m" style={{ color: 'var(--brand-black)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: review.image_url ? 'auto' : '60px' }}>{review.content}</p>
+                  {review.recipe_name && (
+                    <span className="text-s" style={{ color: 'var(--brand-primary)', backgroundColor: 'var(--brand-cream)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>
+                      🍳 {review.recipe_name}
+                    </span>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', color: 'var(--brand-gray)' }}>
+                    <span className="text-s">{new Date(review.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
 
         {activeTab === '주간 식단' && (

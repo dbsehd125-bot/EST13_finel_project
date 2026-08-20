@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router';
 import { Layout } from '../../components';
-import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, X, List, Grid, LayoutGrid, Clock, Heart, MessageCircle, Eye, Star, ChevronLeft, ChevronRight, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { Skeleton } from '@mui/material';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
@@ -43,7 +43,7 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
             style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', left: 0, top: 0, zIndex: 0 }} 
           />
         )}
-        <span className={`${styles['category-badge']} text-s`} style={{ position: 'relative', zIndex: 1 }}>{recipe.category}</span>
+        <span className={`${styles['category-badge']} text-s`} style={{ zIndex: 1 }}>{recipe.category}</span>
         <button 
           type="button"
           className={styles['like-btn']} 
@@ -53,7 +53,7 @@ function RecipeCard({ recipe, isWished, onToggleWish }) {
           }}
           aria-label={isWished ? "관심 레시피 취소" : "관심 레시피 등록"}
           aria-pressed={isWished}
-          style={{ position: 'relative', zIndex: 1 }}
+          style={{ zIndex: 1 }}
         >
           <Heart 
             size={18} 
@@ -151,6 +151,8 @@ export default function RecipeList() {
     sort: true,
   });
 
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
   const ITEMS_PER_PAGE = 9;
 
   const filterCategories = ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'];
@@ -228,7 +230,9 @@ export default function RecipeList() {
         // 건강/식단 필터 적용 (tags text[] 컬럼 매칭)
         const activeDiets = activeFilters.filter(f => filterDiets.includes(f));
         if (activeDiets.length > 0) {
-          query = query.contains("tags", activeDiets);
+          // 유저가 태그에 '#'을 붙여서 작성한 경우('#채식' 등)도 검색되도록 처리
+          const searchTags = activeDiets.flatMap(diet => [diet, `#${diet}`]);
+          query = query.overlaps("tags", searchTags);
         }
 
         // 정렬 적용
@@ -428,10 +432,22 @@ export default function RecipeList() {
         </div>
 
         <div className={styles['content-area']}>
+          {/* 모바일 필터 오버레이 */}
+          {isFilterOpen && <div className={styles['filter-overlay']} onClick={() => setIsFilterOpen(false)} />}
+
           {/* 필터 사이드바 */}
-          <aside className={styles['sidebar']}>
+          <aside className={`${styles['sidebar']} ${isFilterOpen ? styles['sidebar-open'] : ''}`}>
             <div className={styles['filter-group']}>
-              <div className={`${styles['filter-header']} font-display dtext-xl`}>필터</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className={`${styles['filter-header']} font-display dtext-xl`}>필터</div>
+                <button
+                  className={styles['filter-close-btn']}
+                  onClick={() => setIsFilterOpen(false)}
+                  aria-label="필터 닫기"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
               <div className={styles['filter-category']}>
                 <button 
@@ -499,44 +515,55 @@ export default function RecipeList() {
                 ))}
               </div>
 
-              <div className={`${styles['filter-category']} ${styles['border-top']}`}>
-                <button 
-                  type="button"
-                  className={`${styles['filter-title']} text-button`}
-                  onClick={() => toggleSection('sort')}
-                  aria-expanded={openSections.sort}
-                >
-                  정렬 
-                  <ChevronDown size={16} style={{ transform: openSections.sort ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} aria-hidden="true" />
-                </button>
-                {openSections.sort && filterSortOptions.map(option => (
-                  <label key={option} className={`${styles['radio-label']} text-sm`}>
-                    <input 
-                      type="radio" 
-                      name="sort" 
-                      checked={sortBy === option}
-                      onChange={() => handleSortChange(option)}
-                    /> 
-                    {option}
-                  </label>
-                ))}
-              </div>
+
             </div>
+            {/* 모바일 필터 적용 버튼 */}
+            <button
+              className={styles['filter-apply-btn']}
+              onClick={() => setIsFilterOpen(false)}
+            >
+              {activeFilters.length > 0 ? `필터 적용 (${activeFilters.length}개 선택)` : '필터 닫기'}
+            </button>
           </aside>
 
           {/* 메인 레시피 목록 */}
           <main className={styles['recipe-main']}>
             <div className={styles['results-header']}>
-              <span className={`${styles['results-count']} text-sm`}>총 {totalCount}개의 레시피</span>
-              <div className={styles['view-toggles']}>
-                <button 
-                  className={`${styles['view-btn']} ${viewMode === 'recipe-grid-2col' ? styles['active'] : ''}`}
-                  onClick={() => setViewMode('recipe-grid-2col')}
-                ><LayoutGrid size={18} /></button>
-                <button 
-                  className={`${styles['view-btn']} ${viewMode === 'recipe-grid-3col' ? styles['active'] : ''}`}
-                  onClick={() => setViewMode('recipe-grid-3col')}
-                ><Grid size={18} /></button>
+              <span className={`${styles['results-count']} text-s`}>총 {totalCount}개의 레시피</span>
+              <div className={styles['results-controls']}>
+                {/* 모바일 필터 토글 버튼 */}
+                <button
+                  className={styles['mobile-filter-btn']}
+                  onClick={() => setIsFilterOpen(true)}
+                >
+                  <SlidersHorizontal size={14} />
+                  필터
+                  {activeFilters.length > 0 && (
+                    <span className={styles['filter-badge']}>{activeFilters.length}</span>
+                  )}
+                </button>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className={styles['sort-select']}
+                  >
+                    {filterSortOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--brand-gray)' }} />
+                </div>
+                <div className={styles['view-toggles']}>
+                  <button 
+                    className={`${styles['view-btn']} ${viewMode === 'recipe-grid-2col' ? styles['active'] : ''}`}
+                    onClick={() => setViewMode('recipe-grid-2col')}
+                  ><LayoutGrid size={16} /></button>
+                  <button 
+                    className={`${styles['view-btn']} ${viewMode === 'recipe-grid-3col' ? styles['active'] : ''}`}
+                    onClick={() => setViewMode('recipe-grid-3col')}
+                  ><Grid size={16} /></button>
+                </div>
               </div>
             </div>
 
@@ -566,8 +593,18 @@ export default function RecipeList() {
                 </button>
               </div>
             ) : recipes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 40px', color: 'var(--brand-gray)' }}>
-                검색 조건에 맞는 레시피가 존재하지 않습니다.
+              <div className={styles['empty-state']}>
+                <div className={styles['empty-icon-wrapper']}>
+                  <Search size={48} color="var(--brand-gray)" strokeWidth={1.5} />
+                </div>
+                <h3 className={styles['empty-title']}>조건에 맞는 레시피가 없어요 😢</h3>
+                <p className={styles['empty-desc']}>다른 검색어나 필터를 선택해보세요.</p>
+                <button 
+                  className={styles['btn-reset-filters']}
+                  onClick={() => { setActiveFilters([]); setSearchTerm(''); setCurrentPage(1); }}
+                >
+                  필터 초기화하기
+                </button>
               </div>
             ) : (
               <div className={styles[viewMode]}>
