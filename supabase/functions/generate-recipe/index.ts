@@ -17,54 +17,70 @@ Deno.serve(async (req) => {
     const { action, systemPrompt, promptText } = body;
 
     // -------------------------------------------------------------
-    // Action 1: Alan AI(Azure 서버)를 통한 레시피 JSON 생성
+    // Action 1: Google Gemini를 통한 레시피 JSON 생성
+    // (기존 Alan AI/Azure 서버 에러 잦음 -> Gemini로 대체)
     // -------------------------------------------------------------
     if (action === 'generate-recipe') {
-      const alanClientIdsStr = Deno.env.get('ALAN_CLIENT_IDS') || '';
-      const clientIds = alanClientIdsStr
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean);
+      const geminiApiKey = Deno.env.get('GEMINI_API_KEY')?.trim();
 
-      if (clientIds.length === 0) {
-        return new Response(JSON.stringify({ error: 'ALAN_CLIENT_IDS 환경변수가 설정되지 않았습니다.' }), {
+      if (!geminiApiKey) {
+        return new Response(JSON.stringify({ error: 'GEMINI_API_KEY 환경변수가 설정되지 않았습니다.' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      let alanData = null;
-      let lastStatus = 500;
+      // ✅ Gemini API를 통한 레시피 생성
+      console.log('[Gemini] 레시피 생성 요청 시작...');
 
-      for (const clientId of clientIds) {
-        try {
-          const queryString = new URLSearchParams({
-            content: systemPrompt,
-            client_id: clientId,
-          }).toString();
+      // 🚨 절대 gemini-3.6-flash 같은 없는 모델 쓰지 말 것! 구글 최신 모델은 1.5-flash 입니다.
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
-          const res = await fetch(`https://kdt-api-function.azurewebsites.net/api/v1/question?${queryString}`);
+      const geminiRes = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: systemPrompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 4096,
+          },
+        }),
+      });
 
-          if (res.ok) {
-            alanData = await res.json();
-            break;
-          }
-
-          lastStatus = res.status;
-          console.warn(`[Alan AI] Client ID (${clientId}) Status: ${res.status}`);
-        } catch (netErr) {
-          console.warn(`[Alan AI Network Error] Client ID (${clientId})`, netErr);
-        }
+      if (!geminiRes.ok) {
+        const errBody = await geminiRes.text().catch(() => '');
+        console.error(`[Gemini API Error] Status: ${geminiRes.status}`, errBody);
+        return new Response(
+          JSON.stringify({ error: `Gemini API 요청 실패 (Status: ${geminiRes.status})`, details: errBody }),
+          { status: geminiRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
 
-      if (!alanData) {
-        return new Response(JSON.stringify({ error: `모든 Alan Client ID 실패 (마지막 status: ${lastStatus})` }), {
-          status: lastStatus,
+      const geminiData = await geminiRes.json();
+      const geminiText =
+        geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      if (!geminiText) {
+        console.error('[Gemini] 빈 응답 수신:', JSON.stringify(geminiData));
+        return new Response(JSON.stringify({ error: 'Gemini로부터 빈 응답을 수신했습니다.' }), {
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      return new Response(JSON.stringify(alanData), {
+      console.log('[Gemini] 레시피 생성 성공!');
+
+      // 프론트엔드 호환: 기존 Alan AI 응답 형식({ content: "..." })과 동일하게 반환
+      return new Response(JSON.stringify({ content: geminiText }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
