@@ -157,7 +157,7 @@ export default function RecipeList() {
 
   const filterCategories = ['한식', '양식', '일식', '중식', '분식', '디저트', '야식'];
   const filterDiets = ['다이어트', '고단백', '저탄수화물', '비건', '채식', '글루텐 프리', '저염식'];
-  const filterDifficulties = ['매우 쉬움', '쉬움', '보통', '어려움'];
+  const filterDifficulties = ['초간단', '쉬움', '보통', '어려움'];
   const filterSortOptions = ['최신순', '평점순', '조회순', '좋아요순', '댓글순'];
 
   const toggleSection = (section) => {
@@ -251,10 +251,9 @@ export default function RecipeList() {
             query = query.order('like_count', { ascending: false, nullsFirst: false });
             break;
           case '댓글순':
-            // comments_count가 1 이상인 레시피만 담아서 내림차순 정렬
+            // comments_count 기준으로 내림차순 정렬
             query = query
-              .gt('comments_count', 0)
-              .order('comments_count', { ascending: false });
+              .order('comments_count', { ascending: false, nullsFirst: false });
             break;
           default:
             query = query.order('created_at', { ascending: false });
