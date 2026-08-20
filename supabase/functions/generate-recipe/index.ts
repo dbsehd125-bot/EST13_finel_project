@@ -17,115 +17,54 @@ Deno.serve(async (req) => {
     const { action, systemPrompt, promptText } = body;
 
     // -------------------------------------------------------------
-    // Action 1: Google Gemini를 통한 레시피 JSON 생성
-    // (기존 Alan AI/Azure 서버 대체)
+    // Action 1: Alan AI(Azure 서버)를 통한 레시피 JSON 생성
     // -------------------------------------------------------------
     if (action === 'generate-recipe') {
-      const geminiApiKey = Deno.env.get('GEMINI_API_KEY')?.trim();
+      const alanClientIdsStr = Deno.env.get('ALAN_CLIENT_IDS') || '';
+      const clientIds = alanClientIdsStr
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
 
-      if (!geminiApiKey) {
-        // Gemini 키가 없으면 기존 Alan AI로 폴백 시도
-        const alanClientIdsStr = Deno.env.get('ALAN_CLIENT_IDS') || '';
-        const clientIds = alanClientIdsStr
-          .split(',')
-          .map((id) => id.trim())
-          .filter(Boolean);
+      if (clientIds.length === 0) {
+        return new Response(JSON.stringify({ error: 'ALAN_CLIENT_IDS 환경변수가 설정되지 않았습니다.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-        if (clientIds.length === 0) {
-          return new Response(JSON.stringify({ error: 'GEMINI_API_KEY 또는 ALAN_CLIENT_IDS 환경변수가 설정되지 않았습니다.' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
+      let alanData = null;
+      let lastStatus = 500;
 
-        // 기존 Alan AI 폴백 로직
-        let alanData = null;
-        let lastStatus = 500;
+      for (const clientId of clientIds) {
+        try {
+          const queryString = new URLSearchParams({
+            content: systemPrompt,
+            client_id: clientId,
+          }).toString();
 
-        for (const clientId of clientIds) {
-          try {
-            const queryString = new URLSearchParams({
-              content: systemPrompt,
-              client_id: clientId,
-            }).toString();
+          const res = await fetch(`https://kdt-api-function.azurewebsites.net/api/v1/question?${queryString}`);
 
-            const res = await fetch(`https://kdt-api-function.azurewebsites.net/api/v1/question?${queryString}`);
-
-            if (res.ok) {
-              alanData = await res.json();
-              break;
-            }
-
-            lastStatus = res.status;
-            console.warn(`[Alan AI Failover] Client ID (${clientId}) Status: ${res.status}`);
-          } catch (netErr) {
-            console.warn(`[Alan AI Network Error] Client ID (${clientId})`, netErr);
+          if (res.ok) {
+            alanData = await res.json();
+            break;
           }
-        }
 
-        if (!alanData) {
-          return new Response(JSON.stringify({ error: `모든 Alan Client ID 실패 (마지막 status: ${lastStatus})` }), {
-            status: lastStatus,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          lastStatus = res.status;
+          console.warn(`[Alan AI] Client ID (${clientId}) Status: ${res.status}`);
+        } catch (netErr) {
+          console.warn(`[Alan AI Network Error] Client ID (${clientId})`, netErr);
         }
+      }
 
-        return new Response(JSON.stringify(alanData), {
-          status: 200,
+      if (!alanData) {
+        return new Response(JSON.stringify({ error: `모든 Alan Client ID 실패 (마지막 status: ${lastStatus})` }), {
+          status: lastStatus,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // ✅ Gemini API를 통한 레시피 생성
-      console.log('[Gemini] 레시피 생성 요청 시작...');
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
-
-      const geminiRes = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: systemPrompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 4096,
-          },
-        }),
-      });
-
-      if (!geminiRes.ok) {
-        const errBody = await geminiRes.text().catch(() => '');
-        console.error(`[Gemini API Error] Status: ${geminiRes.status}`, errBody);
-        return new Response(
-          JSON.stringify({ error: `Gemini API 요청 실패 (Status: ${geminiRes.status})`, details: errBody }),
-          { status: geminiRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-
-      const geminiData = await geminiRes.json();
-      const geminiText =
-        geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-      if (!geminiText) {
-        console.error('[Gemini] 빈 응답 수신:', JSON.stringify(geminiData));
-        return new Response(JSON.stringify({ error: 'Gemini로부터 빈 응답을 수신했습니다.' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      console.log('[Gemini] 레시피 생성 성공!');
-
-      // 프론트엔드 호환: 기존 Alan AI 응답 형식({ content: "..." })과 동일하게 반환
-      return new Response(JSON.stringify({ content: geminiText }), {
+      return new Response(JSON.stringify(alanData), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
