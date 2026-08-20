@@ -225,68 +225,68 @@ Supabase를 활용하여 사용자 인증, 데이터베이스, 이미지 저장�
 
 ```text
 src/
-├── components/
-│   ├── Header.tsx
-│   ├── Footer.tsx
-│   ├── Layout.tsx
-│   ├── BottomNav.tsx
-│   ├── UserAvatar.jsx
-│   ├── GuestRoute.jsx
-│   ├── AuthGuardModal.jsx
-│   ├── ConfirmModal.jsx
-│   └── SEO.jsx
+├── components/                         # Header, Footer, Layout, BottomNav, UserAvatar,
+│                                       # 인증 가드·확인 모달·SEO 등 공통 컴포넌트
 │
 ├── context/
-│   ├── AuthContext.jsx
-│   └── NotificationContext.jsx
+│   ├── AuthContext.jsx                 # 로그인 사용자 및 프로필 전역 상태 관리
+│   └── NotificationContext.jsx         # 전역 알림 상태 관리
+│
+├── images/                             # 로그인/회원가입 등에서 사용하는 로컬 이미지
 │
 ├── lib/
-│   └── supabaseClient.js
+│   └── supabaseClient.js               # Supabase Client 및 인증 저장소 설정
 │
 ├── pages/
 │   ├── Home/
-│   │   └── Home.tsx
+│   │   └── Home.tsx                    # 메인 페이지
 │   │
 │   ├── CreateAIRecipe/
-│   │   ├── CreateAIRecipe.jsx
-│   │   ├── components/
-│   │   └── hooks/
+│   │   ├── CreateAIRecipe.jsx          # AI 레시피 생성 메인 페이지
+│   │   ├── components/                 # 조건 입력 폼, 생성 로딩, 결과 표시 컴포넌트
+│   │   ├── hooks/                      # AI 레시피 생성 요청 및 상태 관리 Hook
+│   │   ├── RecipeJsonToMarkdown.jsx    # AI 응답 데이터를 Markdown 형태로 변환
+│   │   └── RecipeResultCard.jsx        # 생성된 레시피 결과 카드
 │   │
 │   ├── RegistRecipe/
-│   │   ├── RegistRecipe.jsx
-│   │   ├── components/
-│   │   │   ├── Step1BasicInfo.jsx
-│   │   │   ├── Step2Ingredients.jsx
-│   │   │   ├── Step3CookingSteps.jsx
-│   │   │   ├── Step4Image.jsx
-│   │   │   └── Step5Options.jsx
-│   │   └── hooks/
+│   │   ├── RegistRecipe.jsx            # 레시피 등록·수정 메인 페이지
+│   │   ├── components/                 # Step1~5 입력 단계 및 접근 제어 모달
+│   │   └── hooks/                      # 등록 Form 상태 및 Supabase 업로드 로직
 │   │
 │   ├── RecipeList/
-│   │   └── RecipeList.jsx
+│   │   └── RecipeList.jsx              # 레시피 검색·필터·정렬·페이지네이션
 │   │
 │   ├── RecipeDetail/
-│   │   ├── RecipeDetail.jsx
-│   │   ├── components/
-│   │   └── hooks/
+│   │   ├── RecipeDetail.jsx            # 레시피 상세 메인 페이지
+│   │   ├── components/                 # 개요, 조리 과정, AI 요약, 후기, 관련 레시피
+│   │   ├── hooks/                      # 상세 데이터·좋아요/북마크·후기 상태 관리 Hook
+│   │   └── recipeDetailUtils.js        # 상세 페이지 공통 유틸리티
 │   │
 │   ├── Community/
-│   │   ├── Community.jsx
-│   │   ├── components/
-│   │   └── hooks/
+│   │   ├── Community.jsx               # 커뮤니티 메인 페이지
+│   │   ├── components/                 # 피드, 카드, 상세·작성·레시피 선택 모달
+│   │   ├── hooks/                      # 게시글 조회·작성 및 댓글 상태 관리 Hook
+│   │   └── communityUtils.js           # 커뮤니티 공통 유틸리티
 │   │
 │   ├── MyPage/
-│   │   └── MyPage.jsx
+│   │   └── MyPage.jsx                  # 프로필 및 사용자 활동 관리
 │   │
 │   └── Auth/
-│       ├── Login.jsx
-│       ├── SignUp.jsx
-│       ├── UpdatePassword.jsx
-│       ├── components/
-│       └── hooks/
+│       ├── Login.jsx                    # 로그인 페이지
+│       ├── SignUp.jsx                   # 회원가입 페이지
+│       ├── UpdatePassword.jsx           # 비밀번호 변경 페이지
+│       ├── components/                  # 소셜 로그인, 비밀번호 재설정, Auth UI
+│       ├── hooks/                       # Google·Kakao 소셜 로그인 Hook
+│       └── authConstants.js             # 인증 관련 공통 상수
 │
-├── types/
+├── types/                               # Home 및 Navigation 관련 TypeScript 타입 정의
+│
 ├── utils/
-├── App.jsx
-└── main.tsx
+│   ├── AlanApi.js                       # Alan API 요청 관련 유틸리티
+│   └── userProfile.js                   # 사용자 프로필 관련 공통 유틸리티
+│
+├── App.jsx                              # 전체 Route 및 페이지 구성
+├── App.css                              # App 공통 스타일
+├── index.css                            # 전역 스타일
+└── main.tsx                             # React Application Entry Point
 ```
